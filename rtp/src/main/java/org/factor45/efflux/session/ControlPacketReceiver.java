@@ -1,4 +1,4 @@
-package org.factor45.efflux;
+package org.factor45.efflux.session;
 
 import org.factor45.efflux.packet.RtcpPacket;
 
@@ -9,5 +9,5 @@ import java.net.SocketAddress;
  */
 public interface ControlPacketReceiver {
 
-    void controlPacketReceived(RtcpPacket packet, SocketAddress origin);
+    void controlPacketReceived(SocketAddress origin, RtcpPacket packet);
 }
