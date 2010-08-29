@@ -1,4 +1,4 @@
-package org.factor45.efflux.session;
+package org.factor45.efflux.network;
 
 import org.factor45.efflux.packet.RtpPacket;
 
