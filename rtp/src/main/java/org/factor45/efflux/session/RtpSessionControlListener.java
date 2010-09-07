@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package org.factor45.efflux.network;
+package org.factor45.efflux.session;
 
-import org.factor45.efflux.packet.DataPacket;
-
-import java.net.SocketAddress;
+import org.factor45.efflux.packet.CompoundControlPacket;
 
 /**
  * @author <a href="http://bruno.factor45.org/">Bruno de Carvalho</a>
  */
-public interface DataPacketReceiver {
+public interface RtpSessionControlListener {
 
-    void dataPacketReceived(SocketAddress origin, DataPacket packet);
+    void controlPacketReceived(RtpSession session, CompoundControlPacket packet);
 }

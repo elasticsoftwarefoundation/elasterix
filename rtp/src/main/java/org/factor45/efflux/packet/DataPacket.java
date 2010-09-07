@@ -1,3 +1,19 @@
+/*
+ * Copyright 2010 Bruno de Carvalho
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.factor45.efflux.packet;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -28,9 +44,11 @@ import java.util.List;
  * |                        header extension                       |
  * |                             ....                              |
  *
- * @author <a href="mailto:bruno.carvalho@wit-software.com">Bruno de Carvalho</a>
+ * // TODO padding, like RTCP.
+ *
+ * @author <a href="http://bruno.factor45.org/">Bruno de Carvalho</a>
  */
-public class RtpPacket {
+public class DataPacket {
 
     // internal vars --------------------------------------------------------------------------------------------------
 
@@ -49,23 +67,25 @@ public class RtpPacket {
 
     private ChannelBuffer data;
 
-    public RtpPacket() {
+    // constructors ---------------------------------------------------------------------------------------------------
+    
+    public DataPacket() {
         this.version = RtpVersion.V2;
     }
 
     // public static methods ------------------------------------------------------------------------------------------
 
-    public static RtpPacket decode(byte[] data) {
+    public static DataPacket decode(byte[] data) {
         return decode(ChannelBuffers.wrappedBuffer(data));
     }
 
-    public static RtpPacket decode(ChannelBuffer buffer) throws IndexOutOfBoundsException {
+    public static DataPacket decode(ChannelBuffer buffer) throws IndexOutOfBoundsException {
         if (buffer.readableBytes() < 12) {
             throw new IllegalArgumentException("A RTP packet must be at least 12 octets long");
         }
 
         // Version, Padding, eXtension, CSRC Count
-        RtpPacket packet = new RtpPacket();
+        DataPacket packet = new DataPacket();
         byte b = buffer.readByte();
         packet.version = RtpVersion.fromByte(b);
         packet.padding = (b & 0x20) > 0; // mask 0010 0000
@@ -77,14 +97,14 @@ public class RtpPacket {
         packet.marker = (b & 0x80) > 0; // mask 0000 0001
         packet.payloadType = (b & 0x7f); // mask 0111 1111
 
-        packet.sequenceNumber = buffer.readShort();
-        packet.timestamp = buffer.readInt();
-        packet.ssrc = buffer.readInt();
+        packet.sequenceNumber = buffer.readUnsignedShort();
+        packet.timestamp = buffer.readUnsignedInt();
+        packet.ssrc = buffer.readUnsignedInt();
 
         // Read extension headers & data
         if (extension) {
             packet.extensionHeaderData = buffer.readShort();
-            packet.extensionData = new byte[buffer.readShort()];
+            packet.extensionData = new byte[buffer.readUnsignedShort()];
             buffer.readBytes(packet.extensionData);
         }
 
@@ -92,7 +112,7 @@ public class RtpPacket {
         if (contributingSourcesCount > 0) {
             packet.contributingSourceIds = new ArrayList<Long>(contributingSourcesCount);
             for (int i = 0; i < contributingSourcesCount; i++) {
-                long contributingSource = buffer.readInt();
+                long contributingSource = buffer.readUnsignedInt();
                 packet.contributingSourceIds.add(contributingSource);
             }
         }
@@ -105,7 +125,7 @@ public class RtpPacket {
         return packet;
     }
 
-    public static ChannelBuffer encode(RtpPacket packet) {
+    public static ChannelBuffer encode(DataPacket packet) {
         int size = 12; // Fixed width
         if (packet.hasExtension()) {
             size += 4 + packet.getExtensionDataSize();
@@ -270,6 +290,9 @@ public class RtpPacket {
     }
 
     public void setSsrc(long ssrc) {
+        if ((ssrc < 0) || (ssrc > 0xffffffffL)) {
+            throw new IllegalArgumentException("Valid range for SSRC is [0;0xffffffff]");
+        }
         this.ssrc = ssrc;
     }
 
@@ -310,7 +333,7 @@ public class RtpPacket {
     @Override
     public String toString() {
         return new StringBuilder()
-                .append("RtpPacket{V=").append(this.version)
+                .append("DataPacket{V=").append(this.version)
                 .append(", P=").append(this.padding)
                 .append(", X=").append(this.hasExtension())
                 .append(", CC=").append(this.getContributingSourcesCount())
