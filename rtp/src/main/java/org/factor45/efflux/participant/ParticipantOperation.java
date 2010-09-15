@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package org.factor45.efflux.session;
-
-import org.factor45.efflux.packet.DataPacket;
-import org.factor45.efflux.participant.RtpParticipantInfo;
+package org.factor45.efflux.participant;
 
 /**
- * @author <a href="http://bruno.factor45.org/">Bruno de Carvalho</a>
+ * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>
  */
-public interface RtpSessionDataListener {
+public interface ParticipantOperation {
 
-    void dataPacketReceived(RtpSession session, RtpParticipantInfo participant, DataPacket packet);
+    void doWithParticipant(RtpParticipant participant) throws Exception;
 }
