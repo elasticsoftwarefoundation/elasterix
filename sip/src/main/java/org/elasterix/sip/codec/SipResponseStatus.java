@@ -29,7 +29,7 @@ public enum SipResponseStatus {
 	USE_PROXY(305, "Use Proxy"),
 	ALTERNATIVE_SERVICE(380, "Alternative Service"),
 	
-	/** 400 range are FAILURE response codes*/
+	/** 400 range are CLIENT ERROR response codes*/
 	BAD_REQUEST(400, "Bad Request"),
 	UNAUTHORIZED(401, "Unauthorized"),
 	PAYMENT_REQUIRED(402, "Payment Required"),
@@ -59,7 +59,7 @@ public enum SipResponseStatus {
 	REQUEST_PENDING(491, "Request Pending"),
 	UNDECIPHERABLE(493, "Undecipherable"),
 	
-	/** 500 range are SERVER FAILURE response codes*/
+	/** 500 range are SERVER ERROR response codes*/
 	SERVER_INTERNAL_ERROR(500, "Server Internal Error"),
 	NOT_IMPLEMENTED(501, "Not Implemented"),
 	BAD_GATEWAY(502, "Bad Gateway"),

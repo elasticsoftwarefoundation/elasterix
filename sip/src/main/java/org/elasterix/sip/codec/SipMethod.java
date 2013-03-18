@@ -6,24 +6,13 @@ package org.elasterix.sip.codec;
  * @author Leonard Wolters
  */
 public enum SipMethod {
-    /**
-     * The OPTIONS method represents a request for information about the communication options
-     * available on the request/response chain identified by the Request-URI. This method allows
-     * the client to determine the options and/or requirements associated with a resource, or the
-     * capabilities of a server, without implying a resource action or initiating a resource
-     * retrieval.
-     */
+    // See http://tools.ietf.org/html/rfc3261#section-7.1
+    ACK("ACK"),
+    BYE("BYE"),
+    CANCEL("CANCEL"),
+    INVITE("INVITE"),
     OPTIONS("OPTIONS"), 
-
-    /**
-     * The REGISTER method 
-     */
-    REGISTER("REGISTER"),
-
-    /**
-     * The INVITE method 
-     */
-    INVITE("INVITE");
+    REGISTER("REGISTER");
 
     private String methodName;
     private SipMethod(String methodName) {
