@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
@@ -18,6 +19,8 @@ import org.springframework.beans.factory.annotation.Value;
  * @author leonard Wolters
  */
 public class SipServer {
+	private static final Logger log = Logger.getLogger(SipServer.class);
+	
 	/** Default port for the SIP server */
 	private int port = 5060;
 
@@ -75,7 +78,7 @@ public class SipServer {
         if (args.length > 0) {
             port = Integer.parseInt(args[0]);
         } else {
-            port = 8080;
+            port = 5060;
         }
         SipServer server = new SipServer();
         server.setPort(port);

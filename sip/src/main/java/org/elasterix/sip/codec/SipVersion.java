@@ -1,17 +1,27 @@
 package org.elasterix.sip.codec;
 
-import org.jboss.netty.handler.codec.http.HttpVersion;
-
 /**
  * The version of SIP protocol
  * 
  * @author Leonard Wolters
  */
-public class SipVersion extends HttpVersion {
-	public static final SipVersion SIP_1_0 = new SipVersion("SIP", 1, 0);
-	public static final SipVersion SIP_2_0 = new SipVersion("SIP", 2, 0);
+public enum SipVersion {
+	SIP_1_0("SIP", 1, 0, false),
+	SIP_2_0("SIP", 2, 0, true);
 	
-	protected SipVersion(String protocolName, int majorVersion, int minorVersion) {
-		super(protocolName, majorVersion, minorVersion, false);
+	private final String protocolName;
+    private final int majorVersion;
+    private final int minorVersion;
+    private final boolean keepAliveDefault;
+	private SipVersion(String protocolName, int majorVersion, int minorVersion,
+			boolean keepAliveDefault) {
+		this.protocolName = protocolName;
+		this.majorVersion = majorVersion;
+		this.minorVersion = minorVersion;
+		this.keepAliveDefault = keepAliveDefault;
+	}
+	
+	public boolean isKeepAliveDefault() {
+		return keepAliveDefault;
 	}
 }

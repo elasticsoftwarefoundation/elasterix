@@ -4,7 +4,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 
 /**
- * Decodes {@link ChannelBuffer}s into {@link SipRequest}s
+ * Decodes {@link ChannelBuffer}s into {@link SipResponse}s.
  *
  * <h3>Parameters that prevents excessive memory consumption</h3>
  * <table border="1">
@@ -13,7 +13,7 @@ import org.jboss.netty.handler.codec.frame.TooLongFrameException;
  * </tr>
  * <tr>
  * <td>{@code maxInitialLineLength}</td>
- * <td>The maximum length of the initial line (e.g. {@code "GET / HTTP/1.0"})
+ * <td>The maximum length of the initial line (e.g. {@code "HTTP/1.0 200 OK"})
  *     If the length of the initial line exceeds this value, a
  *     {@link TooLongFrameException} will be raised.</td>
  * </tr>
@@ -23,17 +23,20 @@ import org.jboss.netty.handler.codec.frame.TooLongFrameException;
  *     header exceeds this value, a {@link TooLongFrameException} will be raised.</td>
  * </tr>
  * </table>
+ * 
+ * @author Leonard Wolters
  */
-public class SipRequestDecoder extends SipMessageDecoder {
+public class SipResponseDecoder extends SipMessageDecoder {
 
 	@Override
 	protected boolean isDecodingRequest() {
-		return true;
+		return false;
 	}
 
 	@Override
 	protected SipMessage createMessage(String[] initialLine) throws Exception {
-		return new SipRequestImpl(SipVersion.valueOf(initialLine[2]), 
-				SipMethod.valueOf(initialLine[0]), initialLine[1]);
+		return new SipResponseImpl(
+                SipVersion.valueOf(initialLine[0]),
+                SipResponseStatus.lookup(Integer.valueOf(initialLine[1]), initialLine[2]));
 	}
 }

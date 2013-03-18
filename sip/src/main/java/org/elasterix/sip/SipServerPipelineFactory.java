@@ -5,45 +5,43 @@ import static org.jboss.netty.channel.Channels.pipeline;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import org.apache.log4j.Logger;
+import org.elasterix.sip.codec.SipRequestDecoder;
+import org.elasterix.sip.codec.SipResponseEncoder;
 import org.elasterix.sip.ssl.DummySecureSslContextFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpContentCompressor;
-import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
-import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
- * @author leonard Wolters
+ * Standard SIP pipeline factory<br>
+ * 
+ * @author Leonard Wolters
  */
 public class SipServerPipelineFactory implements ChannelPipelineFactory {
+	private static final Logger log = Logger.getLogger(SipServerPipelineFactory.class);
 	
 	private boolean ssl = false;
 	private boolean compression = true;
-	private boolean handleHttpChunks = true;
 	private SSLContext sslContext;
 	
 	@Override
 	public ChannelPipeline getPipeline() throws Exception {
-
-		// Create a default pipeline implementation.
 		ChannelPipeline pipeline = pipeline();
-
-		// Uncomment the following line if you want HTTPS
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("Create pipeline(ssl: %b)", ssl));
+		}
 		if(ssl) {
 			SSLEngine engine = getSslContext().createSSLEngine();
 			engine.setUseClientMode(false);
 			pipeline.addLast("ssl", new SslHandler(engine));
 		}
 
-		pipeline.addLast("decoder", new HttpRequestDecoder());
-		if(!handleHttpChunks) {
-			pipeline.addLast("aggregator", new HttpChunkAggregator(1048576));
-		}
-		pipeline.addLast("encoder", new HttpResponseEncoder());		
+		pipeline.addLast("decoder", new SipRequestDecoder());
+		pipeline.addLast("encoder", new SipResponseEncoder());		
 		if(compression) {
 			pipeline.addLast("deflater", new HttpContentCompressor());
 		}
@@ -67,12 +65,6 @@ public class SipServerPipelineFactory implements ChannelPipelineFactory {
 		this.compression = compression;
 	}
 	
-	@Required
-	@Value("${sip.handlechunks}")
-	public void setHandleHttpChunks(boolean handleHttpChunks) {
-		this.handleHttpChunks = handleHttpChunks;
-	}
-
 	@Required
 	@Value("${sip.enabled}")
 	public void setSsl(boolean ssl) {
