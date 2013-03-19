@@ -13,7 +13,6 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 public class SipClient {
 
 	public void start() {
-		// configure client
         ClientBootstrap bootstrap = new ClientBootstrap(
                 new NioClientSocketChannelFactory(
                         Executors.newCachedThreadPool(),

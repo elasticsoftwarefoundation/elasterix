@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Command line test" failures="0" tests="2" time="0.203" errors="0">
+  <properties/>
+  <testcase name="testClient" time="0.0" classname="org.elasterix.sip.client.SipClientTest"/>
+  <testcase name="testInviteMessage" time="0.031" classname="org.elasterix.sip.codec.SipRequestDecoderTest"/>
+</testsuite>

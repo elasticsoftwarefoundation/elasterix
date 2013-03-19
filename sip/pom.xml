@@ -27,7 +27,7 @@
     <artifactId>elasterix-sip</artifactId>
     <packaging>jar</packaging>
 
-    <name>Elasterix :: ElasticActors :: SIP</name>
+    <name>Elasterix :: Elasterix :: SIP</name>
     <url>https://github.com/elasterix/elasterix</url>
 
     <properties>
@@ -35,6 +35,7 @@
     </properties>
 
     <dependencies>
+    	<!--
         <dependency>
             <groupId>org.elasterix.elasticactors</groupId>
             <artifactId>cassandra-integration</artifactId>
@@ -45,6 +46,7 @@
             <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <dependency>
             <groupId>io.netty</groupId>

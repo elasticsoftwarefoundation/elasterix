@@ -1,0 +1,20 @@
+<testng-results>
+  <reporter-output>
+  </reporter-output>
+  <suite name="Command line suite">
+    <groups>
+    </groups>
+    <test name="Command line test">
+      <class name="org.elasterix.sip.client.SipClientTest">
+        <test-method status="PASS" signature="testClient()" name="testClient" duration-ms="0" started-at="2013-03-19T09:40:01Z" finished-at="2013-03-19T09:40:01Z">
+        </test-method>
+      </class>
+      <class name="org.elasterix.sip.codec.SipRequestDecoderTest">
+        <test-method status="PASS" signature="init()" name="init" is-config="true" duration-ms="156" started-at="2013-03-19T09:40:01Z" finished-at="2013-03-19T09:40:01Z">
+        </test-method>
+        <test-method status="PASS" signature="testInviteMessage()" name="testInviteMessage" duration-ms="31" started-at="2013-03-19T09:40:01Z" finished-at="2013-03-19T09:40:01Z">
+        </test-method>
+      </class>
+    </test>
+  </suite>
+</testng-results>
