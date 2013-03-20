@@ -30,7 +30,10 @@ public class SipRequestDecoderTest {
 		//ChannelHandlerContext context = new DummyChannelHandlerContext();
 		//ChannelEvent event = new DummyChannelEvent();
 		
+		//
+		
 		SipRequestDecoder decoder = new SipRequestDecoder();
 		decoder.handleUpstream(context, event);
+		throw new Exception("");
 	}
 }

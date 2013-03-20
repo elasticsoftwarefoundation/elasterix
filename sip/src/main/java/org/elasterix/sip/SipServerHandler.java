@@ -4,15 +4,13 @@ import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
 
-import java.util.Map;
-
 import org.apache.log4j.Logger;
+import org.elasterix.sip.codec.SipMethod;
 import org.elasterix.sip.codec.SipRequest;
 import org.elasterix.sip.codec.SipResponse;
 import org.elasterix.sip.codec.SipResponseImpl;
 import org.elasterix.sip.codec.SipResponseStatus;
 import org.elasterix.sip.codec.SipVersion;
-import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -20,7 +18,7 @@ import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
-import org.jboss.netty.util.CharsetUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Sip Server Handler<br>
@@ -32,27 +30,31 @@ import org.jboss.netty.util.CharsetUtil;
  */
 public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger log = Logger.getLogger(SipServerHandler.class);
+	
+	@Autowired
+	private SipMessageHandler messageHandler;
 
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
 		SipRequest request = (SipRequest) e.getMessage();
-
-		// print SIP request (only in debug mode)
-		if(log.isDebugEnabled()) {
-			StringBuilder buf = new StringBuilder();
-			for (Map.Entry<String, String> h: request.getHeaders()) {
-				buf.append("HEADER: " + h.getKey() + " = " + h.getValue() + "\r\n");
-			}
-			buf.append("\r\n");
-			ChannelBuffer content = request.getContent();
-			if (content.readable()) {
-				buf.append("CONTENT: " + content.toString(CharsetUtil.UTF_8) + "\r\n");
-			}
-			log.debug(String.format("SIP Received\r\n[%s]", buf.toString()));
+		
+		// delegate action to handler
+		if(SipMethod.ACK == request.getMethod()) {
+			messageHandler.onAck(request);
+		} else if(SipMethod.BYE == request.getMethod()) {
+			messageHandler.onBye(request);
+		} else if(SipMethod.CANCEL == request.getMethod()) {
+			messageHandler.onCancel(request);
+		} else if(SipMethod.INVITE == request.getMethod()) {
+			messageHandler.onInvite(request);
+		} else if(SipMethod.OPTIONS == request.getMethod()) {
+			messageHandler.onOptions(request);
+		} else if(SipMethod.REGISTER == request.getMethod()) {
+			messageHandler.onRegister(request);
 		}
 		
-		// writing reponse
+		// writing reponse (indicating message is received accordingly!)
 		writeResponse(request, e);
 	}
 

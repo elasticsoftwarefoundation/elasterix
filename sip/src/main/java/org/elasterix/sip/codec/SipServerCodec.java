@@ -1,8 +1,5 @@
-package org.elasterix.sip;
+package org.elasterix.sip.codec;
 
-import org.elasterix.sip.client.SipClientCodec;
-import org.elasterix.sip.codec.SipRequestDecoder;
-import org.elasterix.sip.codec.SipResponseEncoder;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;

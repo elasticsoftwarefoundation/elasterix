@@ -1,0 +1,13 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite thread-count="10" skipfailedinvocationCounts="false" verbose="0" name="Failed suite [Command line suite]" junit="false" parallel="both" annotations="JDK" data-provider-thread-count="10">
+  <test name="Command line test(failed)" junit="false" parallel="both" annotations="JDK">
+    <classes>
+      <class name="org.elasterix.sip.codec.SipRequestDecoderTest">
+        <methods>
+          <include name="init"/>
+          <include name="testInviteMessage"/>
+        </methods>
+      </class>
+    </classes>
+  </test>
+</suite>

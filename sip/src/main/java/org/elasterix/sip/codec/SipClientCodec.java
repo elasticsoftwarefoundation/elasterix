@@ -1,16 +1,10 @@
-package org.elasterix.sip.client;
+package org.elasterix.sip.codec;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
-import org.elasterix.sip.SipServerCodec;
-import org.elasterix.sip.codec.SipMessage;
-import org.elasterix.sip.codec.SipMethod;
-import org.elasterix.sip.codec.SipRequest;
-import org.elasterix.sip.codec.SipRequestEncoder;
-import org.elasterix.sip.codec.SipResponseDecoder;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
@@ -51,6 +45,14 @@ public class SipClientCodec implements ChannelUpstreamHandler,
 
     private final boolean failOnMissingResponse;
 
+    /**
+     * Creates a new instance with the default decoder options
+     * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}).
+     */
+    public SipClientCodec() {
+    	this(4096, 8192, true);
+    }
+    
     /**
      * Creates a new instance with the default decoder options
      * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}).
