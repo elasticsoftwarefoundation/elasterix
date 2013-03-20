@@ -38,27 +38,42 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
 		SipRequest request = (SipRequest) e.getMessage();
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("messageReceived[%s]", request));
+		}
 		
 		// delegate action to handler
-		if(SipMethod.ACK == request.getMethod()) {
+		switch(request.getMethod()) {
+		case ACK:
 			messageHandler.onAck(request);
-		} else if(SipMethod.BYE == request.getMethod()) {
+			break;
+		case BYE:
 			messageHandler.onBye(request);
-		} else if(SipMethod.CANCEL == request.getMethod()) {
+			break;
+		case CANCEL:
 			messageHandler.onCancel(request);
-		} else if(SipMethod.INVITE == request.getMethod()) {
+			break;
+		case INVITE:
 			messageHandler.onInvite(request);
-		} else if(SipMethod.OPTIONS == request.getMethod()) {
-			messageHandler.onOptions(request);
-		} else if(SipMethod.REGISTER == request.getMethod()) {
+			break;
+		case OPTIONS:
+			messageHandler.onInvite(request);
+			break;
+		case REGISTER:
 			messageHandler.onRegister(request);
+			break;
+		default:
+			log.error(String.format("Unrecognized method[%s]", 
+					request.getMethod().name()));
+			writeResponse(request, e, SipResponseStatus.NOT_IMPLEMENTED);
+			return;
 		}
 		
 		// writing reponse (indicating message is received accordingly!)
-		writeResponse(request, e);
+		writeResponse(request, e, SipResponseStatus.OK);
 	}
 
-	private void writeResponse(SipRequest request, MessageEvent e) {
+	private void writeResponse(SipRequest request, MessageEvent e, SipResponseStatus status) {
 		// Decide whether to close the connection or not.		
 		//boolean keepAlive = SipHeaders.isKeepAlive(request);
 		boolean keepAlive = true;
