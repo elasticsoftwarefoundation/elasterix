@@ -10,8 +10,8 @@
     <artifactId>elasterix-server</artifactId>
     <packaging>jar</packaging>
 
-    <name>Elasterix :: Elasterix :: Server</name>
-    <url>https://github.com/elasterix/elasterix</url>
+    <name>Elastic Software Foundation :: Elasterix :: Server</name>
+    <url>https://github.com/elasticsoftwarefoundation/elasterix</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
