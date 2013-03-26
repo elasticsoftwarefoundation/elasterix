@@ -13,4 +13,5 @@
 
 # Eclipse
 .project
+.classpath
 .settings
