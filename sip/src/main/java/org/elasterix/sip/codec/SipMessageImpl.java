@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.util.internal.StringUtil;
@@ -12,9 +13,11 @@ import org.jboss.netty.util.internal.StringUtil;
  * The default {@link SipMessage} implementation.
  */
 public class SipMessageImpl implements SipMessage {
+	private static final Logger log = Logger.getLogger(SipMessageImpl.class);
     private final SipHeaders headers = new SipHeaders();
     private SipVersion version;
     private ChannelBuffer content = ChannelBuffers.EMPTY_BUFFER;
+    private SipResponseStatus responseStatus;
 
     /**
      * Creates a new instance.
@@ -22,9 +25,14 @@ public class SipMessageImpl implements SipMessage {
     protected SipMessageImpl(final SipVersion version) {
         setProtocolVersion(version);
     }
+    
+    protected SipMessageImpl(SipResponseStatus responseStatus) {
+    	this.responseStatus = responseStatus;
+    }
 
     @Override
     public void addHeader(final String name, final Object value) {
+    	if(log.isDebugEnabled()) log.debug(String.format("addHeader. [%s] --> [%s]", name, value));
         headers.addHeader(name, value);
     }
 
@@ -96,6 +104,19 @@ public class SipMessageImpl implements SipMessage {
     @Override
     public ChannelBuffer getContent() {
         return content;
+    }
+    
+    @Override
+    public SipResponseStatus getResponseStatus() {
+        return responseStatus;
+    }
+
+    @Override
+    public void setResponseStatus(SipResponseStatus responseStatus) {
+        if (responseStatus == null) {
+            throw new NullPointerException("responseStatus");
+        }
+        this.responseStatus = responseStatus;
     }
 
     @Override

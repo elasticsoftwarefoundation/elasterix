@@ -6,29 +6,15 @@ package org.elasterix.sip.codec;
  * @author Leonard Wolters
  */
 public class SipResponseImpl extends SipMessageImpl implements SipResponse {
-
-    private SipResponseStatus status;
-
+	
     /**
      * Creates a new instance.
      *
      * @param version the Sip version of this response
-     * @param status  the status of this response
+     * @param responseStatus  the status of this response
      */
-    public SipResponseImpl(SipVersion version, SipResponseStatus status) {
+    public SipResponseImpl(SipVersion version, SipResponseStatus responseStatus) {
         super(version);
-        setStatus(status);
-    }
-
-    @Override
-    public SipResponseStatus getStatus() {
-        return status;
-    }
-
-    private void setStatus(SipResponseStatus status) {
-        if (status == null) {
-            throw new NullPointerException("status");
-        }
-        this.status = status;
+        setResponseStatus(responseStatus);
     }
 }

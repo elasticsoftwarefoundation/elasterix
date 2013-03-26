@@ -1,4 +1,4 @@
- SIP/2.0 200 OK
+SIP/2.0 200 OK
 Via: SIP/2.0/UDP server10.biloxi.com
  ;branch=z9hG4bKnashds8;received=192.0.2.3
 Via: SIP/2.0/UDP bigbox3.site3.atlanta.com

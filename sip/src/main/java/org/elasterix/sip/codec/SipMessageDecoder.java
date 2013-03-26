@@ -3,6 +3,7 @@ package org.elasterix.sip.codec;
 import static org.jboss.netty.handler.codec.http.HttpConstants.CR;
 import static org.jboss.netty.handler.codec.http.HttpConstants.LF;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -34,379 +35,412 @@ import org.jboss.netty.handler.codec.replay.ReplayingDecoder;
  * @author Leonard Wolters
  */
 public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecoder.State> {
+	private static final Logger log = Logger.getLogger(SipMessageDecoder.class);
 
-    private final int maxInitialLineLength;
-    private final int maxHeaderSize;
-    private SipMessage message;
-    private ChannelBuffer content;
-    private int headerSize;
-    private int contentRead;
+	private final int maxInitialLineLength;
+	private final int maxHeaderSize;
+	private final int maxHeaderLineLength;
+	private SipMessage message;
+	private ChannelBuffer content;
+	private int headerSize;
+	private int contentRead;
 
-    /**
-     * The internal state of {@link SipMessageDecoder}.
-     */
-    protected enum State {
-        SKIP_CONTROL_CHARS,
-        READ_INITIAL,
-        READ_HEADER,
-        READ_VARIABLE_LENGTH_CONTENT,
-        READ_FIXED_LENGTH_CONTENT,
-    }
+	/**
+	 * The internal state of {@link SipMessageDecoder}.
+	 */
+	protected enum State {
+		SKIP_CONTROL_CHARS,
+		READ_INITIAL,
+		READ_HEADER,
+		READ_VARIABLE_LENGTH_CONTENT,
+		READ_FIXED_LENGTH_CONTENT,
+	}
 
-    /**
-     * Creates a new instance with the default
-     * {@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}, and
-     * {@code maxChunkSize (8192)}.
-     */
-    protected SipMessageDecoder() {
-        this(4096, 8192);
-    }
+	/**
+	 * Creates a new instance with the default
+	 * {@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)},
+	 *  {@code maxHeaderSize (4096)}
+	 */
+	protected SipMessageDecoder() {
+		this(4096, 8192, 4096);
+	}
 
-    /**
-     * Creates a new instance with the specified parameters.
-     */
-    protected SipMessageDecoder(int maxInitialLineLength, int maxHeaderSize) {
-        super(State.SKIP_CONTROL_CHARS, true);
-        if (maxInitialLineLength <= 0) {
-            throw new IllegalArgumentException(
-                    "maxInitialLineLength must be a positive integer: " +
-                    maxInitialLineLength);
-        }
-        if (maxHeaderSize <= 0) {
-            throw new IllegalArgumentException(
-                    "maxHeaderSize must be a positive integer: " +
-                    maxHeaderSize);
-        }
-        this.maxInitialLineLength = maxInitialLineLength;
-        this.maxHeaderSize = maxHeaderSize;
-    }
+	/**
+	 * Creates a new instance with the specified parameters.
+	 */
+	protected SipMessageDecoder(int maxInitialLineLength, int maxHeaderSize, 
+			int maxHeaderLineLength) {
+		super(State.SKIP_CONTROL_CHARS, true);
+		if (maxInitialLineLength <= 0) {
+			throw new IllegalArgumentException(
+					"maxInitialLineLength must be a positive integer: " +
+							maxInitialLineLength);
+		}
+		if (maxHeaderSize <= 0) {
+			throw new IllegalArgumentException(
+					"maxHeaderSize must be a positive integer: " +
+							maxHeaderSize);
+		}
+		if (maxHeaderLineLength <= 0) {
+			throw new IllegalArgumentException(
+					"maxHeaderLineLength must be a positive integer: " +
+							maxHeaderSize);
+		}
+		this.maxInitialLineLength = maxInitialLineLength;
+		this.maxHeaderSize = maxHeaderSize;
+		this.maxHeaderLineLength = maxHeaderLineLength;
+		log.debug(String.format("init(%d,%d,%d)", maxInitialLineLength, maxHeaderSize, maxHeaderLineLength));
+	}
 
-    @Override
-    protected Object decode(ChannelHandlerContext ctx, Channel channel, 
-    		ChannelBuffer buffer, State state) 
-    throws Exception {
-        switch (state) {
-	        case SKIP_CONTROL_CHARS: {
-	            try {
-	                skipControlCharacters(buffer);
-	                checkpoint(State.READ_INITIAL);
-	            } finally {
-	                checkpoint();
-	            }
-	        }
-	        case READ_INITIAL: {
-	            String[] initialLine = splitInitialLine(readLine(buffer, maxInitialLineLength));
-	            if (initialLine.length < 3) {
-	                // Invalid initial line - ignore.
-	                checkpoint(State.SKIP_CONTROL_CHARS);
-	                return null;
-	            }
-	            message = createMessage(initialLine);
-	            checkpoint(State.READ_HEADER);
-	        }
-	        case READ_HEADER: {
-	            State nextState = readHeaders(buffer);
-	            checkpoint(nextState);           
-	            if (nextState == State.SKIP_CONTROL_CHARS) {
-	                // No content is expected.
-	                return message;
-	            }
-	            long contentLength = SipHeaders.getContentLength(message, -1);
-	            if (contentLength == 0 || contentLength == -1 && isDecodingRequest()) {
-	                content = ChannelBuffers.EMPTY_BUFFER;
-	                return reset();
-	            }
+//	@Override
+//	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) 
+//			throws Exception {
+//		log.debug("exceptionCaught");
+//		super.exceptionCaught(ctx, e);
+//	}
+//
+//	@Override
+//	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) 
+//			throws Exception {
+//		log.debug("channelClosed");
+//		super.channelClosed(ctx, e);
+//	}
+//	
+//	@Override
+//	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) 
+//			throws Exception {
+//		log.debug("channelDisconnected");
+//		super.channelDisconnected(ctx, e);
+//	}
 	
-	            switch (nextState) {
-	            case READ_FIXED_LENGTH_CONTENT:                
-	                break;
-	            case READ_VARIABLE_LENGTH_CONTENT:
-	                break;
-	            default:
-	                throw new IllegalStateException("Unexpected state: " + nextState);
-	            }
-	            // We return null here, this forces decode to be called again 
-	            // where we will decode the content
-	            return null;
-	        }
-	        case READ_VARIABLE_LENGTH_CONTENT: {
-	            int toRead = actualReadableBytes();
-	            return buffer.readBytes(toRead);
-	        }       
-	        case READ_FIXED_LENGTH_CONTENT: {
-	            return readFixedLengthContent(buffer);
-	        }
-	        default: {
-	            throw new Error("Shouldn't reach here.");
-	        }
-        }
-    }
+	@Override
+	protected Object decode(ChannelHandlerContext ctx, Channel channel, 
+			ChannelBuffer buffer, State state) 
+					throws Exception {
+		if(log.isDebugEnabled()) log.debug(String.format("decode. State[%s]", state.name()));
+		switch (state) {
+		case SKIP_CONTROL_CHARS: {
+			try {
+				skipControlCharacters(buffer);
+				checkpoint(State.READ_INITIAL);
+			} finally {
+				checkpoint();
+			}
+		}
+		case READ_INITIAL: {
+			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_INITIAL"));
+			String[] initialLine = splitInitialLine(readLine(buffer, maxInitialLineLength));
+			if (initialLine.length < 3) {
 
-    private boolean isContentAlwaysEmpty(SipMessage msg) {
-        if (msg instanceof SipResponse) {
-        	SipResponse res = (SipResponse) msg;
-            int code = res.getStatus().getCode();
+				// Invalid initial line - ignore.
+				checkpoint(State.SKIP_CONTROL_CHARS);
+				return null;
+			}
+			message = createMessage(initialLine);
+			if(message == null || message.getResponseStatus() != null) {
+				// something went wrong while constructing the message, which
+				// might indicate unsupported sip versions, sip methods etc.
+				checkpoint(State.SKIP_CONTROL_CHARS);
+				return message;
+			}
+			checkpoint(State.READ_HEADER);
+		}
+		case READ_HEADER: {
+			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_HEADER"));
+			State nextState = readHeaders(buffer, maxHeaderSize);
+			if(log.isDebugEnabled()) log.debug(String.format("decode. Next state: " + nextState.name()));
+			checkpoint(nextState);           
+			if (nextState == State.SKIP_CONTROL_CHARS) {
+				// No content is expected.
+				return message;
+			}
+			long contentLength = SipHeaders.getContentLength(message, -1);
+			if (contentLength == 0 || contentLength == -1 && isDecodingRequest()) {
+				content = ChannelBuffers.EMPTY_BUFFER;
+				return reset();
+			}
 
-            // Correctly handle return codes of 1xx.
-            //
-            // See: http://tools.ietf.org/html/rfc3261#section-21
-            if (code >= 100 && code < 200) {
-                return true;
-            }
+			switch (nextState) {
+			case READ_FIXED_LENGTH_CONTENT:     
+				break;
+			case READ_VARIABLE_LENGTH_CONTENT:
+				break;
+			default:
+				throw new IllegalStateException("Unexpected state: " + nextState);
+			}
+			// We return null here, this forces decode to be called again 
+			// where we will decode the content
+			return null;
+		}
+		case READ_VARIABLE_LENGTH_CONTENT: {
+			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_VARIABLE_LENGTH_CONTENT"));
+			int toRead = actualReadableBytes();
+			return buffer.readBytes(toRead);
+		}       
+		case READ_FIXED_LENGTH_CONTENT: {
+			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_FIXED_LENGTH_CONTENT"));
+			return readFixedLengthContent(buffer);
+		}
+		default: {
+			throw new Error("Shouldn't reach here.");
+		}
+		}
+	}
 
-            switch (code) {
-            case 204: case 205: case 304:
-                return true;
-            }
-        }
-        return false;
-    }
+	private Object reset() {
+		SipMessage message = this.message;
+		ChannelBuffer content = this.content;
 
-    private Object reset() {
-        SipMessage message = this.message;
-        ChannelBuffer content = this.content;
+		if (content != null) {
+			message.setContent(content);
+			this.content = null;
+		}
+		this.message = null;
 
-        if (content != null) {
-            message.setContent(content);
-            this.content = null;
-        }
-        this.message = null;
+		checkpoint(State.SKIP_CONTROL_CHARS);
+		return message;
+	}
 
-        checkpoint(State.SKIP_CONTROL_CHARS);
-        return message;
-    }
+	private static void skipControlCharacters(ChannelBuffer buffer) {
+		for (;;) {
+			char c = (char) buffer.readUnsignedByte();
+			if (!Character.isISOControl(c) &&
+					!Character.isWhitespace(c)) {
+				buffer.readerIndex(buffer.readerIndex() - 1);
+				break;
+			}
+		}
+	}
 
-    private static void skipControlCharacters(ChannelBuffer buffer) {
-        for (;;) {
-            char c = (char) buffer.readUnsignedByte();
-            if (!Character.isISOControl(c) &&
-                !Character.isWhitespace(c)) {
-                buffer.readerIndex(buffer.readerIndex() - 1);
-                break;
-            }
-        }
-    }
+	private Object readFixedLengthContent(ChannelBuffer buffer) {
+		//we have a content-length so we just read the correct number of bytes
+		long length = SipHeaders.getContentLength(message, -1);
+		assert length <= Integer.MAX_VALUE;
+		int toRead = (int) length - contentRead;
+		if (toRead > actualReadableBytes()) {
+			toRead = actualReadableBytes();
+		}
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("readFixedLengthContent. "
+				+ "Length[%d], toRead[%d], actual[%d]", length, toRead, actualReadableBytes()));
+		}
+		contentRead += toRead;
+		if (length < contentRead) {
+			return buffer.readBytes(toRead);
+		}
+		if (content == null) {
+			content = buffer.readBytes((int) length);
+		} else {
+			content.writeBytes(buffer, (int) length);
+		}
+		return reset();
+	}
 
-    private Object readFixedLengthContent(ChannelBuffer buffer) {
-        //we have a content-length so we just read the correct number of bytes
-        long length = SipHeaders.getContentLength(message, -1);
-        assert length <= Integer.MAX_VALUE;
-        int toRead = (int) length - contentRead;
-        if (toRead > actualReadableBytes()) {
-            toRead = actualReadableBytes();
-        }
-        contentRead += toRead;
-        if (length < contentRead) {
-        	return buffer.readBytes(toRead);
-        }
-        if (content == null) {
-            content = buffer.readBytes((int) length);
-        } else {
-            content.writeBytes(buffer, (int) length);
-        }
-        return reset();
-    }
+	/**
+	 * Read and parses SIP headers<br>
+	 * Process continue either until a empty line is reached or if end of file / content is
+	 * reached
+	 * 
+	 * @param buffer
+	 * @param maxHeaderSize
+	 * @return
+	 * @throws TooLongFrameException
+	 */
+	private State readHeaders(ChannelBuffer buffer, int maxHeaderSize) throws TooLongFrameException {
+		
+		// reset (total) header size
+		this.headerSize = 0;
 
-    private State readHeaders(ChannelBuffer buffer) throws TooLongFrameException {
-        headerSize = 0;
-        final SipMessage message = this.message;
-        String line = readHeader(buffer);
-        String name = null;
-        String value = null;
-        if (line.length() != 0) {
-            message.clearHeaders();
-            do {
-                char firstChar = line.charAt(0);
-                if (name != null && (firstChar == ' ' || firstChar == '\t')) {
-                    value = value + ' ' + line.trim();
-                } else {
-                    if (name != null) {
-                        message.addHeader(name, value);
-                    }
-                    String[] header = splitHeader(line);
-                    name = header[0];
-                    value = header[1];
-                }
+		String name = null;
+		String value = null;
+		String line = readLine(buffer, maxHeaderLineLength);
+		if (line.length() != 0) {
+			// at least one header is present?
+			message.clearHeaders();
+			do {
+				char firstChar = line.charAt(0);
+				// header continues on next line?
+				if (name != null && (firstChar == ' ' || firstChar == '\t')) {
+					value = value + ' ' + line.trim();
+				} else {
+					if (name != null) {
+						message.addHeader(name, value);
+					}
+					String[] header = splitHeader(line);
+					name = header[0];
+					value = header[1];
+				}
+				line = readLine(buffer, maxHeaderLineLength);
+				headerSize += line.length();
+				if(headerSize >= maxHeaderSize) {
+					throw new TooLongFrameException(String.format("Given headers size [%d] "
+							+ "exceeds max[%d]", headerSize, maxHeaderSize));
+				}
+			} while (line.length() != 0);
 
-                line = readHeader(buffer);
-            } while (line.length() != 0);
+			// Add the last header.
+			if (name != null) {
+				message.addHeader(name, value);
+			}
+		}
 
-            // Add the last header.
-            if (name != null) {
-                message.addHeader(name, value);
-            }
-        }
+		// check if we need to parse SDP content
+		State nextState;
+		if (isContentAlwaysEmpty(message)) {
+			nextState = State.SKIP_CONTROL_CHARS;
+		} else if (SipHeaders.getContentLength(message, -1) >= 0) {
+			nextState = State.READ_FIXED_LENGTH_CONTENT;
+		} else {
+			nextState = State.READ_VARIABLE_LENGTH_CONTENT;
+		}
+		return nextState;
+	}
 
-        State nextState;
+	private boolean isContentAlwaysEmpty(SipMessage msg) {
+		if (msg instanceof SipResponse) {
+			SipResponse res = (SipResponse) msg;
+			int code = res.getResponseStatus().getCode();
 
-        if (isContentAlwaysEmpty(message)) {
-            nextState = State.SKIP_CONTROL_CHARS;
-        } else if (SipHeaders.getContentLength(message, -1) >= 0) {
-            nextState = State.READ_FIXED_LENGTH_CONTENT;
-        } else {
-            nextState = State.READ_VARIABLE_LENGTH_CONTENT;
-        }
-        return nextState;
-    }
+			// Correctly handle return codes of 1xx.
+			//
+			// See: http://tools.ietf.org/html/rfc3261#section-21
+			if (code >= 100 && code < 200) {
+				return true;
+			}
 
-    private String readHeader(ChannelBuffer buffer) throws TooLongFrameException {
-        StringBuilder sb = new StringBuilder(64);
-        int headerSize = this.headerSize;
+			switch (code) {
+			case 204: case 205: case 304:
+				return true;
+			}
+		}
+		return false;
+	}
+	protected abstract boolean isDecodingRequest();
+	protected abstract SipMessage createMessage(String[] initialLine) throws Exception;
 
-        loop:
-        for (;;) {
-            char nextByte = (char) buffer.readByte();
-            headerSize ++;
+	/**
+	 * If the length of the line exceeds the maxLineLenght, a <code>TooLongFrameException</code>
+	 * is thrown
+	 * 
+	 * @param buffer
+	 * @param maxLineLength
+	 * @return
+	 * @throws TooLongFrameException
+	 */
+	private String readLine(ChannelBuffer buffer, int maxLineLength) throws TooLongFrameException {
+		StringBuilder sb = new StringBuilder(64);
+		int lineLength = 0;
+		while (actualReadableBytes() > 0) {
+			byte nextByte = buffer.readByte();
+			if (nextByte == CR) {
+				nextByte = buffer.readByte();
+				if (nextByte == LF) {
+					return sb.toString();
+				}
+			} else if (nextByte == LF) {
+				return sb.toString();
+			} else {
+				if (maxLineLength > 0 && lineLength >= maxLineLength) {
+					throw new TooLongFrameException(String.format("Given line length [%d] "
+							+ "exceeds max[%d]",  lineLength, maxLineLength));
+				}
+				lineLength ++;
+				sb.append((char) nextByte);
+			}
+		}
+		return sb.toString();
+	}
 
-            switch (nextByte) {
-            case CR:
-                nextByte = (char) buffer.readByte();
-                headerSize ++;
-                if (nextByte == LF) {
-                    break loop;
-                }
-                break;
-            case LF:
-                break loop;
-            }
+	/**
+	 * A SIP initial line always consists of 3 tokens, e.g.
+	 * INVITE sip:bob@biloxi.com SIP/2.0 or <br>
+	 * SIP/2.0 200 OK<br>
+	 * <br>
+	 * If less tokens are found, last two tokens are empty
+	 *
+	 * @param String[] containing 3 tokens.
+	 * @return
+	 */
+	private static String[] splitInitialLine(String sb) {
+		int aStart = findNonWhitespace(sb, 0);
+		int aEnd = findWhitespace(sb, aStart);
 
-            // Abort decoding if the header part is too large.
-            if (headerSize >= maxHeaderSize) {
-                // TODO: Respond with Bad Request and discard the traffic
-                //    or close the connection.
-                //       No need to notify the upstream handlers - just log.
-                //       If decoding a response, just throw an exception.
-                throw new TooLongFrameException(
-                        "HTTP header is larger than " +
-                        maxHeaderSize + " bytes.");
-            }
+		int bStart = findNonWhitespace(sb, aEnd);
+		int bEnd = findWhitespace(sb, bStart);
 
-            sb.append(nextByte);
-        }
+		int cStart = findNonWhitespace(sb, bEnd);
+		int cEnd = findEndOfString(sb);
 
-        this.headerSize = headerSize;
-        return sb.toString();
-    }
+		return new String[] { sb.substring(aStart, aEnd),
+				bStart < bEnd? sb.substring(bStart, bEnd) : "",
+						cStart < cEnd? sb.substring(cStart, cEnd) : "" };
+	}
 
-    protected abstract boolean isDecodingRequest();
-    protected abstract SipMessage createMessage(String[] initialLine) throws Exception;
+	private static String[] splitHeader(String sb) {
+		final int length = sb.length();
+		int nameStart;
+		int nameEnd;
+		int colonEnd;
+		int valueStart;
+		int valueEnd;
 
-    private static String readLine(ChannelBuffer buffer, int maxLineLength) throws TooLongFrameException {
-        StringBuilder sb = new StringBuilder(64);
-        int lineLength = 0;
-        while (true) {
-            byte nextByte = buffer.readByte();
-            if (nextByte == CR) {
-                nextByte = buffer.readByte();
-                if (nextByte == LF) {
-                    return sb.toString();
-                }
-            } else if (nextByte == LF) {
-                return sb.toString();
-            } else {
-                if (lineLength >= maxLineLength) {
-                    // TODO: Respond with Bad Request and discard the traffic
-                    //    or close the connection.
-                    //       No need to notify the upstream handlers - just log.
-                    //       If decoding a response, just throw an exception.
-                    throw new TooLongFrameException(
-                            "An HTTP line is larger than " + maxLineLength +
-                            " bytes.");
-                }
-                lineLength ++;
-                sb.append((char) nextByte);
-            }
-        }
-    }
+		nameStart = findNonWhitespace(sb, 0);
+		for (nameEnd = nameStart; nameEnd < length; nameEnd ++) {
+			char ch = sb.charAt(nameEnd);
+			if (ch == ':' || Character.isWhitespace(ch)) {
+				break;
+			}
+		}
 
-    private static String[] splitInitialLine(String sb) {
-        int aStart;
-        int aEnd;
-        int bStart;
-        int bEnd;
-        int cStart;
-        int cEnd;
+		for (colonEnd = nameEnd; colonEnd < length; colonEnd ++) {
+			if (sb.charAt(colonEnd) == ':') {
+				colonEnd ++;
+				break;
+			}
+		}
 
-        aStart = findNonWhitespace(sb, 0);
-        aEnd = findWhitespace(sb, aStart);
+		valueStart = findNonWhitespace(sb, colonEnd);
+		if (valueStart == length) {
+			return new String[] {
+					sb.substring(nameStart, nameEnd),
+					""
+			};
+		}
 
-        bStart = findNonWhitespace(sb, aEnd);
-        bEnd = findWhitespace(sb, bStart);
+		valueEnd = findEndOfString(sb);
+		return new String[] {
+				sb.substring(nameStart, nameEnd),
+				sb.substring(valueStart, valueEnd)
+		};
+	}
 
-        cStart = findNonWhitespace(sb, bEnd);
-        cEnd = findEndOfString(sb);
+	private static int findNonWhitespace(String sb, int offset) {
+		int result;
+		for (result = offset; result < sb.length(); result ++) {
+			if (!Character.isWhitespace(sb.charAt(result))) {
+				break;
+			}
+		}
+		return result;
+	}
 
-        return new String[] {
-                sb.substring(aStart, aEnd),
-                sb.substring(bStart, bEnd),
-                cStart < cEnd? sb.substring(cStart, cEnd) : "" };
-    }
+	private static int findWhitespace(String sb, int offset) {
+		int result;
+		for (result = offset; result < sb.length(); result ++) {
+			if (Character.isWhitespace(sb.charAt(result))) {
+				break;
+			}
+		}
+		return result;
+	}
 
-    private static String[] splitHeader(String sb) {
-        final int length = sb.length();
-        int nameStart;
-        int nameEnd;
-        int colonEnd;
-        int valueStart;
-        int valueEnd;
-
-        nameStart = findNonWhitespace(sb, 0);
-        for (nameEnd = nameStart; nameEnd < length; nameEnd ++) {
-            char ch = sb.charAt(nameEnd);
-            if (ch == ':' || Character.isWhitespace(ch)) {
-                break;
-            }
-        }
-
-        for (colonEnd = nameEnd; colonEnd < length; colonEnd ++) {
-            if (sb.charAt(colonEnd) == ':') {
-                colonEnd ++;
-                break;
-            }
-        }
-
-        valueStart = findNonWhitespace(sb, colonEnd);
-        if (valueStart == length) {
-            return new String[] {
-                    sb.substring(nameStart, nameEnd),
-                    ""
-            };
-        }
-
-        valueEnd = findEndOfString(sb);
-        return new String[] {
-                sb.substring(nameStart, nameEnd),
-                sb.substring(valueStart, valueEnd)
-        };
-    }
-
-    private static int findNonWhitespace(String sb, int offset) {
-        int result;
-        for (result = offset; result < sb.length(); result ++) {
-            if (!Character.isWhitespace(sb.charAt(result))) {
-                break;
-            }
-        }
-        return result;
-    }
-
-    private static int findWhitespace(String sb, int offset) {
-        int result;
-        for (result = offset; result < sb.length(); result ++) {
-            if (Character.isWhitespace(sb.charAt(result))) {
-                break;
-            }
-        }
-        return result;
-    }
-
-    private static int findEndOfString(String sb) {
-        int result;
-        for (result = sb.length(); result > 0; result --) {
-            if (!Character.isWhitespace(sb.charAt(result - 1))) {
-                break;
-            }
-        }
-        return result;
-    }
+	private static int findEndOfString(String sb) {
+		int result;
+		for (result = sb.length(); result > 0; result --) {
+			if (!Character.isWhitespace(sb.charAt(result - 1))) {
+				break;
+			}
+		}
+		return result;
+	}
 }

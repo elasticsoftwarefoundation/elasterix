@@ -23,15 +23,18 @@ public class SipServerCodec implements ChannelUpstreamHandler,
      * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}).
      */
     public SipServerCodec() {
-    	this(4096, 8192);
+    	this(4096, 8192, 4096);
     }
     
     /**
      * Creates a new instance with the default decoder options
-     * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}).
+     * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)},
+     * {@code maxHeaderLineLenght (4096)}).
      */
-    public SipServerCodec(int maxInitialLineLength, int maxHeaderSize) {
-        decoder = new SipRequestDecoder(maxInitialLineLength, maxHeaderSize);
+    public SipServerCodec(int maxInitialLineLength, int maxHeaderSize, int
+    		maxHeaderLineLenght) {
+        decoder = new SipRequestDecoder(maxInitialLineLength, maxHeaderSize,
+        		maxHeaderLineLenght);
     }
 
     public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e)

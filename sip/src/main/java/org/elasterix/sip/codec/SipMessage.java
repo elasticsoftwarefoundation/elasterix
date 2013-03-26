@@ -60,11 +60,6 @@ public interface SipMessage {
      */
     SipVersion getProtocolVersion();
 
-//    /**
-//     * Sets the protocol version of this message.
-//     */
-//    void setProtocolVersion(SipVersion version);
-
     /**
      * Returns the content of this message.  If there is no content or
      * {@link #isChunked()} returns {@code true}, an
@@ -104,4 +99,16 @@ public interface SipMessage {
      * Removes all headers from this message.
      */
     void clearHeaders();
+    
+    /**
+     * Sets the response status for this message
+     * @param responseStatus
+     */
+    void setResponseStatus(SipResponseStatus responseStatus);
+    
+    /**
+     * Returns the response status of this message
+     * @return
+     */
+    SipResponseStatus getResponseStatus();
 }

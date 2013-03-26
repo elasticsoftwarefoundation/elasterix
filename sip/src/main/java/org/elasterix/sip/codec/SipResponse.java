@@ -1,14 +1,11 @@
 package org.elasterix.sip.codec;
 
 /**
- * An SIP response.
+ * An SIP response<br>
+ * <br>
+ * Currently a a tagging interface only
  *
  * @see SipRequest
  */
 public interface SipResponse extends SipMessage {
-
-    /**
-     * Returns the status of this response.
-     */
-    SipResponseStatus getStatus();
 }

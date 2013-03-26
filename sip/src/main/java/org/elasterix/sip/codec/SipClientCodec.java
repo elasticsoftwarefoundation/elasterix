@@ -50,16 +50,17 @@ public class SipClientCodec implements ChannelUpstreamHandler,
      * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}).
      */
     public SipClientCodec() {
-    	this(4096, 8192, true);
+    	this(4096, 8192, 4096, true);
     }
     
     /**
      * Creates a new instance with the default decoder options
-     * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)}).
+     * ({@code maxInitialLineLength (4096}}, {@code maxHeaderSize (8192)},
+     * {@code maxHeaderLineLength (4096)}).
      */
     public SipClientCodec(int maxInitialLineLength, int maxHeaderSize,
-    		boolean failOnMissingResponse) {
-        decoder = new Decoder(maxInitialLineLength, maxHeaderSize);
+    		int maxHeaderLineLength, boolean failOnMissingResponse) {
+        decoder = new Decoder(maxInitialLineLength, maxHeaderSize, maxHeaderLineLength);
         this.failOnMissingResponse = failOnMissingResponse;
     }
 
@@ -96,8 +97,9 @@ public class SipClientCodec implements ChannelUpstreamHandler,
 
     private final class Decoder extends SipResponseDecoder {
 
-        Decoder(int maxInitialLineLength, int maxHeaderSize) {
-            super(maxInitialLineLength, maxHeaderSize);
+        Decoder(int maxInitialLineLength, int maxHeaderSize, 
+        		int maxHeaderLineLength) {
+            super(maxInitialLineLength, maxHeaderSize, maxHeaderLineLength);
         }
 
         @Override

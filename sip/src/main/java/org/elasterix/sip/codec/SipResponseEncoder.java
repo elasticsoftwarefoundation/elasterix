@@ -18,9 +18,9 @@ public class SipResponseEncoder extends SipMessageEncoder {
         SipResponse response = (SipResponse) message;
         buf.writeBytes(response.getProtocolVersion().toString().getBytes("UTF-8"));
         buf.writeByte(SP);
-        buf.writeBytes(String.valueOf(response.getStatus().getCode()).getBytes("UTF-8"));
+        buf.writeBytes(String.valueOf(response.getResponseStatus().getCode()).getBytes("UTF-8"));
         buf.writeByte(SP);
-        buf.writeBytes(String.valueOf(response.getStatus().getReasonPhrase()).getBytes("UTF-8"));
+        buf.writeBytes(String.valueOf(response.getResponseStatus().getReasonPhrase()).getBytes("UTF-8"));
         buf.writeByte(CR);
         buf.writeByte(LF);
 	}

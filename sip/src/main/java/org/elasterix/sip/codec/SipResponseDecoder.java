@@ -28,8 +28,9 @@ import org.jboss.netty.handler.codec.frame.TooLongFrameException;
  */
 public class SipResponseDecoder extends SipMessageDecoder {
 	
-	public SipResponseDecoder(int maxInitialLineLength, int maxHeaderSize) {
-		super(maxInitialLineLength, maxHeaderSize);
+	public SipResponseDecoder(int maxInitialLineLength, int maxHeaderSize,
+			int maxHeaderLineLenght) {
+		super(maxInitialLineLength, maxHeaderSize, maxHeaderLineLenght);
 	}
 
 	@Override
