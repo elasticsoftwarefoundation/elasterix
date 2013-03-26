@@ -5,5 +5,12 @@
 *.war
 *.ear
 
+# target directories?
+*/target/*
+
 # IntelliJ
 .idea/
+
+# Eclipse
+.project
+.settings
