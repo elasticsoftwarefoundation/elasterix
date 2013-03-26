@@ -30,11 +30,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger log = Logger.getLogger(SipServerHandler.class);
-	
-	@Autowired
+
 	private SipMessageHandler messageHandler;
 
-	@Override
+    public void setMessageHandler(SipMessageHandler messageHandler) {
+        this.messageHandler = messageHandler;
+    }
+
+    @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
 		SipRequest request = (SipRequest) e.getMessage();
