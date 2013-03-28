@@ -32,24 +32,24 @@ public class SipMessageImpl implements SipMessage {
     }
 
     @Override
-    public void addHeader(final String name, final Object value) {
-    	if(log.isDebugEnabled()) log.debug(String.format("addHeader. [%s] --> [%s]", name, value));
-        headers.addHeader(name, value);
+    public void addHeader(final SipHeader header, final Object value) {
+    	if(log.isDebugEnabled()) log.debug(String.format("addHeader. [%s] --> [%s]", header.getName(), value));
+        headers.addHeader(header.getName(), value);
     }
 
     @Override
-    public void setHeader(final String name, final Object value) {
-        headers.setHeader(name, value);
+    public void setHeader(final SipHeader header, final Object value) {
+        headers.setHeader(header.getName(), value);
     }
 
     @Override
-    public void setHeader(final String name, final Iterable<?> values) {
-        headers.setHeader(name, values);
+    public void setHeader(final SipHeader header, final Iterable<?> values) {
+        headers.setHeader(header.getName(), values);
     }
 
     @Override
-    public void removeHeader(final String name) {
-        headers.removeHeader(name);
+    public void removeHeader(final SipHeader header) {
+        headers.removeHeader(header.getName());
     }
 
     @Override
@@ -66,13 +66,13 @@ public class SipMessageImpl implements SipMessage {
     }
 
     @Override
-    public String getHeader(final String name) {
-        return headers.getHeader(name);
+    public String getHeaderValue(final SipHeader header) {
+        return headers.getHeader(header.getName());
     }
 
     @Override
-    public List<String> getHeaders(final String name) {
-        return headers.getHeaders(name);
+    public List<String> getHeaderValues(final SipHeader header) {
+        return headers.getHeaders(header.getName());
     }
 
     @Override
@@ -81,8 +81,8 @@ public class SipMessageImpl implements SipMessage {
     }
 
     @Override
-    public boolean containsHeader(final String name) {
-        return headers.containsHeader(name);
+    public boolean containsHeader(final SipHeader header) {
+        return headers.containsHeader(header.getName());
     }
 
     @Override

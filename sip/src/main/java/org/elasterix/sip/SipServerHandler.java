@@ -1,11 +1,7 @@
 package org.elasterix.sip;
 
-import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
-import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
-import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-
 import org.apache.log4j.Logger;
-import org.elasterix.sip.codec.SipMethod;
+import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipRequest;
 import org.elasterix.sip.codec.SipResponse;
 import org.elasterix.sip.codec.SipResponseImpl;
@@ -17,8 +13,6 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.handler.codec.http.HttpHeaders;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Sip Server Handler<br>
@@ -85,14 +79,11 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		SipResponse response = new SipResponseImpl(SipVersion.SIP_2_0, 
 				SipResponseStatus.OK);
 		//response.setContent(ChannelBuffers.copiedBuffer(buf.toString(), CharsetUtil.UTF_8));
-		response.setHeader(CONTENT_TYPE, "text/plain; charset=UTF-8");
+		response.setHeader(SipHeader.CONTENT_TYPE, "text/plain; charset=UTF-8");
 
 		if (keepAlive) {
 			// Add 'Content-Length' header only for a keep-alive connection.
-			response.setHeader(CONTENT_LENGTH, response.getContent().readableBytes());
-			// Add keep alive header as per:
-			// - http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html#Connection
-			response.setHeader(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+			response.setHeader(SipHeader.CONTENT_LENGTH, response.getContent().readableBytes());
 		}
 
 		// Write the response.

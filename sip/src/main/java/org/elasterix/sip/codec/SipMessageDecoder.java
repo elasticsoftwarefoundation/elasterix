@@ -276,7 +276,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 					value = value + ' ' + line.trim();
 				} else {
 					if (name != null) {
-						message.addHeader(name, value);
+						SipHeaders.addHeader(message, name, value);
 					}
 					String[] header = splitHeader(line);
 					name = header[0];
@@ -292,7 +292,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 
 			// Add the last header.
 			if (name != null) {
-				message.addHeader(name, value);
+				SipHeaders.addHeader(message, name, value);
 			}
 		}
 

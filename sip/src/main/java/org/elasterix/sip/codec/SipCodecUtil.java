@@ -1,6 +1,5 @@
 package org.elasterix.sip.codec;
 
-import java.util.List;
 
 /**
  * @author Leonard Wolters
@@ -93,7 +92,6 @@ final class SipCodecUtil {
     }
     
     static boolean isContentLengthSet(SipMessage m) {
-        List<String> contentLength = m.getHeaders(SipHeaders.Names.CONTENT_LENGTH);
-        return !contentLength.isEmpty();
+        return !m.getHeaderValues(SipHeader.CONTENT_LENGTH).isEmpty();
     }
 }

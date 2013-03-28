@@ -21,40 +21,7 @@ import org.testng.annotations.Test;
  * 
  * @author Leonard Wolters
  */
-public class SipRequestDecoderTest {
-
-	@BeforeTest
-	public void init() {
-		Logger.getLogger("org.elasterix").setLevel(Level.DEBUG);
-	}
-	
-	protected ChannelBuffer createChannelFromFile(String fileName) throws Exception {
-		return createChannelFromFile(fileName, null, -1);
-	}
-	
-	protected ChannelBuffer createChannelFromFile(String fileName, int removeBytes) throws Exception {
-		return createChannelFromFile(fileName, null, removeBytes);
-	}
-	
-	protected ChannelBuffer createChannelFromFile(String fileName, String additionalContent,
-			int removeBytes) throws Exception {
-		Resource resource = new ClassPathResource(fileName);
-		byte[] bytes = FileCopyUtils.copyToByteArray(resource.getInputStream());
-		if(StringUtils.hasLength(additionalContent)) {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			baos.write(bytes);
-			baos.write(additionalContent.getBytes());
-			bytes = baos.toByteArray();
-		}
-		if(removeBytes <= 0) {
-			return ChannelBuffers.copiedBuffer(bytes);
-		}
-		// remove some bytes at the end...
-		int newLength = bytes.length - removeBytes;
-		byte[] dest = new byte[newLength];
-		System.arraycopy(bytes, 0, dest, 0, newLength);
-		return ChannelBuffers.copiedBuffer(dest);
-	}
+public class SipRequestDecoderTest extends AbstractSipTest {
 	
 	@Test
 	public void testInitialLineNoCarriageReturn() throws Exception {

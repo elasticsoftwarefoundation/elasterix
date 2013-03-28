@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.jboss.netty.handler.codec.http.HttpMessage;
 import org.jboss.netty.util.internal.CaseIgnoringComparator;
 
 /**
@@ -15,79 +14,29 @@ import org.jboss.netty.util.internal.CaseIgnoringComparator;
  * @author Leonard Wolters
  */
 public class SipHeaders {
-
-	public static final class Names {
-		public static final String ACCEPT = "Accept";
-		public static final String ACCEPT_ENCODING = "Accept-Encoding";
-		public static final String ACCEPT_LANGUAGE = "Accept-Language";
-		public static final String ALERT_INFO = "Alert-Info";
-		public static final String ALLOW = "Allow";
-		public static final String AUTHENTICATION_INFO = "Authentication-info";
-		public static final String AUTHORIZATION = "Authorization";
-		public static final String CALL_ID = "Call-ID";
-		public static final String CALL_INFO = "Call-Info";
-		public static final String CONTACT = "Contact";
-		public static final String CONTENT_DISPOSITION = "Content-Disposition";
-		public static final String CONTENT_ENCODING = "Content-Encoding";
-		public static final String CONTENT_LANGUAGE = "Content-Language";
-		public static final String CONTENT_LENGTH = "Content-Length";
-		public static final String CONTENT_TYPE = "Content-Type";
-		public static final String CSEQ = "CSeq";
-		public static final String ERROR_INFO = "Error-Info";
-		public static final String EXPIRES = "Expires";
-		public static final String FROM = "From";
-		public static final String IN_REPLY_TO = "In-Reply-To";
-		public static final String MAX_FORWARDS = "Max-Forwards";
-		public static final String MIN_EXPIRES = "Min-Expires";
-		public static final String MIME_VERSION = "Mime-Version";
-		public static final String ORGANIZATION = "Organization";
-		public static final String PRIORITY = "Priority";
-		public static final String PROXY_AUTHENTICATE = "Proxy-Authenticate";
-		public static final String PROXY_AUTHORIZATION = "Proxy-Authorization";
-		public static final String PROXY_REQUIRE = "Proxy-Require";
-		public static final String RECORD_ROUTE = "Record-Route";
-		public static final String REPLY_TO = "Reply-To";
-		public static final String RETRY_AFTER = "Reply-After";
-		public static final String ROUTE = "Route";
-		public static final String SERVER = "Server";
-		public static final String SUBJECT = "Subject";
-		public static final String SUPPORTED = "Supported";
-		public static final String TIMESTAMP = "Timestamp";
-		public static final String TO = "To";
-		public static final String UNSUPPORTED = "Unsupported";
-		public static final String USER_AGENT = "User-Agent";
-		public static final String VIA = "Via";
-		public static final String WARNING = "Warning";
-		public static final String WWW_AUTHENTICATE = "WWW-Authenticate";
-	}
-	
-	public static final class Values {
-		 public static final String CHUNKED = "chunked";
-		 public static final String CLOSE = "close";
-		 public static final String KEEP_ALIVE = "keep-alive";
-	}
-	
     /**
-     * Returns the header value with the specified header name.  If there are
-     * more than one header value for the specified header name, the first
+     * Returns the header value with the specified header.  If there is
+     * more than one header value for the specified header, the first
      * value is returned.
      *
      * @return the header value or {@code null} if there is no such header
      */
-    public static String getHeader(SipMessage message, String name) {
-        return message.getHeader(name);
+    public static String getHeaderValue(SipMessage message, String header) {
+        return message.getHeaderValue(SipHeader.lookup(header));
     }
 
     /**
-     * Returns the header value with the specified header name.  If there are
-     * more than one header value for the specified header name, the first
-     * value is returned.
+     * Returns the header value with the specified header.  If there is
+     * more than one header value for the specified header, the first
+     * value is returned. If no value is found at all, <code>defaultValue</code>
+     * is returned
      *
      * @return the header value or the {@code defaultValue} if there is no such
      *         header
      */
-    public static String getHeader(SipMessage message, String name, String defaultValue) {
-        String value = message.getHeader(name);
+    public static String getHeaderValue(SipMessage message, String header, 
+    		String defaultValue) {
+        String value = message.getHeaderValue(SipHeader.lookup(header));
         if (value == null) {
             return defaultValue;
         }
@@ -95,39 +44,39 @@ public class SipHeaders {
     }
 
     /**
-     * Sets a new header with the specified name and value.  If there is an
-     * existing header with the same name, the existing header is removed.
+     * Sets a new header with the specified value. Existing header values 
+     * (if present) will be removed.
      */
-    public static void setHeader(SipMessage message, String name, Object value) {
-        message.setHeader(name, value);
+    public static void setHeader(SipMessage message, String header, Object value) {
+        message.setHeader(SipHeader.lookup(header), value);
     }
 
     /**
-     * Sets a new header with the specified name and values.  If there is an
-     * existing header with the same name, the existing header is removed.
+     * Sets a new header with the specified values. Existing header values 
+     * (if present) will be removed.
      */
-    public static void setHeader(SipMessage message, String name, Iterable<?> values) {
-        message.setHeader(name, values);
+    public static void setHeader(SipMessage message, String header, Iterable<?> values) {
+        message.setHeader(SipHeader.lookup(header), values);
     }
 
     /**
-     * Adds a new header with the specified name and value.
+     * Adds a new header with the specified value.
      */
-    public static void addHeader(SipMessage message, String name, Object value) {
-        message.addHeader(name, value);
+    public static void addHeader(SipMessage message, String header, Object value) {
+    	message.addHeader(SipHeader.lookup(header), value);
     }
 
     /**
-     * Returns the integer header value with the specified header name.  If
-     * there are more than one header value for the specified header name, the
+     * Returns the integer header value for the specified header.  If
+     * there is more than one header value for the specified header, the
      * first value is returned.
      *
      * @return the header value
      * @throws NumberFormatException
      *         if there is no such header or the header value is not a number
      */
-    public static int getIntHeader(SipMessage message, String name) {
-        String value = getHeader(message, name);
+    public static int getHeaderValueAsInt(SipMessage message, String header) {
+        String value = getHeaderValue(message, header);
         if (value == null) {
             throw new NumberFormatException("null");
         }
@@ -135,15 +84,16 @@ public class SipHeaders {
     }
 
     /**
-     * Returns the integer header value with the specified header name.  If
-     * there are more than one header value for the specified header name, the
-     * first value is returned.
+     * Returns the integer header value with the specified header. If
+     * there is more than one header value for the specified header, the
+     * first value is returned. If no value is found for given header, 
+     * defaultValue is returned
      *
      * @return the header value or the {@code defaultValue} if there is no such
      *         header or the header value is not a number
      */
-    public static int getIntHeader(SipMessage message, String name, int defaultValue) {
-        String value = getHeader(message, name);
+    public static int getHeaderAsInt(SipMessage message, String header, int defaultValue) {
+        String value = getHeaderValue(message, header);
         if (value == null) {
             return defaultValue;
         }
@@ -156,31 +106,23 @@ public class SipHeaders {
     }
 
     /**
-     * Sets a new integer header with the specified name and value.  If there
-     * is an existing header with the same name, the existing header is removed.
+     * Sets a new integer header with the specified value. Existing header values
+     * will be removed
      */
-    public static void setIntHeader(SipMessage message, String name, int value) {
-        message.setHeader(name, value);
+    public static void setHeader(SipMessage message, String header, int value) {
+        message.setHeader(SipHeader.lookup(header), value);
     }
 
     /**
-     * Sets a new integer header with the specified name and values.  If there
-     * is an existing header with the same name, the existing header is removed.
+     * Adds a new integer header with the specified value.
      */
-    public static void setIntHeader(SipMessage message, String name, Iterable<Integer> values) {
-        message.setHeader(name, values);
+    public static void addHeader(SipMessage message, String header, int value) {
+        message.addHeader(SipHeader.lookup(header), value);
     }
 
     /**
-     * Adds a new integer header with the specified name and value.
-     */
-    public static void addIntHeader(SipMessage message, String name, int value) {
-        message.addHeader(name, value);
-    }
-
-    /**
-     * Returns the length of the content.  Please note that this value is
-     * not retrieved from {@link HttpMessage#getContent()} but from the
+     * Returns the length of the content. Please note that this value is
+     * not retrieved from {@link SipMessage#getContent()} but from the
      * {@code "Content-Length"} header, and thus they are independent from each
      * other.
      *
@@ -192,8 +134,15 @@ public class SipHeaders {
     }
 
     /**
+     * Sets the {@code "Content-Length"} header.
+     */
+    public static void setContentLength(SipMessage message, long length) {
+        message.setHeader(SipHeader.CONTENT_LENGTH, length);
+    }
+   
+	/**
      * Returns the length of the content.  Please note that this value is
-     * not retrieved from {@link HttpMessage#getContent()} but from the
+     * not retrieved from {@link SipMessage#getContent()} but from the
      * {@code "Content-Length"} header, and thus they are independent from each
      * other.
      *
@@ -201,38 +150,13 @@ public class SipHeaders {
      *         not have the {@code "Content-Length"} header
      */
     public static long getContentLength(SipMessage message, long defaultValue) {
-        String contentLength = message.getHeader(Names.CONTENT_LENGTH);
+        String contentLength = message.getHeaderValue(SipHeader.CONTENT_LENGTH);
         if (contentLength != null) {
             return Long.parseLong(contentLength);
         }
-
-        // WebSockset messages have constant content-lengths.
-        if (message instanceof SipRequest) {
-        	SipRequest req = (SipRequest) message;
-//            if (SipMethod.GET.equals(req.getMethod()) &&
-//                req.containsHeader(Names.SEC_WEBSOCKET_KEY1) &&
-//                req.containsHeader(Names.SEC_WEBSOCKET_KEY2)) {
-//                return 8;
-//            }
-        } else if (message instanceof SipResponse) {
-        	SipResponse res = (SipResponse) message;
-//            if (res.getStatus().getCode() == 101 &&
-//                res.containsHeader(Names.SEC_WEBSOCKET_ORIGIN) &&
-//                res.containsHeader(Names.SEC_WEBSOCKET_LOCATION)) {
-//                return 16;
-//            }
-        }
-
         return defaultValue;
     }
-
-    /**
-     * Sets the {@code "Content-Length"} header.
-     */
-    public static void setContentLength(SipMessage message, long length) {
-        message.setHeader(Names.CONTENT_LENGTH, length);
-    }
-   
+    
     private static final int BUCKET_SIZE = 17;
     private static int hash(String name) {
         int h = 0;
@@ -251,6 +175,15 @@ public class SipHeaders {
             return -h;
         }
     }
+    
+    /**
+     * Complicated method equals method build for 'performance'.
+     * As soon as 1 character is different, false is returned.
+     * 
+     * @param name1
+     * @param name2
+     * @return
+     */
     private static boolean eq(String name1, String name2) {
         int nameLen = name1.length();
         if (nameLen != name2.length()) {

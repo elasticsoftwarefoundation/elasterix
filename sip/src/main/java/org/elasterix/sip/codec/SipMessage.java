@@ -20,35 +20,34 @@ import org.jboss.netty.buffer.ChannelBuffers;
 public interface SipMessage {
 
     /**
-     * Returns the header value with the specified header name.  If there are
-     * more than one header value for the specified header name, the first
+     * Returns the header value for the specified header.  If there is
+     * more than one value for the specified header, the first
      * value is returned.
      *
      * @return the header value or {@code null} if there is no such header
      */
-    String getHeader(String name);
+    String getHeaderValue(SipHeader header);
 
     /**
-     * Returns the header values with the specified header name.
+     * Returns the header values for the specified header.
      *
      * @return the {@link List} of header values.  An empty list if there is no
      *         such header.
      */
-    List<String> getHeaders(String name);
+    List<String> getHeaderValues(SipHeader header);
 
     /**
      * Returns the all header names and values that this message contains.
      *
-     * @return the {@link List} of the header name-value pairs.  An empty list
+     * @return the {@link List} of the header-value pairs.  An empty list
      *         if there is no header in this message.
      */
     List<Map.Entry<String, String>> getHeaders();
 
     /**
-     * Returns {@code true} if and only if there is a header with the specified
-     * header name.
+     * Returns {@code true} if and only if there given header is present.
      */
-    boolean containsHeader(String name);
+    boolean containsHeader(SipHeader header);
 
     /**
      * Returns the {@link Set} of all header names that this message contains.
@@ -74,26 +73,26 @@ public interface SipMessage {
     void setContent(ChannelBuffer content);
 
     /**
-     * Adds a new header with the specified name and value.
+     * Adds a new header with the specified value.
      */
-    void addHeader(String name, Object value);
+    void addHeader(SipHeader header, Object value);
 
     /**
-     * Sets a new header with the specified name and value.  If there is an
-     * existing header with the same name, the existing header is removed.
+     * Sets a new header with the specified value. Existing header(s) will
+     * be removed.
      */
-    void setHeader(String name, Object value);
+    void setHeader(SipHeader header, Object value);
 
     /**
-     * Sets a new header with the specified name and values.  If there is an
-     * existing header with the same name, the existing header is removed.
+     * Sets a new header with the specified values. Existing header(s) will
+     * be removed.
      */
-    void setHeader(String name, Iterable<?> values);
+    void setHeader(SipHeader header, Iterable<?> values);
 
     /**
-     * Removes the header with the specified name.
+     * Removes given header
      */
-    void removeHeader(String name);
+    void removeHeader(SipHeader header);
 
     /**
      * Removes all headers from this message.
