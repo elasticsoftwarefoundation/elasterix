@@ -17,18 +17,14 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 /**
- * Tests for decoder (incoming) SIP Request
+ * Tests for decoding (incoming) SIP Request
  * 
  * @author Leonard Wolters
  */
 public class SipRequestDecoderTest {
-	//@Mock ChannelHandlerContext context;
-	//@Mock ChannelEvent event;
-	//@InjectMocks private SipRequestDecoder decoder = new SipRequestDecoder();
-	
+
 	@BeforeTest
 	public void init() {
-		//MockitoAnnotations.initMocks(this);
 		Logger.getLogger("org.elasterix").setLevel(Level.DEBUG);
 	}
 	

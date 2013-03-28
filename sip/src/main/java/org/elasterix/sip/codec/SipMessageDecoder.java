@@ -31,6 +31,18 @@ import org.jboss.netty.handler.codec.replay.ReplayingDecoder;
  *     header exceeds this value, a {@link TooLongFrameException} will be raised.</td>
  * </tr>
  * </table>
+ * <br>
+ * <br>
+ * The ReplayingDecoder only makes sense in TCP connections. Basically what it 
+ * does is give you the ability to create checkpoints when reading structured 
+ * variable-sized messages without having to manually check for the available bytes. <br>
+ * <br>
+ * What that means is that, unlike other decoders, you can request as many bytes as 
+ * you want from the buffer. If they are not available the operation will silently 
+ * fail until the socket reads more data — and nothing gets changed. If enough 
+ * bytes are available, the buffer is drained and you mark a checkpoint. Having 
+ * this checkpoint set means that if the next read operation fails (less bytes 
+ * than the ones you're requesting), it will start at the last saved checkpoint.
  *
  * @author Leonard Wolters
  */
@@ -134,7 +146,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 
 				// Invalid initial line - ignore.
 				checkpoint(State.SKIP_CONTROL_CHARS);
-				return null;
+				return new SipMessageImpl(SipResponseStatus.BAD_GATEWAY);
 			}
 			message = createMessage(initialLine);
 			if(message == null || message.getResponseStatus() != null) {

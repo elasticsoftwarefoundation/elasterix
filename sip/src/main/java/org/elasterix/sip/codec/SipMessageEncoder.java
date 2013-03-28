@@ -8,8 +8,10 @@ import static org.jboss.netty.handler.codec.http.HttpConstants.LF;
 import static org.jboss.netty.handler.codec.http.HttpConstants.SP;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -21,7 +23,9 @@ import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
  * @author Leonard Wolters
  */
 public abstract class SipMessageEncoder extends OneToOneEncoder {
-	
+	private static final Logger log = Logger.getLogger(SipMessageEncoder.class);
+	protected static final Charset charSet = Charset.forName("UTF-8");
+
 	// avoid construction...
     protected SipMessageEncoder() {
     }
@@ -29,19 +33,23 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) 
     throws Exception {
+    	log.debug("encode");
         if (msg instanceof SipMessage) {
-        	
         	SipMessage m = (SipMessage) msg;
 
             ChannelBuffer header = dynamicBuffer(channel.getConfig().getBufferFactory());
             encodeInitialLine(header, m);
             encodeHeaders(header, m);
+            // TODO write SDP content....
+            
+            // always add a single white line between headers and content
             header.writeByte(CR);
             header.writeByte(LF);
 
             ChannelBuffer content = m.getContent();
             if (!content.readable()) {
-                return header; // no content
+            	// no content available
+                return header; 
             } else {
                 return wrappedBuffer(header, content);
             }
@@ -63,10 +71,11 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
    
     private static void encodeHeader(ChannelBuffer buf, String header, String value)
             throws UnsupportedEncodingException {
-        buf.writeBytes(header.getBytes("ASCII"));
+    	if(log.isDebugEnabled()) log.debug(String.format("encodeHeader. [%s] --> [%s]", header, value));
+        buf.writeBytes(header.getBytes(charSet));
         buf.writeByte(COLON);
         buf.writeByte(SP);
-        buf.writeBytes(value.getBytes("ASCII"));
+        buf.writeBytes(value.getBytes(charSet));
         buf.writeByte(CR);
         buf.writeByte(LF);
     }

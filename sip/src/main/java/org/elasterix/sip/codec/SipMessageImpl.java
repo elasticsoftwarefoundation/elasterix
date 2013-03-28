@@ -15,7 +15,7 @@ import org.jboss.netty.util.internal.StringUtil;
 public class SipMessageImpl implements SipMessage {
 	private static final Logger log = Logger.getLogger(SipMessageImpl.class);
     private final SipHeaders headers = new SipHeaders();
-    private SipVersion version;
+    private final SipVersion version;
     private ChannelBuffer content = ChannelBuffers.EMPTY_BUFFER;
     private SipResponseStatus responseStatus;
 
@@ -23,10 +23,11 @@ public class SipMessageImpl implements SipMessage {
      * Creates a new instance.
      */
     protected SipMessageImpl(final SipVersion version) {
-        setProtocolVersion(version);
+    	this.version = version;
     }
     
     protected SipMessageImpl(SipResponseStatus responseStatus) {
+    	this.version = SipVersion.SIP_2_0;
     	this.responseStatus = responseStatus;
     }
 
@@ -92,13 +93,6 @@ public class SipMessageImpl implements SipMessage {
     @Override
     public SipVersion getProtocolVersion() {
         return version;
-    }
-
-    private void setProtocolVersion(SipVersion version) {
-        if (version == null) {
-            throw new NullPointerException("version");
-        }
-        this.version = version;
     }
 
     @Override

@@ -73,4 +73,9 @@ public enum SipVersion {
 		}
 		return null;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("SIP/%d.0", majorVersion);
+	}
 }

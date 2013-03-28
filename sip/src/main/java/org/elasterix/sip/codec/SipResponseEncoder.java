@@ -14,13 +14,13 @@ public class SipResponseEncoder extends SipMessageEncoder {
 	@Override
 	protected void encodeInitialLine(ChannelBuffer buf, SipMessage message)
 	throws Exception {
-		
-        SipResponse response = (SipResponse) message;
-        buf.writeBytes(response.getProtocolVersion().toString().getBytes("UTF-8"));
+		// example:
+		// SIP/2.0 200 OK
+        buf.writeBytes(message.getProtocolVersion().toString().getBytes(charSet));
         buf.writeByte(SP);
-        buf.writeBytes(String.valueOf(response.getResponseStatus().getCode()).getBytes("UTF-8"));
+        buf.writeBytes(String.valueOf(message.getResponseStatus().getCode()).getBytes(charSet));
         buf.writeByte(SP);
-        buf.writeBytes(String.valueOf(response.getResponseStatus().getReasonPhrase()).getBytes("UTF-8"));
+        buf.writeBytes(String.valueOf(message.getResponseStatus().getReasonPhrase()).getBytes(charSet));
         buf.writeByte(CR);
         buf.writeByte(LF);
 	}
