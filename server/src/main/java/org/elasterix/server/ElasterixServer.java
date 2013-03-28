@@ -27,8 +27,10 @@ import org.elasterix.elasticactors.serialization.Serializer;
 
 /**
  * @author Joost van de Wijgerd
+ * @author Leonard Wolters
  */
 public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBootstrapper {
+	
     @Override
     public void initialize(ActorSystem actorSystem) throws Exception {
         // bootstrap here
@@ -51,7 +53,7 @@ public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBoo
 
     @Override
     public int getNumberOfShards() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0; 
     }
 
     @Override
@@ -61,21 +63,21 @@ public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBoo
 
     @Override
     public <T> MessageSerializer<T> getSerializer(Class<T> tClass) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;  
     }
 
     @Override
     public <T> MessageDeserializer<T> getDeserializer(Class<T> tClass) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;  
     }
 
     @Override
     public Serializer<ActorState, byte[]> getActorStateSerializer() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;  
     }
 
     @Override
     public Deserializer<byte[], ActorState> getActorStateDeserializer() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null; 
     }
 }

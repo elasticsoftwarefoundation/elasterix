@@ -4,7 +4,9 @@ import javax.annotation.PostConstruct;
 
 import org.apache.log4j.Logger;
 import org.elasterix.sip.codec.SipClientCodec;
-import org.elasterix.sip.codec.SipMessage;
+import org.elasterix.sip.codec.SipHeader;
+import org.elasterix.sip.codec.SipRequest;
+import org.elasterix.sip.codec.SipResponse;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,7 +32,16 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	}
 
 	@Override
-	public void sendMessage(SipMessage message, SipMessageCallback callback) {
-		log.info(String.format("Incoming Message[%s]", message));
+	public void sendRequest(SipRequest request, SipMessageCallback callback) {
+		log.info(String.format("Sending Request[%s]", request));
+		
+		// get existing channel or open a new one for 'recipient' of this
+		// message
+		String to = request.getHeaderValue(SipHeader.FROM);
+	}
+
+	@Override
+	public void sendResponse(SipResponse response, SipMessageCallback callback) {
+		log.info(String.format("Sending Response[%s]", response));
 	}
 }

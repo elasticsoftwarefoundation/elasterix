@@ -1,26 +1,26 @@
 package org.elasterix.sip;
 
-import org.elasterix.sip.codec.SipMessage;
+import org.elasterix.sip.codec.SipRequest;
 
 /**
  * Handler for all <code>SipMethod</code>'s.<br>
  * This handler should be implemented by the third party
  * and is used by the {@link SipServerHandler} to trigger
- * corresponding (incoming) <code>SipMessage</code>'s 
+ * corresponding (incoming) <code>SipRequest</code>'s 
  * 
  * @author Leonard Wolters
  */
 public interface SipMessageHandler {
 	
-	void onAck(SipMessage message);
+	void onAck(SipRequest request);
 	
-	void onBye(SipMessage message);
+	void onBye(SipRequest request);
 	
-	void onCancel(SipMessage message);
+	void onCancel(SipRequest request);
 	
-	void onInvite(SipMessage message);
+	void onInvite(SipRequest request);
 	
-	void onOptions(SipMessage message);
+	void onOptions(SipRequest request);
 
-	void onRegister(SipMessage message);
+	void onRegister(SipRequest request);
 }

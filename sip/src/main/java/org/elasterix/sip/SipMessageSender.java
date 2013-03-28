@@ -1,6 +1,7 @@
 package org.elasterix.sip;
 
-import org.elasterix.sip.codec.SipMessage;
+import org.elasterix.sip.codec.SipRequest;
+import org.elasterix.sip.codec.SipResponse;
 
 /**
  * Interface for sending messages<br>
@@ -12,10 +13,18 @@ import org.elasterix.sip.codec.SipMessage;
 public interface SipMessageSender {
 
 	/**
-	 * Sends a SIP message to the corresponding recipient,
+	 * Sends a SIP response to the corresponding recipient,
 	 * as defined in the message.
 	 * 
 	 * @param message
 	 */
-	void sendMessage(SipMessage message, SipMessageCallback callback);
+	void sendResponse(SipResponse response, SipMessageCallback callback);
+
+	/**
+	 * Sends a SIP request to the corresponding recipient,
+	 * as defined in the message.
+	 * 
+	 * @param message
+	 */
+	void sendRequest(SipRequest request, SipMessageCallback callback);
 }

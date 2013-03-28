@@ -2,11 +2,9 @@ package org.elasterix.sip;
 
 import org.apache.log4j.Logger;
 import org.elasterix.sip.codec.SipHeader;
+import org.elasterix.sip.codec.SipMessage;
 import org.elasterix.sip.codec.SipRequest;
-import org.elasterix.sip.codec.SipResponse;
-import org.elasterix.sip.codec.SipResponseImpl;
 import org.elasterix.sip.codec.SipResponseStatus;
-import org.elasterix.sip.codec.SipVersion;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -38,6 +36,9 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		if(log.isDebugEnabled()) {
 			log.debug(String.format("messageReceived[%s]", request));
 		}
+
+		// only approved sip messages are sent along. Syntactically wrong
+		// messages are immediately returned with appropriate response status
 		
 		// delegate action to handler
 		switch(request.getMethod()) {
@@ -66,28 +67,28 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			return;
 		}
 		
-		// writing reponse (indicating message is received accordingly!)
-		writeResponse(request, e, SipResponseStatus.OK);
+		// Response are not written here. The implementation of the message handler
+		// should sent/write the response to this request (using the 
+		// SipMessageSender), not this method. (except when exception occurs)
+		//writeResponse(request, e, SipResponseStatus.OK);
 	}
 
-	private void writeResponse(SipRequest request, MessageEvent e, SipResponseStatus status) {
+	private void writeResponse(SipMessage message, MessageEvent e, SipResponseStatus status) {
 		// Decide whether to close the connection or not.		
 		//boolean keepAlive = SipHeaders.isKeepAlive(request);
 		boolean keepAlive = true;
 
 		// Build the response object.
-		SipResponse response = new SipResponseImpl(SipVersion.SIP_2_0, 
-				SipResponseStatus.OK);
 		//response.setContent(ChannelBuffers.copiedBuffer(buf.toString(), CharsetUtil.UTF_8));
-		response.setHeader(SipHeader.CONTENT_TYPE, "text/plain; charset=UTF-8");
+		message.setHeader(SipHeader.CONTENT_TYPE, "text/plain; charset=UTF-8");
 
 		if (keepAlive) {
 			// Add 'Content-Length' header only for a keep-alive connection.
-			response.setHeader(SipHeader.CONTENT_LENGTH, response.getContent().readableBytes());
+			message.setHeader(SipHeader.CONTENT_LENGTH, message.getContent().readableBytes());
 		}
 
 		// Write the response.
-		ChannelFuture future = e.getChannel().write(response);
+		ChannelFuture future = e.getChannel().write(message);
 
 		// Close the non-keep-alive connection after the write operation is done.
 		if (!keepAlive) {

@@ -19,6 +19,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.elasterix.elasterix</groupId>
+            <artifactId>elasterix-sip</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.elasterix.elasticactors</groupId>
             <artifactId>elasticactors-api</artifactId>
             <version>${elasticactors.version}</version>
