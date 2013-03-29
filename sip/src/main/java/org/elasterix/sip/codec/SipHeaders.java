@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.netty.util.internal.CaseIgnoringComparator;
 
@@ -14,6 +15,9 @@ import org.jboss.netty.util.internal.CaseIgnoringComparator;
  * @author Leonard Wolters
  */
 public class SipHeaders {
+	private static final ConcurrentHashMap<Integer, SipHeader> cached 
+		= new ConcurrentHashMap<Integer, SipHeader>();
+
     /**
      * Returns the header value with the specified header.  If there is
      * more than one header value for the specified header, the first
@@ -22,7 +26,7 @@ public class SipHeaders {
      * @return the header value or {@code null} if there is no such header
      */
     public static String getHeaderValue(SipMessage message, String header) {
-        return message.getHeaderValue(SipHeader.lookup(header));
+        return message.getHeaderValue(lookup(header));
     }
 
     /**
@@ -36,7 +40,7 @@ public class SipHeaders {
      */
     public static String getHeaderValue(SipMessage message, String header, 
     		String defaultValue) {
-        String value = message.getHeaderValue(SipHeader.lookup(header));
+        String value = message.getHeaderValue(lookup(header));
         if (value == null) {
             return defaultValue;
         }
@@ -48,7 +52,7 @@ public class SipHeaders {
      * (if present) will be removed.
      */
     public static void setHeader(SipMessage message, String header, Object value) {
-        message.setHeader(SipHeader.lookup(header), value);
+        message.setHeader(lookup(header), value);
     }
 
     /**
@@ -56,14 +60,14 @@ public class SipHeaders {
      * (if present) will be removed.
      */
     public static void setHeader(SipMessage message, String header, Iterable<?> values) {
-        message.setHeader(SipHeader.lookup(header), values);
+        message.setHeader(lookup(header), values);
     }
 
     /**
      * Adds a new header with the specified value.
      */
     public static void addHeader(SipMessage message, String header, Object value) {
-    	message.addHeader(SipHeader.lookup(header), value);
+    	message.addHeader(lookup(header), value);
     }
 
     /**
@@ -110,14 +114,14 @@ public class SipHeaders {
      * will be removed
      */
     public static void setHeader(SipMessage message, String header, int value) {
-        message.setHeader(SipHeader.lookup(header), value);
+        message.setHeader(lookup(header), value);
     }
 
     /**
      * Adds a new integer header with the specified value.
      */
     public static void addHeader(SipMessage message, String header, int value) {
-        message.addHeader(SipHeader.lookup(header), value);
+        message.addHeader(lookup(header), value);
     }
 
     /**
@@ -155,6 +159,20 @@ public class SipHeaders {
             return Long.parseLong(contentLength);
         }
         return defaultValue;
+    }
+    
+    private static SipHeader lookup(String headerName) {
+    	SipHeader sh = cached.get(hash(headerName));
+    	if(sh != null) {
+    		return sh;
+    	}
+		for(SipHeader s : SipHeader.values()) {
+			if(eq(headerName, s.getName())) {
+				cached.putIfAbsent(hash(headerName), s);
+				return s;
+			}
+		}
+		return null;
     }
     
     private static final int BUCKET_SIZE = 17;

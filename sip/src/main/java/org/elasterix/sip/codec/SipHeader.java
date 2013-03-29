@@ -1,6 +1,5 @@
 package org.elasterix.sip.codec;
 
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Enumeration for all available SIP Headers
@@ -51,8 +50,6 @@ public enum SipHeader {
 	WARNING("Warning"),
 	WWW_AUTHENTICATE("WWW-Authenticate");
 
-	private static final ConcurrentHashMap<String, SipHeader> cached = new ConcurrentHashMap<String, SipHeader>();
-	
 	private final String name;
 	private SipHeader(String name) {
 		this.name= name;
@@ -60,15 +57,5 @@ public enum SipHeader {
 	
 	public String getName() {
 		return name;
-	}
-	
-	public static SipHeader lookup(String value) {
-		// do we need to init
-		if(cached.size() == 0) {
-			for(SipHeader h : values()) {
-				cached.putIfAbsent(h.name, h);
-			}
-		}
-		return cached.get(value);
 	}
 }

@@ -35,19 +35,17 @@
     </properties>
 
     <dependencies>
-    	<!--
         <dependency>
             <groupId>org.elasterix.elasticactors</groupId>
-            <artifactId>cassandra-integration</artifactId>
-            <version>${project.version}</version>
+            <artifactId>elasticactors-api</artifactId>
+            <version>${elasticactors.version}</version>
         </dependency>
         <dependency>
             <groupId>org.elasterix.elasticactors</groupId>
-            <artifactId>core</artifactId>
-            <version>${project.version}</version>
+            <artifactId>elasticactors-core</artifactId>
+            <version>${elasticactors.version}</version>
+            <scope>provided</scope>
         </dependency>
-        -->
-
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
