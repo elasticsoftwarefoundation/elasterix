@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2013 Joost van de Wijgerd <jwijgerd@gmail.com>
+  ~ Copyright (c) 2013 Leonard Wolters <lwolters@gmail.com>
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@
             <version>${elasticactors.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>

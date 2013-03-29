@@ -33,15 +33,15 @@ import org.jboss.netty.handler.codec.replay.ReplayingDecoder;
  * </table>
  * <br>
  * <br>
- * The ReplayingDecoder only makes sense in TCP connections. Basically what it 
- * does is give you the ability to create checkpoints when reading structured 
+ * The ReplayingDecoder only makes sense in TCP connections. Basically what it
+ * does is give you the ability to create checkpoints when reading structured
  * variable-sized messages without having to manually check for the available bytes. <br>
  * <br>
- * What that means is that, unlike other decoders, you can request as many bytes as 
- * you want from the buffer. If they are not available the operation will silently 
- * fail until the socket reads more data — and nothing gets changed. If enough 
- * bytes are available, the buffer is drained and you mark a checkpoint. Having 
- * this checkpoint set means that if the next read operation fails (less bytes 
+ * What that means is that, unlike other decoders, you can request as many bytes as
+ * you want from the buffer. If they are not available the operation will silently
+ * fail until the socket reads more data â€” and nothing gets changed. If enough
+ * bytes are available, the buffer is drained and you mark a checkpoint. Having
+ * this checkpoint set means that if the next read operation fails (less bytes
  * than the ones you're requesting), it will start at the last saved checkpoint.
  *
  * @author Leonard Wolters
@@ -80,7 +80,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 	/**
 	 * Creates a new instance with the specified parameters.
 	 */
-	protected SipMessageDecoder(int maxInitialLineLength, int maxHeaderSize, 
+	protected SipMessageDecoder(int maxInitialLineLength, int maxHeaderSize,
 			int maxHeaderLineLength) {
 		super(State.SKIP_CONTROL_CHARS, true);
 		if (maxInitialLineLength <= 0) {
@@ -105,29 +105,29 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 	}
 
 //	@Override
-//	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) 
+//	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 //			throws Exception {
 //		log.debug("exceptionCaught");
 //		super.exceptionCaught(ctx, e);
 //	}
 //
 //	@Override
-//	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) 
+//	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e)
 //			throws Exception {
 //		log.debug("channelClosed");
 //		super.channelClosed(ctx, e);
 //	}
-//	
+//
 //	@Override
-//	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) 
+//	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e)
 //			throws Exception {
 //		log.debug("channelDisconnected");
 //		super.channelDisconnected(ctx, e);
 //	}
-	
+
 	@Override
-	protected Object decode(ChannelHandlerContext ctx, Channel channel, 
-			ChannelBuffer buffer, State state) 
+	protected Object decode(ChannelHandlerContext ctx, Channel channel,
+			ChannelBuffer buffer, State state)
 					throws Exception {
 		if(log.isDebugEnabled()) log.debug(String.format("decode. State[%s]", state.name()));
 		switch (state) {
@@ -161,7 +161,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_HEADER"));
 			State nextState = readHeaders(buffer, maxHeaderSize);
 			if(log.isDebugEnabled()) log.debug(String.format("decode. Next state: " + nextState.name()));
-			checkpoint(nextState);           
+			checkpoint(nextState);
 			if (nextState == State.SKIP_CONTROL_CHARS) {
 				// No content is expected.
 				return message;
@@ -173,14 +173,14 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 			}
 
 			switch (nextState) {
-			case READ_FIXED_LENGTH_CONTENT:     
+			case READ_FIXED_LENGTH_CONTENT:
 				break;
 			case READ_VARIABLE_LENGTH_CONTENT:
 				break;
 			default:
 				throw new IllegalStateException("Unexpected state: " + nextState);
 			}
-			// We return null here, this forces decode to be called again 
+			// We return null here, this forces decode to be called again
 			// where we will decode the content
 			return null;
 		}
@@ -188,7 +188,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_VARIABLE_LENGTH_CONTENT"));
 			int toRead = actualReadableBytes();
 			return buffer.readBytes(toRead);
-		}       
+		}
 		case READ_FIXED_LENGTH_CONTENT: {
 			if(log.isDebugEnabled()) log.debug(String.format("decode. READ_FIXED_LENGTH_CONTENT"));
 			return readFixedLengthContent(buffer);
@@ -252,14 +252,14 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 	 * Read and parses SIP headers<br>
 	 * Process continue either until a empty line is reached or if end of file / content is
 	 * reached
-	 * 
+	 *
 	 * @param buffer
 	 * @param maxHeaderSize
 	 * @return
 	 * @throws TooLongFrameException
 	 */
 	private State readHeaders(ChannelBuffer buffer, int maxHeaderSize) throws TooLongFrameException {
-		
+
 		// reset (total) header size
 		this.headerSize = 0;
 
@@ -333,7 +333,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 	/**
 	 * If the length of the line exceeds the maxLineLenght, a <code>TooLongFrameException</code>
 	 * is thrown
-	 * 
+	 *
 	 * @param buffer
 	 * @param maxLineLength
 	 * @return
