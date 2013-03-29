@@ -33,14 +33,13 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg)
     throws Exception {
-    	log.debug("encode");
+    	if(log.isDebugEnabled()) log.debug("encode");
         if (msg instanceof SipMessage) {
         	SipMessage m = (SipMessage) msg;
 
             ChannelBuffer header = dynamicBuffer(channel.getConfig().getBufferFactory());
             encodeInitialLine(header, m);
             encodeHeaders(header, m);
-            // TODO write SDP content....
 
             // always add a single white line between headers and content
             header.writeByte(CR);
@@ -51,6 +50,7 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
             	// no content available
                 return header;
             } else {
+            	// TODO write content depending on conten type
                 return wrappedBuffer(header, content);
             }
         }

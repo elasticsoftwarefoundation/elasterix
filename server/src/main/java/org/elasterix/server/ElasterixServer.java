@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Joost van de Wijgerd
+ * Copyright 2013 Joost van de Wijgerd, Leonard Wolters
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,11 @@ import org.elasterix.server.serialization.JacksonActorStateDeserializer;
 import org.elasterix.server.serialization.JacksonActorStateSerializer;
 import org.elasterix.server.serialization.JacksonMessageDeserializer;
 import org.elasterix.server.serialization.JacksonMessageSerializer;
+import org.elasterix.server.sip.SipMessageHandlerImpl;
+import org.elasterix.sip.SipMessageHandler;
+import org.elasterix.sip.SipMessageSender;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
 /**
  * Elasterix Implementation of the Elastic Actor Framework
@@ -57,6 +62,12 @@ public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBoo
 	private final Serializer<ActorState, byte[]> actorStateSerializer = new JacksonActorStateSerializer(objectMapper);
 	private final Deserializer<byte[], ActorState> actorStateDeserializer = new JacksonActorStateDeserializer(objectMapper);
 
+	@Autowired
+	private SipMessageSender sipMessageSender;
+
+	/** Sip Message Handler needs to be manually created due to reference to Actor System */
+	private SipMessageHandler sipMessageHandler;
+	
 	private final Map<Class<?>, MessageSerializer<?>> messageSerializers = new HashMap<Class<?>, MessageSerializer<?>>() {{
 		put(User.class, new JacksonMessageSerializer<User>(objectMapper));
 		put(Device.class, new JacksonMessageSerializer<Device>(objectMapper));
@@ -86,16 +97,6 @@ public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBoo
 				.addSerializer(ActorRef.class, new JacksonActorRefSerializer())
 				.addDeserializer(ActorRef.class, new JacksonActorRefDeserializer(
 						actorSystem.getParent().getActorRefFactory())));
-	}
-
-	@Override
-	public void create(ActorSystem actorSystem, String... strings) throws Exception {
-		//To change body of implemented methods use File | Settings | File Templates.
-	}
-
-	@Override
-	public void activate(ActorSystem actorSystem) throws Exception {
-		//To change body of implemented methods use File | Settings | File Templates.
 	}
 
 	@Override
@@ -131,5 +132,17 @@ public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBoo
 	@Override
 	public Deserializer<byte[], ActorState> getActorStateDeserializer() {
 		return actorStateDeserializer;
+	}
+
+	@Override
+	public void create(ActorSystem actorSystem, String... strings) throws Exception {
+		log.info(String.format("create. [%s]", StringUtils.arrayToCommaDelimitedString(strings)));
+		// Construct message handler (we need it with an actorSystem attached
+		sipMessageHandler = new SipMessageHandlerImpl(actorSystem);
+	}
+
+	@Override
+	public void activate(ActorSystem actorSystem) throws Exception {
+		log.info(String.format("activate."));
 	}
 }

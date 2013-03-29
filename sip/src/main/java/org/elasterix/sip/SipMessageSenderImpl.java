@@ -17,8 +17,7 @@ import org.springframework.stereotype.Component;
  * This implementation takes automatically care of handling sockets and
  * connections, and reestablish connections to client's when required.<br> 
  * 
- * @author leonard
- *
+ * @author Leonard Wolters
  */
 @Component
 public class SipMessageSenderImpl implements SipMessageSender {
