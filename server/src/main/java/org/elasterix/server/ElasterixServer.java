@@ -28,6 +28,7 @@ import org.elasterix.elasticactors.ActorState;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.ActorSystemBootstrapper;
 import org.elasterix.elasticactors.ActorSystemConfiguration;
+import org.elasterix.elasticactors.ElasticActor;
 import org.elasterix.elasticactors.serialization.Deserializer;
 import org.elasterix.elasticactors.serialization.MessageDeserializer;
 import org.elasterix.elasticactors.serialization.MessageSerializer;
@@ -144,5 +145,10 @@ public class ElasterixServer implements ActorSystemConfiguration, ActorSystemBoo
 	@Override
 	public void activate(ActorSystem actorSystem) throws Exception {
 		log.info(String.format("activate."));
+	}
+	@Override
+	public ElasticActor getService(String serviceId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
