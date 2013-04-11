@@ -4,7 +4,6 @@ import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.UntypedActor;
 import org.elasterix.server.messages.SipRegister;
-import org.elasterix.sip.codec.SipMessage;
 
 /**
  * User Actor
@@ -19,14 +18,14 @@ public class User extends UntypedActor {
 		log.info(String.format("onReceive. Message[%s]", message));
 
 		if(message instanceof SipRegister) {
-			doRegister(((SipRegister) message).getSipMessage());
+			doRegister((SipRegister) message);
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
 		}
 	}
 	
-	protected void doRegister(SipMessage message) {
+	protected void doRegister(SipRegister message) {
 		if(log.isDebugEnabled()) log.debug(String.format("doRegister. [%s]",
 				message));
 	}

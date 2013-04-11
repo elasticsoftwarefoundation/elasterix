@@ -18,6 +18,7 @@ package org.elasterix.server;
 
 import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorSystem;
+import org.elasterix.server.sip.SipService;
 import org.elasticsoftwarefoundation.elasticactors.base.SpringBasedActorSystem;
 import org.springframework.context.ApplicationContext;
 
@@ -34,19 +35,18 @@ public class ElasterixServer extends SpringBasedActorSystem {
 	private final String name;
 	private final int numberOfShards;
 
-
 	/**
 	 * Default constructor
 	 */
 	public ElasterixServer() {
 		this("ElasterixServer", 2);
 	}
+
 	public ElasterixServer(String name, int numberOfShards) {
         super("elasterix-server-beans.xml");
 		this.name = name;
 		this.numberOfShards = numberOfShards;
 	}
-
 
 	@Override
 	public String getName() {
@@ -65,7 +65,8 @@ public class ElasterixServer extends SpringBasedActorSystem {
 
     @Override
     protected void doInitialize(ApplicationContext applicationContext, ActorSystem actorSystem) {
-
+        SipService sipService = applicationContext.getBean(SipService.class);
+        sipService.setActorSystem(actorSystem);
     }
 
     @Override

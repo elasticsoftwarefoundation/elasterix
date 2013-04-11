@@ -23,12 +23,17 @@ import org.springframework.beans.factory.annotation.Value;
  */
 public class SipServerPipelineFactory implements ChannelPipelineFactory {
 	private static final Logger log = Logger.getLogger(SipServerPipelineFactory.class);
-	
+
+    private final SipServerHandler handler;
 	private boolean ssl = false;
 	private boolean compression = true;
 	private SSLContext sslContext;
-	
-	@Override
+
+    public SipServerPipelineFactory(SipServerHandler handler) {
+        this.handler = handler;
+    }
+
+    @Override
 	public ChannelPipeline getPipeline() throws Exception {
 		ChannelPipeline pipeline = pipeline();
 		if(log.isDebugEnabled()) {
@@ -45,7 +50,7 @@ public class SipServerPipelineFactory implements ChannelPipelineFactory {
 		if(compression) {
 			pipeline.addLast("deflater", new HttpContentCompressor());
 		}
-		pipeline.addLast("handler", new SipServerHandler());
+		pipeline.addLast("handler", handler);
 		return pipeline;
 	}
 	

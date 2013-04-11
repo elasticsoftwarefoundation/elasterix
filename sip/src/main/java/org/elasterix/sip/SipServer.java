@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -26,6 +27,8 @@ public class SipServer {
 
 	/** Server channel */
 	private Channel serverChannel;
+
+    private SipServerHandler sipServerHandler;
 
 	private int socketBacklog = 128;
 	private boolean socketReuseAddress = true;
@@ -47,7 +50,7 @@ public class SipServer {
 		bootstrap.setOption("child.tcpNoDelay", childSocketTcpNoDelay);
 		bootstrap.setOption("child.receiveBufferSize", childSocketReceiveBufferSize);
 		bootstrap.setOption("child.sendBufferSize", childSocketSendBufferSize);
-		bootstrap.setPipelineFactory(new SipServerPipelineFactory());
+		bootstrap.setPipelineFactory(new SipServerPipelineFactory(sipServerHandler));
 		serverChannel = bootstrap.bind(new InetSocketAddress(port));
 	}
 	
@@ -67,8 +70,13 @@ public class SipServer {
 	public void setPort(int port) {
 		this.port = port;
 	}
-	
-	////////////////////////////////////
+
+    @Autowired
+    public void setSipServerHandler(SipServerHandler sipServerHandler) {
+        this.sipServerHandler = sipServerHandler;
+    }
+
+    ////////////////////////////////////
 	//
 	//  Main, used for testing..
 	//

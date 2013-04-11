@@ -1,5 +1,8 @@
 package org.elasterix.sip.codec;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonValue;
+
 /**
  * The request method of SIP 
  * 
@@ -15,10 +18,12 @@ public enum SipMethod {
     REGISTER("REGISTER");
 
     private String methodName;
+
     private SipMethod(String methodName) {
     	this.methodName = methodName;
     }
-    
+
+    @JsonCreator
     public static SipMethod lookup(String value) {
     	return lookup(value, false);
     }
