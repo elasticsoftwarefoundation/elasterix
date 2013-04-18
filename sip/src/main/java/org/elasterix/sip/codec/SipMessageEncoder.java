@@ -9,6 +9,7 @@ import static org.jboss.netty.handler.codec.http.HttpConstants.SP;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -61,8 +62,10 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
 
     private static void encodeHeaders(ChannelBuffer buf, SipMessage message) {
         try {
-            for (Map.Entry<String, String> h: message.getHeaders()) {
-                encodeHeader(buf, h.getKey(), h.getValue());
+            for (Map.Entry<String, List<String>> h: message.getHeaders().entrySet()) {
+            	for(String v : h.getValue()) {
+            		encodeHeader(buf, h.getKey(), v);
+            	}
             }
         } catch (UnsupportedEncodingException e) {
             throw (Error) new Error().initCause(e);

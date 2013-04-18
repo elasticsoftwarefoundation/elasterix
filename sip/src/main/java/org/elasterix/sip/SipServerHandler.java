@@ -16,8 +16,9 @@ import org.springframework.beans.factory.annotation.Required;
 /**
  * Sip Server Handler<br>
  * <br>
- * This handler takes care of all incoming SIP messages and sent back corresponding 
- * SIP responses<br>
+ * This handler takes care of all incoming SIP messages sent by the SipServer 
+ * and must sent back corresponding SIP responses, indicating the state of
+ * the message<br>
  * 
  * @author Leonard Wolters
  */

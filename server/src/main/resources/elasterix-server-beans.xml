@@ -18,26 +18,40 @@
        xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
                            http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
-
-
 	                       http://www.springframework.org/schema/util
 	                       http://www.springframework.org/schema/util/spring-util-3.2.xsd">
+	                       
     <!--<context:spring-configured/>
     <context:annotation-config/>-->
 
-    <util:map id="messageSerializers" key-type="java.lang.Class"
-              value-type="org.elasterix.elasticactors.serialization.MessageSerializer">
-
+	<!--------------------------------------------------------------------
+					Elastic Actor Framework related beans
+	--------------------------------------------------------------------->
+	<!-- TODO: use a scan property to scan all messages in a particular package -->
+    <util:map id="messageSerializers" key-type="java.lang.Class" value-type="org.elasterix.elasticactors.serialization.MessageSerializer">
+        <entry key="org.elasterix.server.messages.SipRegister">
+            <bean class="org.elasticsoftwarefoundation.elasticactors.base.serialization.JacksonMessageSerializer">
+                <constructor-arg ref="objectMapper"/>
+            </bean>
+        </entry>
     </util:map>
-
-    <util:map id="messageDeserializers" key-type="java.lang.Class"
-              value-type="org.elasterix.elasticactors.serialization.MessageDeserializer">
-
+    <util:map id="messageDeserializers" key-type="java.lang.Class" value-type="org.elasterix.elasticactors.serialization.MessageDeserializer">
+        <entry key="org.elasterix.server.messages.SipRegister">
+            <bean class="org.elasticsoftwarefoundation.elasticactors.base.serialization.JacksonMessageDeserializer">
+                <constructor-arg value="org.elasticsoftwarefoundation.elasticactors.http.messages.HttpResponse"/>
+                <constructor-arg ref="objectMapper"/>
+            </bean>
+        </entry>
     </util:map>
+    
+    <!--------------------------------------------------------------------
+					SIP Server
+	--------------------------------------------------------------------->
 
-    <bean id="sipServer" class="org.elasterix.sip.SipServer">
-        <property name="port" value="5060"/>
-        <property name="sipServerHandler" ref="sipServerHandler"
+    <bean id="sipServer" class="org.elasterix.sip.SipServer" init-method="init" destroy-method="destroy">
+    	<property name="channelFactory" ref="nioServerSocketChannelFactory"/>
+    	<property name="port" ref="5060"/>
+        <property name="sipServerHandler" ref="sipServerHandler"/>
     </bean>
 
     <bean id="sipServerHandler" class="org.elasterix.sip.SipServerHandler">
@@ -45,6 +59,42 @@
     </bean>
 
     <bean id="sipService" class="org.elasterix.server.sip.SipService">
-
+    	
     </bean>
+    
+ 	<!--------------------------------------------------------------------
+					Netty related beans
+	--------------------------------------------------------------------->
+
+	<bean id="nioServerSocketChannelFactory" class="org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory">
+		<constructor-arg index="0" ref="bossExecutor"/>
+		<constructor-arg index="1" ref="workerExecutor"/>
+		<constructor-arg index="2" type="int" ref="localMaxThread"/>
+	</bean>
+
+	<!--------------------------------------------------------------------
+					Runtime related beans
+	--------------------------------------------------------------------->
+    <bean id="runTime" class="java.lang.Runtime" factory-method="getRuntime"/>
+
+	<bean id="localMaxThread" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref bean="runTime"/>
+		</property>
+		<property name="targetMethod">
+			<value>availableProcessors</value>
+		</property>
+	</bean>
+
+	<bean id="bossExecutor" class="java.util.concurrent.Executors" factory-method="newCachedThreadPool">
+		<constructor-arg index="0">
+			<bean class="java.util.concurrent.Executors" factory-method="defaultThreadFactory"/>
+		</constructor-arg>
+	</bean>
+
+	<bean id="workerExecutor" class="java.util.concurrent.Executors" factory-method="newCachedThreadPool">
+		<constructor-arg index="0">
+			<bean class="java.util.concurrent.Executors" factory-method="defaultThreadFactory"/>
+		</constructor-arg>
+	</bean>   
 </beans>

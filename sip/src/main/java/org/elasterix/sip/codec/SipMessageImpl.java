@@ -1,5 +1,6 @@
 package org.elasterix.sip.codec;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,8 +77,12 @@ public class SipMessageImpl implements SipMessage {
     }
 
     @Override
-    public List<Map.Entry<String, String>> getHeaders() {
-        return headers.getHeaders();
+    public Map<String, List<String>> getHeaders() {
+    	Map<String,List<String>> headers = new HashMap<String,List<String>>();
+        for (String headerName : getHeaderNames()) {
+            headers.put(headerName,getHeaderValues(SipHeader.valueOf(headerName)));
+        }
+        return headers;
     }
 
     @Override
@@ -128,7 +133,7 @@ public class SipMessageImpl implements SipMessage {
         return buf.toString();
     }
     private void appendHeaders(StringBuilder buf) {
-        for (Map.Entry<String, String> e: getHeaders()) {
+        for (Map.Entry<String, List<String>> e: getHeaders().entrySet()) {
             buf.append(e.getKey());
             buf.append(": ");
             buf.append(e.getValue());

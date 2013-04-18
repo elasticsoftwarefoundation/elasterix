@@ -19,29 +19,37 @@ package org.elasterix.server.sip;
 import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
-import org.elasterix.elasticactors.TypedActor;
 import org.elasterix.elasticactors.UntypedActor;
+import org.elasterix.server.actors.Device;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.SipMessageHandler;
 import org.elasterix.sip.SipMessageSender;
-import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipRequest;
+import org.elasterix.sip.codec.SipResponse;
+import org.elasterix.sip.codec.SipResponseImpl;
+import org.elasterix.sip.codec.SipResponseStatus;
+import org.elasterix.sip.codec.SipVersion;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import sun.security.provider.certpath.OCSPResponse.ResponseStatus;
 
 /**
- * Default implementation of the Sip Message Handler
+ * Default implementation of the Sip Message Handler.<br>
+ * <br>
+ * This is a Service Actor based implemenation.
  * 
  * @author Leonard Wolters
  */
 public class SipService extends UntypedActor implements SipMessageHandler {
 	private static final Logger log = Logger.getLogger(SipService.class);
 
+	@Autowired
 	private SipMessageSender messageSender;
 	
+	/** Can't be autowired. Is automatically set be ElasterixServer */
 	private ActorSystem actorSystem;
+	
+	private final SipMessageCallbackImpl dummyCallback = new SipMessageCallbackImpl();
 	
 	/**
 	 * Constructor
@@ -76,17 +84,21 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 
 	@Override
 	public void onRegister(SipRequest request) {
-        Map<String,List<String>> headers = new HashMap<String,List<String>>();
-        for (String headerName : request.getHeaderNames()) {
-            headers.put(headerName,request.getHeaderValues(SipHeader.valueOf(headerName)));
-        }
         // make the SipRegister message
-        SipRegister message = new SipRegister(request.getUri(),headers);
-
+        SipRegister message = new SipRegister(request.getUri(),request.getHeaders());
 		
 		// Registering is a 'duplex' operation; i.e.
 		// both user and device registers both each other
+        ActorRef device = null;
 		ActorRef user = actorSystem.actorFor(message.getUser());
+		try {
+			device = actorSystem.actorOf("", Device.class);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			sendResponse(SipResponseStatus.SERVER_INTERNAL_ERROR);
+			return;
+		}
+			
         // @todo: figure out how to get the device from the register message
         //ActorRef device = actorSystem.actorFor("device");
 		user.tell(message, actorSystem.serviceActorFor("sipService"));
@@ -94,7 +106,18 @@ public class SipService extends UntypedActor implements SipMessageHandler {
         
 		// send response to recipient reflecting
 		// current state of this SIP request
-		// messageSender.sendRequest(request, null);
+		sendResponse(SipResponseStatus.OK);
+	}
+	
+	/**
+	 * SendResponse sends back a <b>acknowledge</b> response on incoming
+	 * <code>SipRequest</code>. 
+	 * 
+	 * @param status The status to communicate back
+	 */
+	private void sendResponse(SipResponseStatus status) {
+		messageSender.sendResponse(new SipResponseImpl(SipVersion.SIP_2_0, 
+				status), dummyCallback);
 	}
 
     public void setActorSystem(ActorSystem actorSystem) {

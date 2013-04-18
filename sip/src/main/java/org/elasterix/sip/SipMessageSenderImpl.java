@@ -24,6 +24,11 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	private static final Logger log = Logger.getLogger(SipMessageSenderImpl.class);
 	private SipClientCodec codec;
 	
+	/** 
+	 * Keep track of users and their channel in order to quickly communicate or
+	 * transfer sip messages
+	 */
+	
 	@PostConstruct
 	private void init() {
 		codec = new SipClientCodec();

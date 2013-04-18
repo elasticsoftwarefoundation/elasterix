@@ -9,6 +9,7 @@ import javax.annotation.PreDestroy;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
@@ -36,14 +37,16 @@ public class SipServer {
 	private boolean childSocketTcpNoDelay = true;
 	private int childSocketReceiveBufferSize = 8192;
 	private int childSocketSendBufferSize = 8192;
+	private ChannelFactory channelFactory;
 
 	@PostConstruct
 	public void start() {
-		ServerBootstrap bootstrap = new ServerBootstrap( 
-				new NioServerSocketChannelFactory(
-						Executors.newCachedThreadPool(),
-						Executors.newCachedThreadPool()));
-
+		if(channelFactory == null) {
+			channelFactory = new NioServerSocketChannelFactory(
+					Executors.newCachedThreadPool(),
+					Executors.newCachedThreadPool());
+		}
+		ServerBootstrap bootstrap = new ServerBootstrap(channelFactory);
 		bootstrap.setOption("backlog", socketBacklog);
 		bootstrap.setOption("reuseAddress", socketReuseAddress);
 		bootstrap.setOption("child.keepAlive", childSocketKeepAlive);
@@ -74,6 +77,10 @@ public class SipServer {
     @Autowired
     public void setSipServerHandler(SipServerHandler sipServerHandler) {
         this.sipServerHandler = sipServerHandler;
+    }
+    
+    public void setChannelFactory(ChannelFactory channelFactory) {
+    	this.channelFactory = channelFactory;
     }
 
     ////////////////////////////////////

@@ -1,5 +1,6 @@
 package org.elasterix.sip.codec;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +43,8 @@ public interface SipMessage {
      * @return the {@link List} of the header-value pairs.  An empty list
      *         if there is no header in this message.
      */
-    List<Map.Entry<String, String>> getHeaders();
+//    List<Map.Entry<String, String>> getHeaders();
+    Map<String, List<String>> getHeaders();
 
     /**
      * Returns {@code true} if and only if there given header is present.
