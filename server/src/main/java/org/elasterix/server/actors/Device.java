@@ -20,7 +20,6 @@ import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.UntypedActor;
 import org.elasterix.server.messages.SipRegister;
-import org.elasterix.sip.codec.SipMessage;
 
 /**
  * Device Actor

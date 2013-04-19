@@ -78,5 +78,4 @@ public class ElasterixServer extends SpringBasedActorSystem {
 	public void activate(ActorSystem actorSystem) throws Exception {
 		log.info(String.format("activate."));
 	}
-
 }

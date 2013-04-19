@@ -1,11 +1,15 @@
 package org.elasterix.sip.client;
 
+import java.util.List;
+import java.util.Map;
+
+import org.elasterix.sip.codec.SipResponse;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.util.CharsetUtil;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
@@ -19,17 +23,15 @@ public class SipClientHandler extends SimpleChannelUpstreamHandler {
     public SipClientHandler(StringBuilder buffer) {
     	this.buf = buffer;
 	}
-
+    
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
     throws Exception {
-    	
-        HttpResponse response = (HttpResponse) e.getMessage();
+        SipResponse response = (SipResponse) e.getMessage();
         if (!response.getHeaderNames().isEmpty()) {
-            for (String name: response.getHeaderNames()) {
-                for (String value: response.getHeaders(name)) {
-                	buf.append("HEADER: " + name + " = " + value).append(NL);
-                }
+            for (Map.Entry<String, List<String>> header : response.getHeaders().entrySet()) {
+                buf.append(String.format("HEADER: %s = %s", header.getKey(), 
+                		StringUtils.collectionToCommaDelimitedString(header.getValue()))).append(NL);
             }
             buf.append("").append(NL);
         }
