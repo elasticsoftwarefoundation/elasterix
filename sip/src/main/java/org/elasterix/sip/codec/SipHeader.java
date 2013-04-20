@@ -1,6 +1,5 @@
 package org.elasterix.sip.codec;
 
-
 /**
  * Enumeration for all available SIP Headers
  * 

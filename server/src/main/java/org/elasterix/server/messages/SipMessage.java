@@ -16,13 +16,15 @@
 
 package org.elasterix.server.messages;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.sip.codec.SipHeader;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Leonard Wolters
@@ -33,6 +35,16 @@ public abstract class SipMessage {
 
     protected SipMessage(Map<String, List<String>> headers, byte[] content) {
         this.headers = headers;
+        this.content = content;
+    }
+    
+    protected SipMessage(List<Map.Entry<String, String>> headers, byte[] content) {
+        this.headers = new HashMap<>();
+        for(Map.Entry<String, String> entry : headers) {
+        	List<String> values = new ArrayList<String>();
+        	values.add(entry.getValue());
+        	this.headers.put(entry.getKey(), values);
+        }
         this.content = content;
     }
 

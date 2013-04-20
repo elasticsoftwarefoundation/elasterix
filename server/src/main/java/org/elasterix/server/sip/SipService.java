@@ -16,11 +16,14 @@
 
 package org.elasterix.server.sip;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.UntypedActor;
-import org.elasterix.server.actors.Device;
+import org.elasterix.server.actors.UserAgentClient;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.SipMessageHandler;
 import org.elasterix.sip.SipMessageSender;
@@ -85,14 +88,14 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 	@Override
 	public void onRegister(SipRequest request) {
         // make the SipRegister message
-        SipRegister message = new SipRegister(request.getUri(),request.getHeaders());
+        SipRegister message = new SipRegister(request.getUri(), request.getHeaders());
 		
 		// Registering is a 'duplex' operation; i.e.
 		// both user and device registers both each other
         ActorRef device = null;
 		ActorRef user = actorSystem.actorFor(message.getUser());
 		try {
-			device = actorSystem.actorOf("", Device.class);
+			device = actorSystem.actorOf("", UserAgentClient.class);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			sendResponse(SipResponseStatus.SERVER_INTERNAL_ERROR);

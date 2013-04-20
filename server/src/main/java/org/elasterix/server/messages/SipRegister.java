@@ -16,13 +16,13 @@
 
 package org.elasterix.server.messages;
 
+import java.util.List;
+import java.util.Map;
+
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.sip.codec.SipHeader;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Leonard Wolters
@@ -31,13 +31,13 @@ import java.util.Map;
 public final class SipRegister extends SipMessage {
     private final String uri;
 
-    public SipRegister(String uri, Map<String,List<String>> headers) {
+    public SipRegister(String uri, List<Map.Entry<String,String>> headers) {
         this(uri,headers,null);
     }
-
+    
     @JsonCreator
     public SipRegister(@JsonProperty("uri") String uri,
-                       @JsonProperty("headers") Map<String,List<String>> headers,
+                       @JsonProperty("headers") List<Map.Entry<String,String>> headers,
                        @JsonProperty("content") byte[] content) {
         super(headers, content);
         this.uri = uri;
