@@ -39,7 +39,7 @@ import org.testng.annotations.Test;
 public class ElasterixSipServerTest {
 	private static final Logger log = Logger.getLogger(ElasterixSipServerTest.class);
 	protected ActorSystem actorSystem;
-	protected SipHttpClient sipClient;
+	protected SipClient sipClient;
 	
 	protected List<ActorRef> users = new ArrayList<ActorRef>();
 	protected List<ActorRef> uacs = new ArrayList<ActorRef>();
@@ -54,7 +54,7 @@ public class ElasterixSipServerTest {
 		Logger.getLogger("org.elasterix").setLevel(Level.DEBUG);
 
 		actorSystem = TestActorSystem.create(new ElasterixServer());
-		sipClient = new SipHttpClient();
+		sipClient = new SipClient();
 		
 		// create a couple of users
 		users.add(actorSystem.actorOf("users/1", User.class));

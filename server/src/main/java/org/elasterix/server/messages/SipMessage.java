@@ -39,7 +39,7 @@ public abstract class SipMessage {
     }
     
     protected SipMessage(List<Map.Entry<String, String>> headers, byte[] content) {
-        this.headers = new HashMap<>();
+    	this.headers = new HashMap<String,List<String>>();
         for(Map.Entry<String, String> entry : headers) {
         	List<String> values = new ArrayList<String>();
         	values.add(entry.getValue());
