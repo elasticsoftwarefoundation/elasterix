@@ -65,6 +65,7 @@ public class ElasterixServer extends SpringBasedActorSystem {
 
     @Override
     protected void doInitialize(ApplicationContext applicationContext, ActorSystem actorSystem) {
+        //@todo: this is a hack, we need to do this through postActivate
         SipService sipService = applicationContext.getBean(SipService.class);
         sipService.setActorSystem(actorSystem);
     }

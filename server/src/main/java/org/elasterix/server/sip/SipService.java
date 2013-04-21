@@ -34,8 +34,6 @@ import org.elasterix.sip.codec.SipResponseStatus;
 import org.elasterix.sip.codec.SipVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import sun.security.provider.certpath.OCSPResponse.ResponseStatus;
-
 /**
  * Default implementation of the Sip Message Handler.<br>
  * <br>
