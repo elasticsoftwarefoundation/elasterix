@@ -37,7 +37,7 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	throws Exception {
 		SipRequest request = (SipRequest) e.getMessage();
 		if(log.isDebugEnabled()) {
-			log.debug(String.format("messageReceived[%s]", request));
+			log.debug(String.format("messageReceived\n%s", request));
 		}
 
 		// only approved sip messages are sent along. Syntactically wrong

@@ -2,12 +2,8 @@ package org.elasterix.server;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.charset.Charset;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -32,8 +28,6 @@ public class SipClient {
 	}
 	
 	public String sendMessage(SipRequest request) throws Exception {
-		// command = "REGISTER";
-		// user = "sip:bob@biloxi.com";
 		
 		// initial line
 		StringBuffer buf = new StringBuffer(String.format("%s %s %s", request.getMethod().name(), 
@@ -70,7 +64,6 @@ public class SipClient {
 			dos.writeUTF(content);
 		}
 		dos.flush();
-		dos.close();
 		
 		DataInputStream dis = new DataInputStream(s.getInputStream());
 		StringBuffer buffer = new StringBuffer();
@@ -78,42 +71,41 @@ public class SipClient {
 		while (null != ((line = dis.readLine()))) {
 			buffer.append(line);
 		}
-		dis.close();
 		
 		return buffer.toString();
 	}
 	
-	protected String sendMessage(URL url, byte[] data) throws Exception {
-		try {
-			// setup connection
-			URLConnection conn = url.openConnection();
-			log.info("Opening connection: " + url);
-			conn.setDoOutput(true);			
-			conn.setUseCaches(false);
-			
-			conn.setRequestProperty("Content-Type", "text/plain; charset=UTF-8");			
-			//conn.setRequestProperty("Accept", "application/xml");
-
-			// POST data
-			DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
-			log.debug(String.format("Sending data\n%s", new String(data, Charset.forName("UTF-8"))));
-			dos.write(data);
-			dos.flush();
-			dos.close();
-
-			// GET response
-			DataInputStream dis = new DataInputStream(conn.getInputStream());
-			StringBuffer buffer = new StringBuffer();
-			String line;
-			while (null != ((line = dis.readLine()))) {
-				buffer.append(line);
-			}
-			dis.close();
-
-			return buffer.toString();
-		} catch (Exception e) {
-			log.error(e.getMessage(), e);
-		}
-		return null;
-	}
+//	protected String sendMessage(URL url, byte[] data) throws Exception {
+//		try {
+//			// setup connection
+//			URLConnection conn = url.openConnection();
+//			log.info("Opening connection: " + url);
+//			conn.setDoOutput(true);			
+//			conn.setUseCaches(false);
+//			
+//			conn.setRequestProperty("Content-Type", "text/plain; charset=UTF-8");			
+//			//conn.setRequestProperty("Accept", "application/xml");
+//
+//			// POST data
+//			DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
+//			log.debug(String.format("Sending data\n%s", new String(data, Charset.forName("UTF-8"))));
+//			dos.write(data);
+//			dos.flush();
+//			dos.close();
+//
+//			// GET response
+//			DataInputStream dis = new DataInputStream(conn.getInputStream());
+//			StringBuffer buffer = new StringBuffer();
+//			String line;
+//			while (null != ((line = dis.readLine()))) {
+//				buffer.append(line);
+//			}
+//			dis.close();
+//
+//			return buffer.toString();
+//		} catch (Exception e) {
+//			log.error(e.getMessage(), e);
+//		}
+//		return null;
+//	}
 }

@@ -1,5 +1,7 @@
 package org.elasterix.sip.codec;
 
+import org.jboss.netty.util.internal.StringUtil;
+
 /**
  * The default {@link SipRequest} implementation.
  * 
@@ -55,5 +57,17 @@ public class SipRequestImpl extends SipMessageImpl implements SipRequest {
             throw new NullPointerException("uri");
         }
         this.uri = uri;
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder buf = new StringBuilder();
+        buf.append(String.format("%s %s %s", getMethod().name(), getUri(), getProtocolVersion().name()));
+        buf.append(StringUtil.NEWLINE);
+        appendHeaders(buf);
+
+        // Remove the last newline.
+        buf.setLength(buf.length() - StringUtil.NEWLINE.length());
+        return buf.toString();
     }
 }

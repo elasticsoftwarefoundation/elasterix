@@ -50,7 +50,7 @@ public class ElasterixSipServerTest {
 		BasicConfigurator.configure();
 		
 		Logger.getRootLogger().setLevel(Level.WARN);
-		Logger.getLogger("org.elasterix.sip.codec").setLevel(Level.INFO);
+		Logger.getLogger("org.elasterix.sip").setLevel(Level.INFO);
 		Logger.getLogger("org.elasterix").setLevel(Level.DEBUG);
 
 		actorSystem = TestActorSystem.create(new ElasterixServer());

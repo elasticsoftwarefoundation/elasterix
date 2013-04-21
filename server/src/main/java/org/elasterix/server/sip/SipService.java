@@ -24,9 +24,11 @@ import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.UntypedActor;
 import org.elasterix.server.actors.UserAgentClient;
+import org.elasterix.server.messages.SipMessage;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.SipMessageHandler;
 import org.elasterix.sip.SipMessageSender;
+import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipRequest;
 import org.elasterix.sip.codec.SipResponse;
 import org.elasterix.sip.codec.SipResponseImpl;
@@ -85,29 +87,34 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 
 	@Override
 	public void onRegister(SipRequest request) {
-        // make the SipRegister message
+		if(log.isDebugEnabled()) log.debug(String.format("onRegister\n%s", request));
+
+		// Create SipRegister message (one that is suitable / serializable for
+		// actor framework
         SipRegister message = new SipRegister(request.getUri(), request.getHeaders());
 		
 		// Registering is a 'duplex' operation; i.e.
 		// both user and device registers both each other
-        ActorRef device = null;
-		ActorRef user = actorSystem.actorFor(message.getUser());
+		ActorRef user = actorSystem.actorFor("user/" + message.getUser());
+		// always create a new user agent client (uac)
+        ActorRef uac = null;
 		try {
-			device = actorSystem.actorOf("", UserAgentClient.class);
+			if(log.isDebugEnabled()) log.debug(String.format(
+					"onRegister. Creating UAC[%s]", message.getUAC()));
+			uac = actorSystem.actorOf("uac/" + message.getUAC(), UserAgentClient.class);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
-			sendResponse(SipResponseStatus.SERVER_INTERNAL_ERROR);
+			sendResponse(SipResponseStatus.SERVER_INTERNAL_ERROR, message);
 			return;
 		}
-			
-        // @todo: figure out how to get the device from the register message
-        //ActorRef device = actorSystem.actorFor("device");
+
+		// send register message to both actors
 		user.tell(message, actorSystem.serviceActorFor("sipService"));
-		//device.tell(message, user);
+		uac.tell(message, actorSystem.serviceActorFor("sipService"));
         
 		// send response to recipient reflecting
 		// current state of this SIP request
-		sendResponse(SipResponseStatus.OK);
+		sendResponse(SipResponseStatus.OK, message);
 	}
 	
 	/**
@@ -116,7 +123,8 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 	 * 
 	 * @param status The status to communicate back
 	 */
-	private void sendResponse(SipResponseStatus status) {
+	private void sendResponse(SipResponseStatus status, SipMessage message) {
+		// convert sip message to one that can be used by sip protocol
 		messageSender.sendResponse(new SipResponseImpl(SipVersion.SIP_2_0, 
 				status), dummyCallback);
 	}

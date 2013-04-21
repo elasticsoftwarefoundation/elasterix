@@ -36,9 +36,12 @@ import org.springframework.util.StringUtils;
  */
 public class SipRequestDecoder extends SipMessageDecoder {
 	private static final Logger log = Logger.getLogger(SipRequestDecoder.class);
+//	private static final Pattern URI_PATTERN = 
+//			Pattern.compile("^sip:[_a-z0-9-]+(\\.[_a-z0-9-]+)*@[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})$", 
+//			Pattern.CASE_INSENSITIVE);  
 	private static final Pattern URI_PATTERN = 
-			Pattern.compile("^sip:[_a-z0-9-]+(\\.[_a-z0-9-]+)*@[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})$", 
-					Pattern.CASE_INSENSITIVE);  
+			Pattern.compile("^sip:([_a-z0-9-]+(\\.[_a-z0-9-]+)*@)*[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})+(:[0-9]+)*$", 
+			Pattern.CASE_INSENSITIVE);  
 
 	public SipRequestDecoder() {
 		super(4096, 8192, 4096);
@@ -74,6 +77,8 @@ public class SipRequestDecoder extends SipMessageDecoder {
 			log.warn(String.format("createMessage. Invalid URI[%s]", uri));
 			return new SipRequestImpl(SipResponseStatus.BAD_REQUEST);
 		}
+		// TODO: Check domain of URI (do we accept this? Or do we need to transer / redirect
+		// request?
 		return new SipRequestImpl(version, method, uri);
 	}
 }

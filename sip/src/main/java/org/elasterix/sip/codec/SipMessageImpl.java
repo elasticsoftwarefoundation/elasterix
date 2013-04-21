@@ -127,7 +127,7 @@ public class SipMessageImpl implements SipMessage {
         buf.setLength(buf.length() - StringUtil.NEWLINE.length());
         return buf.toString();
     }
-    private void appendHeaders(StringBuilder buf) {
+    protected void appendHeaders(StringBuilder buf) {
         for (Map.Entry<String, String> e: getHeaders()) {
             buf.append(e.getKey());
             buf.append(": ");

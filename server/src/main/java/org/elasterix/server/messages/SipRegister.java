@@ -50,6 +50,20 @@ public final class SipRegister extends SipMessage {
 
     @JsonIgnore
     public String getUser() {
-        return getHeader(SipHeader.TO.getName());
+    	String user = getHeader(SipHeader.TO.getName());
+    	int idx = user.indexOf("sip:");
+    	if(idx != -1) {
+    		idx += 4;
+    		int idx2 = user.indexOf("@", idx);
+    		if(idx != -1) {
+    			return user.substring(idx, idx2);
+    		}
+    	}
+        return user;
+    }
+    
+    @JsonIgnore
+    public String getUAC() {
+        return getHeader(SipHeader.CALL_ID.getName());
     }
 }
