@@ -1,0 +1,13 @@
+REGISTER sip:sip.outerteams.com:5060 SIP/2.0
+Via: SIP/2.0/UDP 192.168.1.15:60236;branch=z9hG4bK-d8754z-886afb7a6949e660-1---d8754z-;rport
+Max-Forwards: 70
+Contact: <sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>
+To: "Hans de Borst"<sip:124@sip.outerteams.com:5060>
+From: "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00
+Call-ID: OWNlZTUwNjU2NjlmODAzMjgzOWI2YTZkN2Y4ZmI5NDg.
+CSeq: 1 REGISTER
+Expires: 120
+Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REGISTER, SUBSCRIBE, NOTIFY, REFER, INFO, MESSAGE
+Supported: replaces
+User-Agent: 3CXPhone 6.0.20943.0
+Content-Length: 0
