@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.elasterix.sip.codec.SipRequest;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.util.CharsetUtil;
+import org.jboss.netty.util.internal.StringUtil;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
@@ -22,7 +23,6 @@ import org.springframework.util.FileCopyUtils;
  */
 public class SipClient {
 	private static final Logger log = Logger.getLogger(SipClient.class);
-	private static final String NL = "\r\n";
 	
 	public SipClient() {
 	}
@@ -35,14 +35,14 @@ public class SipClient {
 		
 		// headers
         for (Map.Entry<String, String> header : request.getHeaders()) {
-        	buf.append(String.format("%s: %s", header.getKey(), header.getValue())).append(NL);
+        	buf.append(String.format("%s: %s", header.getKey(), header.getValue())).append(StringUtil.NEWLINE);
         }
-        buf.append("").append(NL);
+        buf.append("").append(StringUtil.NEWLINE);
 
         // content
         ChannelBuffer content = request.getContent();
         if (content.readable()) {
-        	buf.append(content.toString(CharsetUtil.UTF_8)).append(NL);
+        	buf.append(content.toString(CharsetUtil.UTF_8)).append(StringUtil.NEWLINE);
         }
         
         return sendMessage(null, buf.toString());

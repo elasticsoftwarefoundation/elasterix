@@ -57,8 +57,7 @@ public class ElasterixSipServerTest {
 		sipClient = new SipClient();
 		
 		// create a couple of users
-		users.add(actorSystem.actorOf("users/1", User.class));
-		users.add(actorSystem.actorOf("users/2", User.class));
+		users.add(actorSystem.actorOf("user/124", User.class));
 	}
 	
 	@AfterMethod

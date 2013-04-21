@@ -16,9 +16,6 @@
 
 package org.elasterix.server.sip;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
@@ -28,9 +25,7 @@ import org.elasterix.server.messages.SipMessage;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.SipMessageHandler;
 import org.elasterix.sip.SipMessageSender;
-import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipRequest;
-import org.elasterix.sip.codec.SipResponse;
 import org.elasterix.sip.codec.SipResponseImpl;
 import org.elasterix.sip.codec.SipResponseStatus;
 import org.elasterix.sip.codec.SipVersion;
