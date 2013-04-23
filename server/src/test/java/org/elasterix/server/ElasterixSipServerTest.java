@@ -57,7 +57,9 @@ public class ElasterixSipServerTest {
 		sipClient = new SipClient();
 		
 		// create a couple of users
-		users.add(actorSystem.actorOf("user/124", User.class));
+		ActorRef ref = actorSystem.actorOf("user/124", User.class, 
+				new User.State("", "", ""));
+		users.add(ref);
 	}
 	
 	@AfterMethod

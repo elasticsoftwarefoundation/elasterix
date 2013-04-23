@@ -17,9 +17,15 @@
 package org.elasterix.server;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
+import org.elasterix.elasticactors.DependsOn;
+import org.elasterix.server.actors.User;
 import org.elasterix.server.sip.SipService;
 import org.elasticsoftwarefoundation.elasticactors.base.SpringBasedActorSystem;
+import org.elasticsoftwarefoundation.elasticactors.base.state.JacksonActorState;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
 /**
@@ -29,11 +35,14 @@ import org.springframework.context.ApplicationContext;
  * @author Joost van de Wijgerd
  * @author Leonard Wolters
  */
+@DependsOn(dependencies = {"Sip"})
 public class ElasterixServer extends SpringBasedActorSystem {
 	private static final Logger log = Logger.getLogger(ElasterixServer.class);
 
 	private final String name;
 	private final int numberOfShards;
+	private ActorSystem actorSystem;
+	private ObjectMapper objectMapper;
 
 	/**
 	 * Default constructor
@@ -43,7 +52,7 @@ public class ElasterixServer extends SpringBasedActorSystem {
 	}
 
 	public ElasterixServer(String name, int numberOfShards) {
-        super("elasterix-server-beans.xml");
+		super("elasterix-server-beans.xml");
 		this.name = name;
 		this.numberOfShards = numberOfShards;
 	}
@@ -63,20 +72,35 @@ public class ElasterixServer extends SpringBasedActorSystem {
 		return getClass().getPackage().getImplementationVersion();
 	}
 
-    @Override
-    protected void doInitialize(ApplicationContext applicationContext, ActorSystem actorSystem) {
-        //@todo: this is a hack, we need to do this through postActivate
-        SipService sipService = applicationContext.getBean(SipService.class);
-        sipService.setActorSystem(actorSystem);
-    }
+	@Override
+	protected void doInitialize(ApplicationContext applicationContext, ActorSystem actorSystem) {
+		//@todo: this is a hack, we need to do this through postActivate
+		SipService sipService = applicationContext.getBean(SipService.class);
+		sipService.setActorSystem(actorSystem);
+	}
 
-    @Override
+	@Override
 	public void create(ActorSystem actorSystem, String... strings) throws Exception {
-
 	}
 
 	@Override
 	public void activate(ActorSystem actorSystem) throws Exception {
 		log.info(String.format("activate."));
+	}
+
+	public ActorRef createUser(String email, String username, String secretHash) 
+	throws Exception {
+		User.State userState = new User.State(email, username, secretHash);
+		return actorSystem.actorOf(String.format("user/%s",username), 
+				User.class, new JacksonActorState(objectMapper, userState));
+	}
+
+	@Autowired
+	public void setObjectMapper(ObjectMapper objectMapper) {
+		this.objectMapper = objectMapper;
+	}
+
+	public void setActorSystem(ActorSystem actorSystem) {
+		this.actorSystem = actorSystem;
 	}
 }

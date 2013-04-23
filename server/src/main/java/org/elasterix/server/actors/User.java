@@ -16,8 +16,14 @@
 
 package org.elasterix.server.actors;
 
+import java.util.Map;
+
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.elasticactors.ActorRef;
+import org.elasterix.elasticactors.ActorState;
+import org.elasterix.elasticactors.ActorStateFactory;
 import org.elasterix.elasticactors.UntypedActor;
 import org.elasterix.server.messages.SipRegister;
 
@@ -26,23 +32,85 @@ import org.elasterix.server.messages.SipRegister;
  * 
  * @author Leonard Wolters
  */
-public class User extends UntypedActor {
+public class User extends UntypedActor implements ActorStateFactory {
 	private static final Logger log = Logger.getLogger(User.class);
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
 		log.info(String.format("onReceive. Message[%s]", message));
 
+		State state = getState(this).getAsObject(State.class);
 		if(message instanceof SipRegister) {
-			doRegister((SipRegister) message);
+			doRegister((SipRegister) message, state);
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
+			unhandled(message);
 		}
 	}
 
-	protected void doRegister(SipRegister message) {
+	protected void doRegister(SipRegister message, State state) {
 		if(log.isDebugEnabled()) log.debug(String.format("doRegister. [%s]",
 				message));
+	}
+
+	@Override
+	public void postCreate(ActorRef creator) throws Exception {
+		State state = getState(this).getAsObject(State.class);
+	}
+
+	@Override
+	public void postActivate(String previousVersion) throws Exception {
+		State state = getState(this).getAsObject(State.class);
+	}
+
+	@Override
+	public ActorState create() {
+		throw new IllegalStateException("Please initialize User with state");
+	}
+
+	/**
+	 * State belonging to User
+	 */
+	public static final class State implements ActorState {
+		private final String email;
+		private final String username;
+		private final String secretHash;
+
+		@JsonCreator
+		public State(@JsonProperty("email") String email,
+				@JsonProperty("username") String username,
+				@JsonProperty("secretHash") String secretHash) {
+			this.email = email;
+			this.username = username;
+			this.secretHash = secretHash;
+		}
+
+		@JsonProperty("email")
+		public String getEmail() {
+			return email;
+		}
+
+		@JsonProperty("username")
+		public String getUsername() {
+			return username;
+		}
+
+		@JsonProperty("secretHash")
+		public String getSecretHash() {
+			return secretHash;
+		}
+
+		@Override
+		public Map<String, Object> getAsMap() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public <T> T getAsObject(Class<T> arg0) {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	}
 }
