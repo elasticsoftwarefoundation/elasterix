@@ -32,12 +32,13 @@ public final class SipRegister extends SipMessage {
     private final String uri;
 
     public SipRegister(String uri, List<Map.Entry<String,String>> headers) {
-        this(uri,headers,null);
+        super(headers,null);
+        this.uri = uri;
     }
     
     @JsonCreator
     public SipRegister(@JsonProperty("uri") String uri,
-                       @JsonProperty("headers") List<Map.Entry<String,String>> headers,
+                       @JsonProperty("headers") Map<String, List<String>> headers,
                        @JsonProperty("content") byte[] content) {
         super(headers, content);
         this.uri = uri;

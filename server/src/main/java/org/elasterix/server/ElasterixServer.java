@@ -92,7 +92,7 @@ public class ElasterixServer extends SpringBasedActorSystem {
 	throws Exception {
 		User.State userState = new User.State(email, username, secretHash);
 		return actorSystem.actorOf(String.format("user/%s",username), 
-				User.class, new JacksonActorState(objectMapper, userState));
+				User.class, userState);
 	}
 
 	@Autowired
