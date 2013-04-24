@@ -26,6 +26,7 @@ import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.test.TestActorSystem;
 import org.elasterix.server.actors.User;
+import org.elasticsoftwarefoundation.elasticactors.base.state.JacksonActorState;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -55,10 +56,9 @@ public class ElasterixSipServerTest {
 
 		actorSystem = TestActorSystem.create(new ElasterixServer());
 		sipClient = new SipClient();
-		
+
 		// create a couple of users
-		ActorRef ref = actorSystem.actorOf("user/124", User.class, 
-				new User.State("", "", ""));
+		ActorRef ref = actorSystem.actorOf("user/124", User.class, new User.State("", "", ""));
 		users.add(ref);
 	}
 	

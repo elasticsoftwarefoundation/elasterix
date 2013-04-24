@@ -32,14 +32,14 @@ import org.elasterix.server.messages.SipRegister;
  * 
  * @author Leonard Wolters
  */
-public class User extends UntypedActor implements ActorStateFactory {
+public class User extends UntypedActor {
 	private static final Logger log = Logger.getLogger(User.class);
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
 		log.info(String.format("onReceive. Message[%s]", message));
 
-		State state = getState(this).getAsObject(State.class);
+		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
 			doRegister((SipRegister) message, state);
 		} else {
@@ -56,23 +56,18 @@ public class User extends UntypedActor implements ActorStateFactory {
 
 	@Override
 	public void postCreate(ActorRef creator) throws Exception {
-		State state = getState(this).getAsObject(State.class);
+		State state = getState(null).getAsObject(State.class);
 	}
 
 	@Override
 	public void postActivate(String previousVersion) throws Exception {
-		State state = getState(this).getAsObject(State.class);
-	}
-
-	@Override
-	public ActorState create() {
-		throw new IllegalStateException("Please initialize User with state");
+		State state = getState(null).getAsObject(State.class);
 	}
 
 	/**
 	 * State belonging to User
 	 */
-	public static final class State implements ActorState {
+	public static final class State {
 		private final String email;
 		private final String username;
 		private final String secretHash;
@@ -101,16 +96,6 @@ public class User extends UntypedActor implements ActorStateFactory {
 			return secretHash;
 		}
 
-		@Override
-		public Map<String, Object> getAsMap() {
-			// TODO Auto-generated method stub
-			return null;
-		}
 
-		@Override
-		public <T> T getAsObject(Class<T> arg0) {
-			// TODO Auto-generated method stub
-			return null;
-		}
 	}
 }
