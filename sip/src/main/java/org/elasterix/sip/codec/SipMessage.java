@@ -42,7 +42,7 @@ public interface SipMessage {
      * @return the {@link List} of the header-value pairs.  An empty list
      *         if there is no header in this message.
      */
-    List<Map.Entry<String, String>> getHeaders();
+    Map<String, List<String>> getHeaders();
 
     /**
      * Returns {@code true} if and only if there given header is present.
@@ -75,19 +75,13 @@ public interface SipMessage {
     /**
      * Adds a new header with the specified value.
      */
-    void addHeader(SipHeader header, Object value);
-
+    void addHeader(SipHeader header, Object... value);
+    
     /**
      * Sets a new header with the specified value. Existing header(s) will
      * be removed.
      */
-    void setHeader(SipHeader header, Object value);
-
-    /**
-     * Sets a new header with the specified values. Existing header(s) will
-     * be removed.
-     */
-    void setHeader(SipHeader header, Iterable<?> values);
+    void setHeader(SipHeader header, Object... value);
 
     /**
      * Removes given header
@@ -110,4 +104,11 @@ public interface SipMessage {
      * @return
      */
     SipResponseStatus getResponseStatus();
+    
+    /**
+     * Returns the content length of this message
+     * @param defaultValue
+     * @return
+     */
+    long getContentLength(long defaultValue);
 }

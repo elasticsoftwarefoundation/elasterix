@@ -104,27 +104,6 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 		log.debug(String.format("init(%d,%d,%d)", maxInitialLineLength, maxHeaderSize, maxHeaderLineLength));
 	}
 
-//	@Override
-//	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
-//			throws Exception {
-//		log.debug("exceptionCaught");
-//		super.exceptionCaught(ctx, e);
-//	}
-//
-//	@Override
-//	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e)
-//			throws Exception {
-//		log.debug("channelClosed");
-//		super.channelClosed(ctx, e);
-//	}
-//
-//	@Override
-//	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e)
-//			throws Exception {
-//		log.debug("channelDisconnected");
-//		super.channelDisconnected(ctx, e);
-//	}
-
 	@Override
 	protected Object decode(ChannelHandlerContext ctx, Channel channel,
 			ChannelBuffer buffer, State state)
@@ -146,7 +125,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 
 				// Invalid initial line - ignore.
 				checkpoint(State.SKIP_CONTROL_CHARS);
-				return new SipMessageImpl(SipResponseStatus.BAD_GATEWAY);
+				return createMessage(SipResponseStatus.BAD_GATEWAY);
 			}
 			message = createMessage(initialLine);
 			if(message == null || message.getResponseStatus() != null) {
@@ -166,7 +145,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 				// No content is expected.
 				return message;
 			}
-			long contentLength = SipHeaders.getContentLength(message, -1);
+			long contentLength = message.getContentLength(-1);
 			if (contentLength == 0 || contentLength == -1 && isDecodingRequest()) {
 				content = ChannelBuffers.EMPTY_BUFFER;
 				return reset();
@@ -226,24 +205,24 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 
 	private Object readFixedLengthContent(ChannelBuffer buffer) {
 		//we have a content-length so we just read the correct number of bytes
-		long length = SipHeaders.getContentLength(message, -1);
-		assert length <= Integer.MAX_VALUE;
-		int toRead = (int) length - contentRead;
+		long contentLength = message.getContentLength(-1);
+		assert contentLength <= Integer.MAX_VALUE;
+		int toRead = (int) contentLength - contentRead;
 		if (toRead > actualReadableBytes()) {
 			toRead = actualReadableBytes();
 		}
 		if(log.isDebugEnabled()) {
 			log.debug(String.format("readFixedLengthContent. "
-				+ "Length[%d], toRead[%d], actual[%d]", length, toRead, actualReadableBytes()));
+				+ "Length[%d], toRead[%d], actual[%d]", contentLength, toRead, actualReadableBytes()));
 		}
 		contentRead += toRead;
-		if (length < contentRead) {
+		if (contentLength < contentRead) {
 			return buffer.readBytes(toRead);
 		}
 		if (content == null) {
-			content = buffer.readBytes((int) length);
+			content = buffer.readBytes((int) contentLength);
 		} else {
-			content.writeBytes(buffer, (int) length);
+			content.writeBytes(buffer, (int) contentLength);
 		}
 		return reset();
 	}
@@ -275,8 +254,8 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 				if (name != null && (firstChar == ' ' || firstChar == '\t')) {
 					value = value + ' ' + line.trim();
 				} else {
-					if (name != null) {
-						SipHeaders.addHeader(message, name, value);
+					if (name != null) {						
+						message.addHeader(SipHeader.lookup(name), value);
 					}
 					String[] header = splitHeader(line);
 					name = header[0];
@@ -292,7 +271,8 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 
 			// Add the last header.
 			if (name != null) {
-				SipHeaders.addHeader(message, name, value);
+				//SipHeaders.addHeader(message, name, value);
+				message.addHeader(SipHeader.lookup(name), value);
 			}
 		}
 
@@ -300,7 +280,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 		State nextState;
 		if (isContentAlwaysEmpty(message)) {
 			nextState = State.SKIP_CONTROL_CHARS;
-		} else if (SipHeaders.getContentLength(message, -1) >= 0) {
+		} else if (message.getContentLength(-1) >= 0) {
 			nextState = State.READ_FIXED_LENGTH_CONTENT;
 		} else {
 			nextState = State.READ_VARIABLE_LENGTH_CONTENT;
@@ -329,6 +309,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 	}
 	protected abstract boolean isDecodingRequest();
 	protected abstract SipMessage createMessage(String[] initialLine) throws Exception;
+	protected abstract SipMessage createMessage(SipResponseStatus status) throws Exception;
 
 	/**
 	 * If the length of the line exceeds the maxLineLenght, a <code>TooLongFrameException</code>

@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -14,6 +15,7 @@ import org.jboss.netty.util.internal.StringUtil;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.util.StringUtils;
 
 
 /**
@@ -23,6 +25,7 @@ import org.springframework.util.FileCopyUtils;
  */
 public class SipClient {
 	private static final Logger log = Logger.getLogger(SipClient.class);
+	private Socket socket;
 	
 	public SipClient() {
 	}
@@ -34,8 +37,11 @@ public class SipClient {
 				request.getUri(), request.getProtocolVersion().toString()));
 		
 		// headers
-        for (Map.Entry<String, String> header : request.getHeaders()) {
-        	buf.append(String.format("%s: %s", header.getKey(), header.getValue())).append(StringUtil.NEWLINE);
+        for (Map.Entry<String, List<String>> header : request.getHeaders().entrySet()) {
+        	buf.append(header.getKey());
+        	buf.append(": ");
+        	buf.append(StringUtils.arrayToDelimitedString(header.getValue().toArray(), "\n"));
+        	buf.append(StringUtil.NEWLINE);
         }
         buf.append("").append(StringUtil.NEWLINE);
 
@@ -54,9 +60,9 @@ public class SipClient {
 	}
 	
 	protected String sendMessage(byte[] data, String content) throws Exception {
-		Socket s = new Socket("localhost", 5060);
+		socket = new Socket("localhost", 5060);
 		
-		DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+		DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 		log.debug(String.format("Sending data\n%s", new String(data, Charset.forName("UTF-8"))));
 		if(data != null) {
 			dos.write(data);
@@ -65,7 +71,7 @@ public class SipClient {
 		}
 		dos.flush();
 		
-		DataInputStream dis = new DataInputStream(s.getInputStream());
+		DataInputStream dis = new DataInputStream(socket.getInputStream());
 		StringBuffer buffer = new StringBuffer();
 		String line;
 		while (null != ((line = dis.readLine()))) {
@@ -108,4 +114,12 @@ public class SipClient {
 //		}
 //		return null;
 //	}
+	
+	public void close() throws Exception {
+		if(socket != null) {
+			socket.shutdownInput();
+			socket.shutdownOutput();
+			socket.close();
+		}
+	}
 }

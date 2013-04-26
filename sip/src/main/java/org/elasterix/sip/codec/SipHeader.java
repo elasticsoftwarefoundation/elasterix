@@ -1,5 +1,7 @@
 package org.elasterix.sip.codec;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Enumeration for all available SIP Headers
  * 
@@ -23,7 +25,7 @@ public enum SipHeader {
 	CONTENT_TYPE("Content-Type"),
 	CSEQ("CSeq"),
 	ERROR_INFO("Error-Info"),
-	EXPIRES("Expires"),
+	EXPIRES("Expires"), // i.e. seconds
 	FROM("From"),
 	IN_REPLY_TO("In-Reply-To"),
 	MAX_FORWARDS("Max-Forwards"),
@@ -49,12 +51,28 @@ public enum SipHeader {
 	WARNING("Warning"),
 	WWW_AUTHENTICATE("WWW-Authenticate");
 
-	private final String name;
+	private final static ConcurrentHashMap<String, SipHeader> cache =
+			new ConcurrentHashMap<String, SipHeader>();
+	private final String name;	
 	private SipHeader(String name) {
 		this.name= name;
 	}
-	
+
 	public String getName() {
 		return name;
+	}
+
+	public static SipHeader lookup(String name) {
+		if(cache.contains(name)) {
+			return cache.get(name);
+		}
+		
+		for(SipHeader s : values()) {
+			if(s.name.equals(name)) {
+				cache.put(name, s);
+				return s;
+			}
+		}
+		return null;
 	}
 }

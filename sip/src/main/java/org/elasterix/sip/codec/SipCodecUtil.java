@@ -1,12 +1,11 @@
 package org.elasterix.sip.codec;
 
-
 /**
  * @author Leonard Wolters
  */
-final class SipCodecUtil {
+public final class SipCodecUtil {
 
-	static void validateHeaderName(String name) {
+	public static void validateHeaderName(String name) {
         if (name == null) {
             throw new NullPointerException("name");
         }
@@ -28,7 +27,7 @@ final class SipCodecUtil {
         }
     }
 
-    static void validateHeaderValue(String value) {
+	public static void validateHeaderValue(String value) {
         if (value == null) {
             throw new NullPointerException("value");
         }
@@ -91,7 +90,7 @@ final class SipCodecUtil {
         }
     }
     
-    static boolean isContentLengthSet(SipMessage m) {
+	public static boolean isContentLengthSet(SipMessage m) {
         return !m.getHeaderValues(SipHeader.CONTENT_LENGTH).isEmpty();
     }
 }

@@ -4,6 +4,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
+import org.elasterix.sip.codec.impl.SipMessageImpl;
+import org.elasterix.sip.codec.impl.SipRequestImpl;
+import org.elasterix.sip.codec.netty.SipMessageNetty;
+import org.elasterix.sip.codec.netty.SipRequestNetty;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.springframework.util.StringUtils;
@@ -41,11 +45,12 @@ public class SipRequestDecoder extends SipMessageDecoder {
 //			Pattern.CASE_INSENSITIVE);  
 	private static final Pattern URI_PATTERN = 
 			Pattern.compile("^sip:([_a-z0-9-]+(\\.[_a-z0-9-]+)*@)*[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})+(:[0-9]+)*$", 
-			Pattern.CASE_INSENSITIVE);  
+			Pattern.CASE_INSENSITIVE);
 
 	public SipRequestDecoder() {
 		super(4096, 8192, 4096);
 	}
+	
 	public SipRequestDecoder(int maxInitialLineLength, int maxHeaderSize, 
 			int maxHeaderLineLength) {
 		super(maxInitialLineLength, maxHeaderSize, maxHeaderLineLength);
@@ -54,6 +59,12 @@ public class SipRequestDecoder extends SipMessageDecoder {
 	@Override
 	protected boolean isDecodingRequest() {
 		return true;
+	}
+	
+	@Override
+	protected SipMessage createMessage(SipResponseStatus responseStatus) throws Exception {
+		return SipServerCodec.USE_NETTY_IMPLEMENTATION ? 
+				new SipMessageNetty(responseStatus) : new SipMessageImpl(responseStatus);
 	}
 
 	@Override
@@ -64,21 +75,22 @@ public class SipRequestDecoder extends SipMessageDecoder {
     	SipVersion version = SipVersion.lookup(initialLine[2], false);
     	if(version == null) {
     		log.warn(String.format("createMessage. Invalid Sip Version[%s]", initialLine[2]));
-    		return new SipRequestImpl(SipResponseStatus.VERSION_NOT_SUPPORTED);
+    		return new SipRequestNetty(SipResponseStatus.VERSION_NOT_SUPPORTED);
     	}
     	SipMethod method = SipMethod.lookup(initialLine[0], false);
     	if(method == null) {
     		log.warn(String.format("createMessage. Invalid Sip Method[%s]", initialLine[0]));
-    		return new SipRequestImpl(SipResponseStatus.METHOD_NOT_ALLOWED);
+    		return new SipRequestNetty(SipResponseStatus.METHOD_NOT_ALLOWED);
     	}
     	String uri = initialLine[1];
     	Matcher matcher = URI_PATTERN.matcher(uri);  
 		if(!matcher.matches()) {
 			log.warn(String.format("createMessage. Invalid URI[%s]", uri));
-			return new SipRequestImpl(SipResponseStatus.BAD_REQUEST);
+			return new SipRequestNetty(SipResponseStatus.BAD_REQUEST);
 		}
 		// TODO: Check domain of URI (do we accept this? Or do we need to transer / redirect
 		// request?
-		return new SipRequestImpl(version, method, uri);
+		return SipServerCodec.USE_NETTY_IMPLEMENTATION ? 
+				new SipRequestNetty(version, method, uri) : new SipRequestImpl(version, method, uri);
 	}
 }

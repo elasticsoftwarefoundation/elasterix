@@ -29,10 +29,9 @@ public class SipClientHandler extends SimpleChannelUpstreamHandler {
     throws Exception {
         SipResponse response = (SipResponse) e.getMessage();
         if (!response.getHeaderNames().isEmpty()) {
-            for (Map.Entry<String, String> header : response.getHeaders()) {
+            for (Map.Entry<String, List<String>> header : response.getHeaders().entrySet()) {
                 buf.append(String.format("HEADER: %s = %s", header.getKey(), 
-                		header.getValue())).append(NL);
-                		//StringUtils.collectionToCommaDelimitedString(header.getValue()))).append(NL);
+                		StringUtils.collectionToCommaDelimitedString(header.getValue()))).append(NL);
             }
             buf.append("").append(NL);
         }

@@ -20,15 +20,11 @@ import org.apache.log4j.Logger;
 import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.UntypedActor;
-import org.elasterix.server.actors.UserAgentClient;
 import org.elasterix.server.messages.SipMessage;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.SipMessageHandler;
 import org.elasterix.sip.SipMessageSender;
 import org.elasterix.sip.codec.SipRequest;
-import org.elasterix.sip.codec.SipResponseImpl;
-import org.elasterix.sip.codec.SipResponseStatus;
-import org.elasterix.sip.codec.SipVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -42,8 +38,8 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 	private static final Logger log = Logger.getLogger(SipService.class);
 
 	@Autowired
-	private SipMessageSender messageSender;
-	
+	private SipMessageSender sipMessageSender;	
+
 	/** Can't be autowired. Is automatically set be ElasterixServer */
 	private ActorSystem actorSystem;
 	
@@ -56,9 +52,28 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 	}
 
     @Override
-    public void onReceive(ActorRef actorRef, Object o) throws Exception {
+    public void onReceive(ActorRef actorRef, Object message) throws Exception {
 
+    	if(message instanceof SipRegister) {
+    		onRegister(actorRef, (SipRegister) message);
+    	} else {
+    		log.warn(String.format("onReceive. Unsupported message[%s]", 
+					message.getClass().getSimpleName()));
+			unhandled(message);
+    	}
     }
+    
+    protected void onRegister(ActorRef sender, SipRegister message) {
+		if(log.isDebugEnabled()) log.debug(String.format("onRegister. Status[%d]",
+				message.getResponse()));
+		sendResponse(message);
+	}
+
+    //////////////////////////////////////////////////////////////////////////
+    //
+    //					SipMessageHandler
+    //
+    //////////////////////////////////////////////////////////////////////////
 
     @Override
 	public void onAck(SipRequest request) {
@@ -86,49 +101,36 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 
 		// Create SipRegister message (one that is suitable / serializable for
 		// actor framework
-        SipRegister message = new SipRegister(request.getUri(), request.getHeaders());
+        SipRegister message = new SipRegister(request);
 		
 		// Registering is a 'duplex' operation; i.e.
-		// both user and device registers both each other
-		ActorRef user = actorSystem.actorFor("user/" + message.getUser());
-		// always create a new user agent client (uac)
-        ActorRef uac = null;
-		try {
-			if(log.isDebugEnabled()) log.debug(String.format(
-					"onRegister. Creating UAC[%s]", message.getUAC()));
-			uac = actorSystem.actorOf("uac/" + message.getUAC(), UserAgentClient.class);
-		} catch (Exception e) {
-			log.error(e.getMessage(), e);
-			sendResponse(SipResponseStatus.SERVER_INTERNAL_ERROR, message);
-			return;
-		}
-
-		// send register message to both actors
-		user.tell(message, actorSystem.serviceActorFor("sipService"));
-		uac.tell(message, actorSystem.serviceActorFor("sipService"));
-        
-		// send response to recipient reflecting
-		// current state of this SIP request
-		sendResponse(SipResponseStatus.OK, message);
+		// both user and device register each other. The User actor redirects
+        // the register message to UserAgentClient actor automatically.
+        ActorRef user = actorSystem.actorFor("user/" + message.getUser());
+		user.tell(message, actorSystem.serviceActorFor("sipService"));		
 	}
+	
+	//////////////////////////////////////////////////////////////////////////
+	//
+	//					Convenient
+	//
+	//////////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * SendResponse sends back a <b>acknowledge</b> response on incoming
 	 * <code>SipRequest</code>. 
 	 * 
-	 * @param status The status to communicate back
+	 * @param message The message to communicate back to sip client
 	 */
-	private void sendResponse(SipResponseStatus status, SipMessage message) {
-		// convert sip message to one that can be used by sip protocol
-		messageSender.sendResponse(new SipResponseImpl(SipVersion.SIP_2_0, 
-				status), dummyCallback);
+	private void sendResponse(SipMessage message) {
+		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
 	}
 
     public void setActorSystem(ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
     }
-
-    public void setMessageSender(SipMessageSender messageSender) {
-        this.messageSender = messageSender;
-    }
+    
+    public void setSipMessageSender(SipMessageSender sipMessageSender) {
+		this.sipMessageSender = sipMessageSender;
+	}
 }

@@ -9,6 +9,7 @@ import static org.jboss.netty.handler.codec.http.HttpConstants.SP;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -61,23 +62,38 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
 
     private static void encodeHeaders(ChannelBuffer buf, SipMessage message) {
         try {
-            for (Map.Entry<String, String> h: message.getHeaders()) {
-            	encodeHeader(buf, h.getKey(), h.getValue());
+            for (Map.Entry<String, List<String>> header : message.getHeaders().entrySet()) {
+            	encodeHeader(buf, header.getKey(), header.getValue());
             }
         } catch (UnsupportedEncodingException e) {
             throw (Error) new Error().initCause(e);
         }
     }
 
-    private static void encodeHeader(ChannelBuffer buf, String header, String value)
-            throws UnsupportedEncodingException {
-    	if(log.isDebugEnabled()) log.debug(String.format("encodeHeader. [%s] --> [%s]", header, value));
-        buf.writeBytes(header.getBytes(charSet));
-        buf.writeByte(COLON);
-        buf.writeByte(SP);
-        buf.writeBytes(value.getBytes(charSet));
-        buf.writeByte(CR);
-        buf.writeByte(LF);
+    private static void encodeHeader(ChannelBuffer buf, String header, List<String> values)
+            throws UnsupportedEncodingException {               
+    	
+    	if(values.size() == 0) {
+        	log.warn(String.format("encodeHeader. No values found for header[%s]", header));
+        	buf.writeBytes(header.getBytes(charSet));
+        	buf.writeByte(COLON);
+        	buf.writeByte(SP);
+        	buf.writeByte(CR);
+        	buf.writeByte(LF);
+        	return;
+    	}
+    	
+        //
+        // see http://tools.ietf.org/html/rfc3261#section-7.3.1
+        //
+    	for(String s : values) {
+    		buf.writeBytes(header.getBytes(charSet));
+        	buf.writeByte(COLON);
+        	buf.writeByte(SP);
+    		buf.writeBytes(s.getBytes(charSet));
+    		buf.writeByte(CR);
+    	    buf.writeByte(LF);
+    	}
     }
 
     protected abstract void encodeInitialLine(ChannelBuffer buf, SipMessage message) throws Exception;

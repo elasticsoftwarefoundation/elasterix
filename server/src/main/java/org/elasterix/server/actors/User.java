@@ -16,16 +16,20 @@
 
 package org.elasterix.server.actors;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.elasticactors.ActorRef;
-import org.elasterix.elasticactors.ActorState;
-import org.elasterix.elasticactors.ActorStateFactory;
 import org.elasterix.elasticactors.UntypedActor;
 import org.elasterix.server.messages.SipRegister;
+import org.elasterix.sip.codec.SipHeader;
+import org.elasterix.sip.codec.SipResponseStatus;
+import org.springframework.util.StringUtils;
 
 /**
  * User Actor
@@ -37,11 +41,11 @@ public class User extends UntypedActor {
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
-		log.info(String.format("onReceive. Message[%s]", message));
+		//log.info(String.format("onReceive. Message[%s]", message));
 
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
-			doRegister((SipRegister) message, state);
+			onRegister(sender, (SipRegister) message, state);
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -49,9 +53,56 @@ public class User extends UntypedActor {
 		}
 	}
 
-	protected void doRegister(SipRegister message, State state) {
-		if(log.isDebugEnabled()) log.debug(String.format("doRegister. [%s]",
+	protected void onRegister(ActorRef sender, SipRegister message, State state) {
+		if(log.isDebugEnabled()) log.debug(String.format("onRegister. [%s]",
 				message));
+		
+		// check if authentication is present...
+		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
+		if(!StringUtils.hasLength(authorization)) {
+			if(log.isDebugEnabled()) log.debug("onRegister. No authorization set");
+			sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
+			return;
+		}
+
+		// check authorization
+		Map<String, String> map = tokenize(authorization);
+		String hash = state.getSecretHash();
+		if(!StringUtils.hasLength(hash) || hash.equals(map.get("response"))) {
+			if(log.isDebugEnabled()) log.debug("onRegister. No hash set or hash incorrect");
+			sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
+			return;
+		}
+		
+		// get uac
+		String uac = message.getUserAgentClient();
+		if(!StringUtils.hasLength(uac)) {
+			log.warn("onRegister. No UAC set in message");
+			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());			
+		}
+		uac = String.format("uac/%s", uac);
+		
+		// check expiration...
+		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
+		if(expires != null) {
+			if(expires.longValue() == 0) {
+				// remove current binding with UAC set in message
+				state.removeUserAgentClient(uac);
+			} else {
+				// update binding (with new expiration)
+				state.addUserAgentClient(uac, expires);
+			}
+		}
+
+		// send register message to device.
+		try {
+			ActorRef userAgentClient = getSystem().actorOf(uac, UserAgentClient.class);
+			// pass sender (SipService) to user agent client
+			userAgentClient.tell(message, sender);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			sender.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR), getSelf());
+		}
 	}
 
 	@Override
@@ -63,6 +114,25 @@ public class User extends UntypedActor {
 	public void postActivate(String previousVersion) throws Exception {
 		State state = getState(null).getAsObject(State.class);
 	}
+	
+	private Map<String, String> tokenize(String value) {
+		// Authorization: Digest username="124",realm="combird",nonce="24855234",
+		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
+
+		Map<String, String> map = new HashMap<String, String>();
+		StringTokenizer st = new StringTokenizer(value, " ,", false);
+		while(st.hasMoreTokens()) {
+			String token = st.nextToken();
+			int idx = token.indexOf("=");
+			if(idx != -1) {
+				map.put(token.substring(0, idx), 
+						token.substring(idx+1).replace('\"', ' ').trim());
+			} else {
+				map.put(token, token);
+			}
+		}
+		return map;
+	}
 
 	/**
 	 * State belonging to User
@@ -71,7 +141,9 @@ public class User extends UntypedActor {
 		private final String email;
 		private final String username;
 		private final String secretHash;
-
+		/** UID of User Agent Client (key) and expires (seconds) as value */
+		private Map<String, Long> userAgentClients = new HashMap<String, Long>();
+		
 		@JsonCreator
 		public State(@JsonProperty("email") String email,
 				@JsonProperty("username") String username,
@@ -95,7 +167,25 @@ public class User extends UntypedActor {
 		public String getSecretHash() {
 			return secretHash;
 		}
-
-
+		
+		@JsonProperty("userAgentClients")
+        public Map<String, Long> getUserAgentClients() {
+            return userAgentClients;
+        }
+		
+		//
+		//
+		//
+		
+		public boolean removeUserAgentClient(String uid) {
+			return userAgentClients.remove(uid) != null;
+		}
+		
+		public boolean addUserAgentClient(String uid, long expiration) {
+			boolean b = userAgentClients.containsKey(uid);
+			userAgentClients.put(uid, 
+					System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expiration));
+			return b;
+		}
 	}
 }

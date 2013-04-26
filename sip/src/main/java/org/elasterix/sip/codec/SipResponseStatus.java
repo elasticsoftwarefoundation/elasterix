@@ -108,7 +108,7 @@ public enum SipResponseStatus {
         return reasonPhrase;
     }
     
-    public static SipResponseStatus lookup(int code, String value) {
+    public static SipResponseStatus lookup(int code) {
     	for(SipResponseStatus s : values()) {
     		if(s.code == code) {
     			return s;

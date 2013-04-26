@@ -26,7 +26,7 @@ import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.test.TestActorSystem;
 import org.elasterix.server.actors.User;
-import org.elasticsoftwarefoundation.elasticactors.base.state.JacksonActorState;
+import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -41,6 +41,7 @@ public class ElasterixSipServerTest {
 	private static final Logger log = Logger.getLogger(ElasterixSipServerTest.class);
 	protected ActorSystem actorSystem;
 	protected SipClient sipClient;
+	protected Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
 	
 	protected List<ActorRef> users = new ArrayList<ActorRef>();
 	protected List<ActorRef> uacs = new ArrayList<ActorRef>();
@@ -58,7 +59,13 @@ public class ElasterixSipServerTest {
 		sipClient = new SipClient();
 
 		// create a couple of users
-		ActorRef ref = actorSystem.actorOf("user/124", User.class, new User.State("", "", ""));
+		ActorRef ref = actorSystem.actorOf("user/lwolters", User.class, 
+				new User.State("leonard@elasticsoftware.org", "lwolters", 
+						md5Encoder.encodePassword("test", null)));
+		users.add(ref);
+		ref = actorSystem.actorOf("user/jwijgerd", User.class, 
+				new User.State("joost@elasticsoftware.org", "jwijgerd", 
+						md5Encoder.encodePassword("test", null)));
 		users.add(ref);
 	}
 	
@@ -69,6 +76,10 @@ public class ElasterixSipServerTest {
 		}
 		for(ActorRef ref : uacs) {
 			actorSystem.stop(ref);
+		}
+		
+		if(sipClient != null) {
+			sipClient.close();
 		}
 	}
 
@@ -85,8 +96,8 @@ public class ElasterixSipServerTest {
 //		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
 //		req.addHeader(SipHeader.TO, "Leonard Wolters <sip:leonard@localhost.com>;tag=1928301774");
 
-		String response = sipClient.sendMessage("sip-register.txt");
-		log.info("RESPONSE: " + response);
+//		String response = sipClient.sendMessage("sip-register.txt");
+//		log.info("RESPONSE: " + response);
 	}
 }
 

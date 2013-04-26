@@ -1,5 +1,7 @@
 package org.elasterix.sip.codec;
 
+import org.elasterix.sip.codec.impl.SipResponseImpl;
+import org.elasterix.sip.codec.netty.SipResponseNetty;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 
@@ -40,8 +42,17 @@ public class SipResponseDecoder extends SipMessageDecoder {
 
 	@Override
 	protected SipMessage createMessage(String[] initialLine) throws Exception {
-		return new SipResponseImpl(
-                SipVersion.valueOf(initialLine[0]),
-                SipResponseStatus.lookup(Integer.valueOf(initialLine[1]), initialLine[2]));
+		return SipServerCodec.USE_NETTY_IMPLEMENTATION ?
+				new SipResponseNetty(SipVersion.valueOf(initialLine[0]),
+						SipResponseStatus.lookup(Integer.valueOf(initialLine[1]))) :
+				new SipResponseImpl(
+						SipVersion.valueOf(initialLine[0]),
+						SipResponseStatus.lookup(Integer.valueOf(initialLine[1])));
+	}
+
+	@Override
+	protected SipMessage createMessage(SipResponseStatus status)
+			throws Exception {
+		return null;	
 	}
 }

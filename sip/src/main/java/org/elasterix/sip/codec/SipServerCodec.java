@@ -17,6 +17,7 @@ public class SipServerCodec implements ChannelUpstreamHandler,
 
     private final SipRequestDecoder decoder;
     private final SipResponseEncoder encoder = new SipResponseEncoder();
+	protected static final boolean USE_NETTY_IMPLEMENTATION = false;
 
     /**
      * Creates a new instance with the default decoder options

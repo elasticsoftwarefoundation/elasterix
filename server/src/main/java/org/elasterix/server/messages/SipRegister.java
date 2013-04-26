@@ -23,6 +23,7 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.sip.codec.SipHeader;
+import org.elasterix.sip.codec.SipRequest;
 
 /**
  * @author Leonard Wolters
@@ -31,16 +32,18 @@ import org.elasterix.sip.codec.SipHeader;
 public final class SipRegister extends SipMessage {
     private final String uri;
 
-    public SipRegister(String uri, List<Map.Entry<String,String>> headers) {
-        super(headers,null);
-        this.uri = uri;
+    public SipRegister(SipRequest request) {
+        super(request.getProtocolVersion().toString(), request.getHeaders(),
+        		null);
+        this.uri = request.getUri();
     }
     
     @JsonCreator
     public SipRegister(@JsonProperty("uri") String uri,
+    				   @JsonProperty("version") String version,
                        @JsonProperty("headers") Map<String, List<String>> headers,
                        @JsonProperty("content") byte[] content) {
-        super(headers, content);
+        super(version, headers, content);
         this.uri = uri;
     }
 
@@ -51,7 +54,7 @@ public final class SipRegister extends SipMessage {
 
     @JsonIgnore
     public String getUser() {
-    	String user = getHeader(SipHeader.TO.getName());
+    	String user = getHeader(SipHeader.TO);
     	int idx = user.indexOf("sip:");
     	if(idx != -1) {
     		idx += 4;
@@ -64,7 +67,7 @@ public final class SipRegister extends SipMessage {
     }
     
     @JsonIgnore
-    public String getUAC() {
-        return getHeader(SipHeader.CALL_ID.getName());
+    public String getUserAgentClient() {
+        return getHeader(SipHeader.CALL_ID);
     }
 }

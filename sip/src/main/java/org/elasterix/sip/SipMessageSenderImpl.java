@@ -37,7 +37,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 
 	@Override
 	public void sendRequest(SipRequest request, SipMessageCallback callback) {
-		log.info(String.format("Sending Request[%s]", request));
+		log.info(String.format("Sending Request\n%s", request));
 		
 		// get existing channel or open a new one for 'recipient' of this
 		// message
@@ -46,6 +46,6 @@ public class SipMessageSenderImpl implements SipMessageSender {
 
 	@Override
 	public void sendResponse(SipResponse response, SipMessageCallback callback) {
-		log.info(String.format("Sending Response[%s]", response));
+		log.info(String.format("Sending Response\n%s", response));
 	}
 }
