@@ -30,6 +30,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
  		<aspectj.version>1.7.2</aspectj.version>
+        <concurrentlinkedhashmap.version>1.3.2</concurrentlinkedhashmap.version>
         <elasticactors.version>0.1.0-SNAPSHOT</elasticactors.version>
  		<jackson.version>1.9.12</jackson.version>
         <netty.version>3.6.3.Final</netty.version>
@@ -98,7 +99,11 @@
             <artifactId>persistence-api</artifactId>
             <version>1.0.2</version>
         </dependency>
-
+		<dependency>
+			<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+			<artifactId>concurrentlinkedhashmap-lru</artifactId>
+			<version>${concurrentlinkedhashmap.version}</version>
+		</dependency>
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>

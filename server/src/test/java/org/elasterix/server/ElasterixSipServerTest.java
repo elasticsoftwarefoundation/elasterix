@@ -96,8 +96,8 @@ public class ElasterixSipServerTest {
 //		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
 //		req.addHeader(SipHeader.TO, "Leonard Wolters <sip:leonard@localhost.com>;tag=1928301774");
 
-//		String response = sipClient.sendMessage("sip-register.txt");
-//		log.info("RESPONSE: " + response);
+		String response = sipClient.sendMessage("sip-register.txt");
+		log.info("RESPONSE: " + response);
 	}
 }
 

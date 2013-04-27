@@ -53,6 +53,8 @@
 					SIP Server
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+	<bean id="sipServer" class="org.elasterix.sip.SipServer" destroy-method="destroy">
+
     <bean id="sipServer" class="org.elasterix.sip.SipServer" init-method="start" destroy-method="stop">
     	<property name="channelFactory" ref="nioServerSocketChannelFactory"/>
     	<property name="port" value="5060"/>

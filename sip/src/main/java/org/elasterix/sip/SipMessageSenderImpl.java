@@ -3,10 +3,10 @@ package org.elasterix.sip;
 import javax.annotation.PostConstruct;
 
 import org.apache.log4j.Logger;
-import org.elasterix.sip.codec.SipClientCodec;
-import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipRequest;
 import org.elasterix.sip.codec.SipResponse;
+import org.jboss.netty.channel.Channel;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,30 +22,48 @@ import org.springframework.stereotype.Component;
 @Component
 public class SipMessageSenderImpl implements SipMessageSender {
 	private static final Logger log = Logger.getLogger(SipMessageSenderImpl.class);
-	private SipClientCodec codec;
 	
-	/** 
-	 * Keep track of users and their channel in order to quickly communicate or
-	 * transfer sip messages
-	 */
+	private SipChannelFactory channelFactory;
 	
 	@PostConstruct
 	private void init() {
-		codec = new SipClientCodec();
-		log.info("Initialized SipClientCodec");
 	}
 
 	@Override
 	public void sendRequest(SipRequest request, SipMessageCallback callback) {
 		log.info(String.format("Sending Request\n%s", request));
 		
-		// get existing channel or open a new one for 'recipient' of this
-		// message
-		String to = request.getHeaderValue(SipHeader.FROM);
+		Channel c = channelFactory.getChannel(request);
+		if(c == null) {
+			log.error(String.format("sendRequest. No channel set/found."));
+			return;
+		}
+		if(c.isConnected() && c.isOpen()) {
+			c.write(request);
+		} else {
+			log.warn(String.format("sendRequest. Channel not connected or closed"));
+		}
 	}
 
 	@Override
 	public void sendResponse(SipResponse response, SipMessageCallback callback) {
 		log.info(String.format("Sending Response\n%s", response));
+		
+		// get connection for user
+		Channel c = channelFactory.getChannel(response);
+		if(c == null) {
+			log.error(String.format("sendResponse. No channel set/found."));
+			return;
+		}
+		if(c.isConnected() && c.isOpen()) {
+			c.write(response);
+		} else {
+			log.warn(String.format("sendResponse. Channel not connected or closed"));
+		}
 	}
+
+	@Required
+    public void setChannelFactory(SipChannelFactory channelFactory) {
+        this.channelFactory = channelFactory;
+    }
 }

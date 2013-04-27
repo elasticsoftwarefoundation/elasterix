@@ -26,11 +26,7 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger log = Logger.getLogger(SipServerHandler.class);
 
 	private SipMessageHandler messageHandler;
-
-	@Required
-    public void setMessageHandler(SipMessageHandler messageHandler) {
-        this.messageHandler = messageHandler;
-    }
+	private SipChannelFactory channelFactory;
 
     @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
@@ -38,6 +34,11 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		SipRequest request = (SipRequest) e.getMessage();
 		if(log.isDebugEnabled()) {
 			log.debug(String.format("messageReceived\n%s", request));
+		}
+		
+		// update LRU cache (if set)
+		if(channelFactory != null) {
+			channelFactory.setChannel(request, ctx.getChannel());
 		}
 
 		// only approved sip messages are sent along. Syntactically wrong
@@ -112,4 +113,13 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	//
 	////////////////////////////////////	
 
+
+	@Required
+    public void setMessageHandler(SipMessageHandler messageHandler) {
+        this.messageHandler = messageHandler;
+    }
+	
+    public void setChannelFactory(SipChannelFactory channelFactory) {
+        this.channelFactory = channelFactory;
+    }
 }

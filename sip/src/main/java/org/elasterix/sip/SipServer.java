@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
@@ -38,6 +39,7 @@ public class SipServer {
 	private int childSocketReceiveBufferSize = 8192;
 	private int childSocketSendBufferSize = 8192;
 	private ChannelFactory channelFactory;
+	private ChannelPipelineFactory channelPipelineFactory;
 
 	@PostConstruct
 	public void start() {
@@ -46,6 +48,9 @@ public class SipServer {
 					Executors.newCachedThreadPool(),
 					Executors.newCachedThreadPool());
 		}
+		if(channelPipelineFactory == null) {
+			channelPipelineFactory = new SipServerPipelineFactory(sipServerHandler);
+		}
 		ServerBootstrap bootstrap = new ServerBootstrap(channelFactory);
 		bootstrap.setOption("backlog", socketBacklog);
 		bootstrap.setOption("reuseAddress", socketReuseAddress);
@@ -53,7 +58,7 @@ public class SipServer {
 		bootstrap.setOption("child.tcpNoDelay", childSocketTcpNoDelay);
 		bootstrap.setOption("child.receiveBufferSize", childSocketReceiveBufferSize);
 		bootstrap.setOption("child.sendBufferSize", childSocketSendBufferSize);
-		bootstrap.setPipelineFactory(new SipServerPipelineFactory(sipServerHandler));
+		bootstrap.setPipelineFactory(channelPipelineFactory);
 		serverChannel = bootstrap.bind(new InetSocketAddress(port));
 	}
 	
@@ -61,7 +66,19 @@ public class SipServer {
     public void stop() {
         serverChannel.close();
     }
-
+	
+	/**
+	 * Returns a new channel. <br>
+	 * This method is used by <code>SipMessageSenderImpl</code> in order
+	 * to create new channel for sip clients and send sip messages
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	public Channel newChannel() throws Exception {
+		return channelFactory.newChannel(channelPipelineFactory.getPipeline());
+	}
+	
 	////////////////////////////////////
 	//
 	//  Getters /  Setters

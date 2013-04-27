@@ -1,6 +1,5 @@
 package org.elasterix.server;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.nio.charset.Charset;
@@ -16,7 +15,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
-
 
 /**
  * A native SIP Client *not* based on netty 
@@ -71,12 +69,12 @@ public class SipClient {
 		}
 		dos.flush();
 		
-		DataInputStream dis = new DataInputStream(socket.getInputStream());
+//		DataInputStream dis = new DataInputStream(socket.getInputStream());
 		StringBuffer buffer = new StringBuffer();
-		String line;
-		while (null != ((line = dis.readLine()))) {
-			buffer.append(line);
-		}
+//		String line;
+//		while (null != ((line = dis.readLine()))) {
+//			buffer.append(line);
+//		}
 		
 		return buffer.toString();
 	}
