@@ -53,7 +53,10 @@
 					SIP Server
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-	<bean id="sipServer" class="org.elasterix.sip.SipServer" destroy-method="destroy">
+	<bean id="sipChannelFactory" class="org.elasterix.sip.SipChannelFactoryImpl" destroy-method="destroy">
+		<property name="initialCacheSize" value="5000"/>
+		<property name="sipServerHandler" ref="sipServerHandler"/>
+	</bean>
 
     <bean id="sipServer" class="org.elasterix.sip.SipServer" init-method="start" destroy-method="stop">
     	<property name="channelFactory" ref="nioServerSocketChannelFactory"/>
@@ -63,13 +66,15 @@
 
     <bean id="sipServerHandler" class="org.elasterix.sip.SipServerHandler">
         <property name="messageHandler" ref="sipService"/>
+        <property name="sipChannelFactory" ref="sipChannelFactory"/>
     </bean>
 
     <bean id="sipService" class="org.elasterix.server.sip.SipService">   
     	<property name="sipMessageSender" ref="sipMessageSender"/>
     </bean>
     
-    <bean id="sipMessageSender" class="org.elasterix.sip.SipMessageSenderImpl">    	
+    <bean id="sipMessageSender" class="org.elasterix.sip.SipMessageSenderImpl">   
+    	<property name="sipChannelFactory" ref="sipChannelFactory"/> 	
     </bean>
     
  	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

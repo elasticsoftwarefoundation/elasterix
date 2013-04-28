@@ -26,7 +26,13 @@ import org.elasterix.elasticactors.ActorRef;
 import org.elasterix.elasticactors.ActorSystem;
 import org.elasterix.elasticactors.test.TestActorSystem;
 import org.elasterix.server.actors.User;
+import org.elasterix.sip.codec.SipHeader;
+import org.elasterix.sip.codec.SipMethod;
+import org.elasterix.sip.codec.SipRequest;
+import org.elasterix.sip.codec.SipVersion;
+import org.elasterix.sip.codec.impl.SipRequestImpl;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
+import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -52,7 +58,6 @@ public class ElasterixSipServerTest {
 		BasicConfigurator.configure();
 		
 		Logger.getRootLogger().setLevel(Level.WARN);
-		Logger.getLogger("org.elasterix.sip").setLevel(Level.INFO);
 		Logger.getLogger("org.elasterix").setLevel(Level.DEBUG);
 
 		actorSystem = TestActorSystem.create(new ElasterixServer());
@@ -82,22 +87,52 @@ public class ElasterixSipServerTest {
 			sipClient.close();
 		}
 	}
+	
+	protected SipRequest createSipRequest() {
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.MAX_FORWARDS, "70");
+		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
+		req.addHeader(SipHeader.CALL_ID, "a84b4c76e66710");
+		req.addHeader(SipHeader.CSEQ, "314159 REGISTER");
+		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
+		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		return req;
+	}
 
 	@Test(enabled = true)
 	public void testRegisterNonExistingUser() throws Exception {
 		// send a sip register message to the Sip Server
 		// see http://tools.ietf.org/html/rfc3261#section-10.2
 		
-//		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-//		req.addHeader(SipHeader.MAX_FORWARDS, "70");
-//		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
-//		req.addHeader(SipHeader.CALL_ID, "a84b4c76e66710");
-//		req.addHeader(SipHeader.CSEQ, "314159 REGISTER");
-//		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
-//		req.addHeader(SipHeader.TO, "Leonard Wolters <sip:leonard@localhost.com>;tag=1928301774");
-
-		String response = sipClient.sendMessage("sip-register.txt");
-		log.info("RESPONSE: " + response);
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		sipClient.sendMessage(req);
+		
+		//sipClient.sendMessage("sip-register.txt");
+		Thread.sleep(300);
+		String message = sipClient.getMessage();
+		Assert.assertNotNull(message);
+		log.info(message);
+		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
+	}
+	
+	protected boolean startsWith(String input, String startsWith) {
+		input = input.trim();
+		startsWith = startsWith.trim();
+		
+		if(input.length() < startsWith.length()) {
+			System.err.println(String.format("Length input to short. input[%d] != startsWith[%d]", 
+					input.length(), startsWith.length()));
+			return false;
+		}
+		for(int i = 0; i < input.length(); i++) {
+			if(input.charAt(i) != startsWith.charAt(i)) {
+				System.err.println(String.format("Characters differ. Index[%d]. \n%s\n======\n%s", 
+						i, input.subSequence(0, i), startsWith.subSequence(0, i)));
+				return false;
+			}
+		}
+		return true;
 	}
 }
 

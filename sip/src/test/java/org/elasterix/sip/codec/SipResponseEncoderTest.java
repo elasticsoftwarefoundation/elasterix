@@ -59,23 +59,4 @@ public class SipResponseEncoderTest extends AbstractSipTest {
 		Assert.assertTrue(checkCharacters(content, generated));
 		Assert.assertEquals(content.trim(), generated.trim());
 	}
-	
-	private boolean checkCharacters(String input, String output) {
-		input = input.trim();
-		output = output.trim();
-		
-		if(input.length() != output.length()) {
-			System.err.println(String.format("Length differs. input[%d] != output[%d]", 
-					input.length(), output.length()));
-			return false;
-		}
-		for(int i = 0; i < input.length(); i++) {
-			if(input.charAt(i) != output.charAt(i)) {
-				System.err.println(String.format("Characters differ. Index[%d]. \n%s\n======\n%s", 
-						i, input.subSequence(0, i), output.subSequence(0, i)));
-				return false;
-			}
-		}
-		return true;
-	}
 }

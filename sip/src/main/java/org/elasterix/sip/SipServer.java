@@ -67,18 +67,6 @@ public class SipServer {
         serverChannel.close();
     }
 	
-	/**
-	 * Returns a new channel. <br>
-	 * This method is used by <code>SipMessageSenderImpl</code> in order
-	 * to create new channel for sip clients and send sip messages
-	 * 
-	 * @return
-	 * @throws Exception
-	 */
-	public Channel newChannel() throws Exception {
-		return channelFactory.newChannel(channelPipelineFactory.getPipeline());
-	}
-	
 	////////////////////////////////////
 	//
 	//  Getters /  Setters

@@ -2,13 +2,19 @@ package org.elasterix.sip;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 
 import javax.annotation.PreDestroy;
 
 import org.apache.log4j.Logger;
+import org.elasterix.sip.client.SipClientPipelineFactory;
 import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipMessage;
+import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.util.StringUtils;
 
@@ -22,12 +28,13 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
  */
 public class SipChannelFactoryImpl implements SipChannelFactory {
 	private static final Logger log = Logger.getLogger(SipChannelFactoryImpl.class);
-	/** Sip Server is required to create new channels */
-	private SipServer sipServer;
+	/** Initial capacity of cache */
+	private int initialCacheSize = 5000;
+	private SipServerHandler sipServerHandler;
     
 	/** LRU Cache with a capacity of 5000 */
 	private final ConcurrentMap<String, Channel> cache = 
-			new ConcurrentLinkedHashMap.Builder<String, Channel>().maximumWeightedCapacity(5000).build();
+			new ConcurrentLinkedHashMap.Builder<String, Channel>().maximumWeightedCapacity(initialCacheSize).build();
 
 	@Override
 	public void setChannel(SipMessage message, Channel channel) {
@@ -40,12 +47,7 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 	@Override
 	public Channel getChannel(SipMessage message) {
 		String key = getKey(message);
-		Channel c = cache.get(key);
-		if(c == null) {
-			log.info(String.format("No channel found for [%s]. Creating it", key));
-			createChannel(message);
-		}
-		return assureOpen(c, message);
+		return assureOpen(cache.get(key), message);
 	}
 	
 	@PreDestroy
@@ -63,37 +65,32 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 	private String getKey(SipMessage message) {
 		return message.getHeaderValue(SipHeader.TO);
 	}
-	
-	private Channel createChannel(SipMessage message) {
-		try {
-			return sipServer.newChannel();
-		} catch (Exception e) {
-			log.warn(e.getMessage(), e);
-		}
-		return null;
-	}
 
 	private Channel assureOpen(Channel c, SipMessage sipMessage) {
-		if(c.isConnected() && c.isOpen()) {
+
+		// check is channel is open
+		if(c != null &&  c.isConnected() && c.isOpen()) {
 			return c;
 		}
+
 		String to = sipMessage.getHeaderValue(SipHeader.TO);
 		if(!StringUtils.hasLength(to)) {
 			log.warn("assureOpen. No TO header found in message. Can't connect channel");
 			return c;
 		}
+		
 		// To: "Hans de Borst"<sip:124@sip.outerteams.com:5060>
 		int idx = to.lastIndexOf('@');
 		if(idx != -1) {
 			to = to.substring(idx+1);
 			try {
 				idx = to.indexOf(":");
-				String hostName = to.substring(0, idx);
+				String hostname = to.substring(0, idx);
 				int port = Integer.parseInt(to.substring(idx + 1, to.lastIndexOf('>')));
 				if(log.isDebugEnabled()) {
-					log.debug(String.format("assureOpen. Connecting to[%s:%d]", hostName, port));
+					log.debug(String.format("assureOpen. Connecting to[%s:%d]", hostname, port));
 				}
-				c.connect(new InetSocketAddress(hostName, port));
+				c = createChannel(hostname, port);
 			} catch (Exception e) {
 				log.warn(e.getMessage(), e);
 			}
@@ -103,10 +100,42 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 		}
 		return c;
 	}
-
-	@Required
-	public void setSipServer(SipServer sipServer) {
-		this.sipServer = sipServer;
+	
+	/**
+	 * Creates a new channel to given host and port.<br>
+	 * 
+	 * @param host
+	 * @param port
+	 * @return
+	 * @throws Exception
+	 */
+	private Channel createChannel(String host, int port) throws Exception {
+		// Important notice; use NioClientSocketChannelFactory instead
+		// of NioServerSocketChannelFactory
+		ChannelFactory channelFactory = new NioClientSocketChannelFactory(
+				Executors.newCachedThreadPool(),
+				Executors.newCachedThreadPool());
+		ClientBootstrap bootstrap = new ClientBootstrap(channelFactory);
+		//bootstrap.setPipelineFactory(new SipClientPipelineFactory(false,false));
+		bootstrap.setPipelineFactory(new SipServerPipelineFactory(sipServerHandler));
+		ChannelFuture future = bootstrap.connect(new InetSocketAddress(host, port));
+		
+		// open / connect to channel
+		Channel c = future.await().getChannel();
+        if (!future.isSuccess()) {
+        	log.warn(String.format("createChannel. Establishing connection failed[%s]", 
+        			future.getCause().getMessage()));
+            bootstrap.releaseExternalResources();
+        }
+        return c;
 	}
 
+	public void setInitialCacheSize(int initialCacheSize) {
+		this.initialCacheSize = initialCacheSize;
+	}
+
+	@Required
+	public void setSipServerHandler(SipServerHandler sipServerHandler) {
+		this.sipServerHandler = sipServerHandler;
+	}
 }

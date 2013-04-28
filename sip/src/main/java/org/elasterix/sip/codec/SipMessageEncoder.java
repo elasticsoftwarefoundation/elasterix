@@ -47,12 +47,15 @@ public abstract class SipMessageEncoder extends OneToOneEncoder {
             header.writeByte(LF);
 
             ChannelBuffer content = m.getContent();
-            if (!content.readable()) {
+            if (content != null && !content.readable()) {
+            	if(log.isDebugEnabled()) log.debug("no content available");
             	// no content available
                 return header;
             } else {
-            	// TODO write content depending on conten type
-                return wrappedBuffer(header, content);
+            	if(log.isDebugEnabled()) log.debug("content available");
+
+				// TODO write content depending on content type
+				return wrappedBuffer(header, content);
             }
         }
 

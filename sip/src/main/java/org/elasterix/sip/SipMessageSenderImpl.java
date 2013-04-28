@@ -23,7 +23,8 @@ import org.springframework.stereotype.Component;
 public class SipMessageSenderImpl implements SipMessageSender {
 	private static final Logger log = Logger.getLogger(SipMessageSenderImpl.class);
 	
-	private SipChannelFactory channelFactory;
+	/** Channel Factory is required for obtaining channels used for sending messages*/
+	private SipChannelFactory sipChannelFactory;
 	
 	@PostConstruct
 	private void init() {
@@ -33,7 +34,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	public void sendRequest(SipRequest request, SipMessageCallback callback) {
 		log.info(String.format("Sending Request\n%s", request));
 		
-		Channel c = channelFactory.getChannel(request);
+		Channel c = sipChannelFactory.getChannel(request);
 		if(c == null) {
 			log.error(String.format("sendRequest. No channel set/found."));
 			return;
@@ -50,7 +51,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 		log.info(String.format("Sending Response\n%s", response));
 		
 		// get connection for user
-		Channel c = channelFactory.getChannel(response);
+		Channel c = sipChannelFactory.getChannel(response);
 		if(c == null) {
 			log.error(String.format("sendResponse. No channel set/found."));
 			return;
@@ -63,7 +64,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	}
 
 	@Required
-    public void setChannelFactory(SipChannelFactory channelFactory) {
-        this.channelFactory = channelFactory;
+    public void setSipChannelFactory(SipChannelFactory sipChannelFactory) {
+        this.sipChannelFactory = sipChannelFactory;
     }
 }
