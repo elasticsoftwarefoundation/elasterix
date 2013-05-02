@@ -10,4 +10,5 @@ Expires: 120
 Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REGISTER, SUBSCRIBE, NOTIFY, REFER, INFO, MESSAGE
 Supported: replaces
 User-Agent: 3CXPhone 6.0.20943.0
+Authorization: Digest username="lwolters",realm="elasterix",nonce="24855234",uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
 Content-Length: 0

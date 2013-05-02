@@ -75,18 +75,30 @@ public class SipRequestDecoder extends SipMessageDecoder {
     	SipVersion version = SipVersion.lookup(initialLine[2], false);
     	if(version == null) {
     		log.warn(String.format("createMessage. Invalid Sip Version[%s]", initialLine[2]));
-    		return new SipRequestNetty(SipResponseStatus.VERSION_NOT_SUPPORTED);
+    		if(SipServerCodec.USE_NETTY_IMPLEMENTATION) {
+    			return new SipRequestNetty(SipResponseStatus.VERSION_NOT_SUPPORTED);
+    		} else {
+    			return new SipRequestImpl(SipResponseStatus.VERSION_NOT_SUPPORTED);
+    		}
     	}
     	SipMethod method = SipMethod.lookup(initialLine[0], false);
     	if(method == null) {
     		log.warn(String.format("createMessage. Invalid Sip Method[%s]", initialLine[0]));
-    		return new SipRequestNetty(SipResponseStatus.METHOD_NOT_ALLOWED);
+    		if(SipServerCodec.USE_NETTY_IMPLEMENTATION) {
+    			return new SipRequestNetty(SipResponseStatus.METHOD_NOT_ALLOWED);
+    		} else {
+    			return new SipRequestImpl(SipResponseStatus.METHOD_NOT_ALLOWED);
+    		}
     	}
     	String uri = initialLine[1];
     	Matcher matcher = URI_PATTERN.matcher(uri);  
 		if(!matcher.matches()) {
 			log.warn(String.format("createMessage. Invalid URI[%s]", uri));
-			return new SipRequestNetty(SipResponseStatus.BAD_REQUEST);
+			if(SipServerCodec.USE_NETTY_IMPLEMENTATION) {
+				return new SipRequestNetty(SipResponseStatus.BAD_REQUEST);
+			} else {
+				return new SipRequestImpl(SipResponseStatus.BAD_REQUEST);				
+			}
 		}
 		// TODO: Check domain of URI (do we accept this? Or do we need to transer / redirect
 		// request?

@@ -12,6 +12,7 @@ import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.util.StringUtils;
 
 /**
  * Sip Server Handler<br>
@@ -38,6 +39,15 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		
 		// update LRU cache (if set)
 		if(sipChannelFactory != null) {
+			// we need to check if the key used for caching this channel is 
+			// present. If no key is found, bounce message directly back
+			// to sender (whilst we still have this channel)
+			if(!StringUtils.hasLength(request.getHeaderValue(SipHeader.TO))) {
+				log.warn("messageReceived. No TO header found in SIP message. Bouncing it");
+				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
+				ctx.getChannel().write(request);
+				return;
+			}
 			sipChannelFactory.setChannel(request, ctx.getChannel());
 		}
 

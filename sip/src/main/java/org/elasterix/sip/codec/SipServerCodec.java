@@ -14,10 +14,10 @@ import org.jboss.netty.channel.ChannelUpstreamHandler;
  */
 public class SipServerCodec implements ChannelUpstreamHandler,
         ChannelDownstreamHandler {
+	public static final boolean USE_NETTY_IMPLEMENTATION = false;
 
     private final SipRequestDecoder decoder;
     private final SipResponseEncoder encoder = new SipResponseEncoder();
-	protected static final boolean USE_NETTY_IMPLEMENTATION = false;
 
     /**
      * Creates a new instance with the default decoder options

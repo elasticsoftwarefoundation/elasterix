@@ -25,7 +25,9 @@ import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.SipMessageHandler;
 import org.elasterix.sip.SipMessageSender;
 import org.elasterix.sip.codec.SipRequest;
+import org.elasterix.sip.codec.SipResponseStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
 /**
  * Default implementation of the Sip Message Handler.<br>
@@ -55,7 +57,10 @@ public class SipService extends UntypedActor implements SipMessageHandler {
     public void onReceive(ActorRef actorRef, Object message) throws Exception {
 
     	if(message instanceof SipRegister) {
-    		onRegister(actorRef, (SipRegister) message);
+    		SipRegister m = (SipRegister) message;
+    		if(log.isDebugEnabled()) log.debug(String.format("onReceive. Status[%d]",
+    				m.getResponse()));
+    		sendResponse(m);
     	} else {
     		log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -63,10 +68,15 @@ public class SipService extends UntypedActor implements SipMessageHandler {
     	}
     }
     
-    protected void onRegister(ActorRef sender, SipRegister message) {
-		if(log.isDebugEnabled()) log.debug(String.format("onRegister. Status[%d]",
-				message.getResponse()));
-		sendResponse(message);
+    @Override
+	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
+		log.info(String.format("onUndeliverable. Message[%s]", message));
+		if(message instanceof SipRegister) {
+			SipRegister m = (SipRegister) message;
+			sendResponse(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND));
+		} else {
+			unhandled(message);
+		}
 	}
 
     //////////////////////////////////////////////////////////////////////////
@@ -102,11 +112,21 @@ public class SipService extends UntypedActor implements SipMessageHandler {
 		// Create SipRegister message (one that is suitable / serializable for
 		// actor framework
         SipRegister message = new SipRegister(request);
+        
+        // get user ID
+        String userId = message.getUser();
+        if(!StringUtils.hasLength(userId)) {
+        	// a big warning here. Since no user is set, it might be possible
+        	// that no message can be sent back.
+        	message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST);
+        	sendResponse(message);
+        	return;
+        }
 		
 		// Registering is a 'duplex' operation; i.e.
 		// both user and device register each other. The User actor redirects
         // the register message to UserAgentClient actor automatically.
-        ActorRef user = actorSystem.actorFor("user/" + message.getUser());
+        ActorRef user = actorSystem.actorFor("user/" + userId);
 		user.tell(message, actorSystem.serviceActorFor("sipService"));		
 	}
 	

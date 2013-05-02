@@ -24,6 +24,7 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipRequest;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
@@ -55,6 +56,9 @@ public final class SipRegister extends SipMessage {
     @JsonIgnore
     public String getUser() {
     	String user = getHeader(SipHeader.TO);
+    	if(!StringUtils.hasLength(user)) {
+    		return user;
+    	}
     	int idx = user.indexOf("sip:");
     	if(idx != -1) {
     		idx += 4;

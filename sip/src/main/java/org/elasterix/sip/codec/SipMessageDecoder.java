@@ -275,7 +275,7 @@ public abstract class SipMessageDecoder extends ReplayingDecoder<SipMessageDecod
 				message.addHeader(SipHeader.lookup(name), value);
 			}
 		}
-
+		
 		// check if we need to parse SDP content
 		State nextState;
 		if (isContentAlwaysEmpty(message)) {

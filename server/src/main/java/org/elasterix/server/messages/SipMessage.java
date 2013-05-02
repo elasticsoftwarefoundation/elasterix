@@ -26,7 +26,9 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipResponse;
 import org.elasterix.sip.codec.SipResponseStatus;
+import org.elasterix.sip.codec.SipServerCodec;
 import org.elasterix.sip.codec.SipVersion;
+import org.elasterix.sip.codec.impl.SipResponseImpl;
 import org.elasterix.sip.codec.netty.SipResponseNetty;
 
 /**
@@ -70,6 +72,15 @@ public abstract class SipMessage {
         	return null;
         }
     }
+    
+    public void addHeader(SipHeader header, String value) {
+    	List<String> values = headers.get(header.getName());
+    	if(values == null) {
+    		values = new ArrayList<String>();
+    		headers.put(header.getName(), values);
+    	}
+    	values.add(value);
+    }
 
     @JsonIgnore
     public String getContentType() {
@@ -104,7 +115,12 @@ public abstract class SipMessage {
     public SipResponse toSipResponse() {
     	SipResponseStatus status = SipResponseStatus.lookup(response);
     	SipVersion version = SipVersion.lookup(this.version, true);
-    	SipResponseNetty response = new SipResponseNetty(version, status);
+    	SipResponse response = null;
+    	if(SipServerCodec.USE_NETTY_IMPLEMENTATION) {
+        	response = new SipResponseNetty(version, status);
+    	} else {
+        	response = new SipResponseImpl(version, status);
+    	}
     	for(Map.Entry<String, List<String>> entry : headers.entrySet()) {
     		response.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
     	}
