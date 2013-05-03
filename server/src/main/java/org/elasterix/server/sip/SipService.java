@@ -70,7 +70,6 @@ public class SipService extends UntypedActor implements SipMessageHandler {
     
     @Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
-		log.info(String.format("onUndeliverable. Message[%s]", message));
 		if(message instanceof SipRegister) {
 			SipRegister m = (SipRegister) message;
 			sendResponse(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND));

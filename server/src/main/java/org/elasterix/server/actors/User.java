@@ -68,29 +68,43 @@ public class User extends UntypedActor {
 		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
 		if(!StringUtils.hasLength(authorization)) {
 			if(log.isDebugEnabled()) log.debug("onRegister. No authorization set");
-			// add extra header info (and nonce!)
-			long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
-			if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));
-			state.setNonce(nonce);
-			message.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
-					+ "realm=\"elasterix\", nonce=\"%d\"", nonce));
-			sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
+			sendUnauthorized(sender, message, state);
 			return;
 		}
 
-		// check authorization
-		String givenHash = tokenize(authorization).get("response"); 
-		String checkHash = md5Encoder.encodePassword(state.getSecretHash(), state.getNonce());
-		if(!StringUtils.hasLength(givenHash) || !givenHash.equals(checkHash)) {
-			if(log.isDebugEnabled()) log.debug("onRegister. No hash set or hash incorrect");
-			sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
+		Map<String,String> map = tokenize(authorization);
+
+		// check username
+		String val = map.get("username");
+		if(!state.getUsername().equalsIgnoreCase(val)) {
+			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided username[%s] "
+					+ "!= given username[%s]", val, state.getUsername()));
+			sendUnauthorized(sender, message, state);
+			return;
+		}
+
+		// check nonce
+		val = map.get("nonce");
+		if(!Long.toString(state.getNonce()).equalsIgnoreCase(val)) {
+			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided nonce[%s] "
+					+ "!= given nonce[%d]", val, state.getNonce()));
+			sendUnauthorized(sender, message, state);
+			return;
+		}
+		
+		// check hash
+		val = map.get("response"); 
+		if(!state.getSecretHash().equals(val)) {
+			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided hash[%s] "
+					+ "!= given hash[%s]", val, state.getSecretHash()));
+			sendUnauthorized(sender, message, state);
 			return;
 		}
 
 		// get uac
 		String uac = message.getUserAgentClient();
 		if(!StringUtils.hasLength(uac)) {
-			log.warn("onRegister. No UAC set in message");
+			log.warn("onRegister. No UAC header[CALL_ID] set in message");
 			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());			
 		}
 		uac = String.format("uac/%s", uac);
@@ -109,13 +123,24 @@ public class User extends UntypedActor {
 
 		// send register message to device.
 		try {
-			ActorRef userAgentClient = getSystem().actorOf(uac, UserAgentClient.class);
+			ActorRef userAgentClient = getSystem().actorOf(uac, UserAgentClient.class,
+					new UserAgentClient.State(uac));
 			// pass sender (SipService) to user agent client
 			userAgentClient.tell(message, sender);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			sender.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR), getSelf());
 		}
+	}
+	
+	private void sendUnauthorized(ActorRef sender, SipRegister message, State state) {
+		// add extra header info (and nonce!)
+		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
+		if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));
+		state.setNonce(nonce);
+		message.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
+				+ "realm=\"elasterix\", nonce=\"%d\"", nonce));
+		sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
 	}
 
 	@Override
@@ -129,7 +154,7 @@ public class User extends UntypedActor {
 	}
 
 	private Map<String, String> tokenize(String value) {
-		// Authorization: Digest username="124",realm="combird",nonce="24855234",
+		// Authorization: Digest username="124",realm="elasterix",nonce="24855234",
 		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
 
 		Map<String, String> map = new HashMap<String, String>();
@@ -138,10 +163,10 @@ public class User extends UntypedActor {
 			String token = st.nextToken();
 			int idx = token.indexOf("=");
 			if(idx != -1) {
-				map.put(token.substring(0, idx), 
+				map.put(token.substring(0, idx).toLowerCase(), 
 						token.substring(idx+1).replace('\"', ' ').trim());
 			} else {
-				map.put(token, token);
+				map.put(token.toLowerCase(), token);
 			}
 		}
 		return map;
@@ -156,7 +181,7 @@ public class User extends UntypedActor {
 		private final String secretHash;
 		/** UID of User Agent Client (key) and expires (seconds) as value */
 		private Map<String, Long> userAgentClients = new HashMap<String, Long>();
-		private long nonce;
+		private long nonce = -1;
 
 		@JsonCreator
 		public State(@JsonProperty("email") String email,
