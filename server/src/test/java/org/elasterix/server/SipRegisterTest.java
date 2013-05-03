@@ -91,21 +91,21 @@ public class SipRegisterTest {
 		}
 	}
 	
-	protected SipRequest createSipRequest() {
-		//sipClient.sendMessage("sip-register.txt");
-
-		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.MAX_FORWARDS, "70");
-		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
-		req.addHeader(SipHeader.CALL_ID, "a84b4c76e66710");
-		req.addHeader(SipHeader.CSEQ, "314159 REGISTER");
-		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
-		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		return req;
-	}
+//	protected SipRequest createSipRequest() {
+//		//sipClient.sendMessage("sip-register.txt");
+//
+//		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
+//		req.addHeader(SipHeader.MAX_FORWARDS, "70");
+//		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
+//		req.addHeader(SipHeader.CALL_ID, "a84b4c76e66710");
+//		req.addHeader(SipHeader.CSEQ, "314159 REGISTER");
+//		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
+//		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+//		return req;
+//	}
 	
 	@Test(enabled = true)
-	public void testRegisterNoTo() throws Exception {
+	public void testRegisterUserNoTo() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -117,10 +117,23 @@ public class SipRegisterTest {
 	}
 	
 	@Test(enabled = true)
+	public void testRegisterUserNoCallId() throws Exception {
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
+		sipClient.sendMessage(req);
+		// sleep sometime in order for message to be sent back.
+		Thread.sleep(300);
+		String message = sipClient.getMessage();
+		Assert.assertNotNull(message);
+		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
+	}
+	
+	@Test(enabled = true)
 	public void testRegisterNonExistingUser() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:XXXXXX@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -134,7 +147,7 @@ public class SipRegisterTest {
 	public void testRegisterUserNoAuthentication() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -148,7 +161,7 @@ public class SipRegisterTest {
 	public void testRegisterUserWrongUsername() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		setAuthorization(req, "jwijgerd", "", "");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -163,7 +176,7 @@ public class SipRegisterTest {
 	public void testRegisterUserWrongNonce() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		setAuthorization(req, "lwolters", "123456789", "");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -178,22 +191,8 @@ public class SipRegisterTest {
 	public void testRegisterUserWrongHash() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		setAuthorization(req, "lwolters", "-1", "");
-		sipClient.sendMessage(req);
-		// sleep sometime in order for message to be sent back.
-		Thread.sleep(300);
-		String message = sipClient.getMessage();
-		Assert.assertNotNull(message);
-		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
-	}
-	
-	@Test(enabled = true)
-	public void testRegisterUserNoUAC() throws Exception {
-		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
-		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -206,7 +205,7 @@ public class SipRegisterTest {
 	public void testRegisterUserRealNonce() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -227,7 +226,7 @@ public class SipRegisterTest {
 	public void testRegisterUserOk() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-		req.addHeader(SipHeader.CSEQ, "1 REGISTER");
+		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -236,7 +235,6 @@ public class SipRegisterTest {
 		int idx = message.indexOf("nonce=") + 7;
 		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
 		setAuthorization(req, "lwolters", Long.toString(nonce), md5Encoder.encodePassword("test", null));
-		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);

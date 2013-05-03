@@ -52,7 +52,11 @@ public class UserAgentClient extends UntypedActor {
 		if(log.isDebugEnabled()) log.debug(String.format("doRegister. [%s]",
 				message));
 
-		// set expiration.
+		// check CSEQ
+		// http://tools.ietf.org/html/rfc3261#section-8.1.1.5
+		// http://tools.ietf.org/html/rfc3261#section-12.2.1.1
+		
+		// set expiration. (seconds)
 		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
 		if(expires != null) {
 			state.setExpires(expires);
@@ -67,7 +71,7 @@ public class UserAgentClient extends UntypedActor {
 	 */
 	public static final class State {
 		private final String uid;
-		private long expires;
+		private long expires = 0;
 
 		@JsonCreator
 		public State(@JsonProperty("uid") String uid) {

@@ -72,6 +72,13 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			messageHandler.onInvite(request);
 			break;
 		case REGISTER:
+			// check for call-id
+			if(!StringUtils.hasLength(request.getHeaderValue(SipHeader.CALL_ID))) {
+				log.warn("No CALL_ID header found in SIP message. Bouncing it");
+				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
+				ctx.getChannel().write(request);
+				return;
+			}
 			messageHandler.onRegister(request);
 			break;
 		default:

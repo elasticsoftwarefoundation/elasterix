@@ -29,17 +29,15 @@ import org.elasterix.elasticactors.UntypedActor;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipResponseStatus;
-import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.springframework.util.StringUtils;
 
 /**
  * User Actor
- * 
+ * * 
  * @author Leonard Wolters
  */
 public class User extends UntypedActor {
 	private static final Logger log = Logger.getLogger(User.class);
-	private Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
 
 	@Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
@@ -61,8 +59,7 @@ public class User extends UntypedActor {
 	}
 
 	protected void onRegister(ActorRef sender, SipRegister message, State state) {
-		if(log.isDebugEnabled()) log.debug(String.format("onRegister. [%s]",
-				message));
+		if(log.isDebugEnabled()) log.debug(String.format("onRegister. [%s]", message));
 
 		// check if authentication is present...
 		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
@@ -71,14 +68,15 @@ public class User extends UntypedActor {
 			sendUnauthorized(sender, message, state);
 			return;
 		}
-
+		
 		Map<String,String> map = tokenize(authorization);
-
+		
 		// check username
 		String val = map.get("username");
 		if(!state.getUsername().equalsIgnoreCase(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided username[%s] "
 					+ "!= given username[%s]", val, state.getUsername()));
+//			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());
 			sendUnauthorized(sender, message, state);
 			return;
 		}
@@ -88,6 +86,7 @@ public class User extends UntypedActor {
 		if(!Long.toString(state.getNonce()).equalsIgnoreCase(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided nonce[%s] "
 					+ "!= given nonce[%d]", val, state.getNonce()));
+//			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());
 			sendUnauthorized(sender, message, state);
 			return;
 		}
@@ -97,44 +96,56 @@ public class User extends UntypedActor {
 		if(!state.getSecretHash().equals(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided hash[%s] "
 					+ "!= given hash[%s]", val, state.getSecretHash()));
+//			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());
 			sendUnauthorized(sender, message, state);
 			return;
 		}
-
-		// get uac
-		String uac = message.getUserAgentClient();
-		if(!StringUtils.hasLength(uac)) {
-			log.warn("onRegister. No UAC header[CALL_ID] set in message");
-			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());			
-		}
-		uac = String.format("uac/%s", uac);
+		
+		// get uac 
+		ActorRef userAgentClient = getUserAgentClient(message);
+		if(userAgentClient == null) {
+			sender.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR), 
+					getSelf());
+			return;
+		}		
 
 		// check expiration...
 		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
 		if(expires != null) {
 			if(expires.longValue() == 0) {
 				// remove current binding with UAC set in message
-				state.removeUserAgentClient(uac);
+				state.removeUserAgentClient(userAgentClient.getActorId());
 			} else {
 				// update binding (with new expiration)
-				state.addUserAgentClient(uac, expires);
+				state.addUserAgentClient(userAgentClient.getActorId(), expires);
 			}
 		}
 
 		// send register message to device.
+		userAgentClient.tell(message, sender);
+	}
+	
+	private ActorRef getUserAgentClient(SipRegister message) {
+		String uac = message.getUserAgentClient();
+		if(!StringUtils.hasLength(uac)) {
+			// should be impossible; SipServerHandler already checks for this
+			// header and if not found, rejects the message
+			log.warn("onRegister. No UAC header[CALL_ID] set in message");
+			return null;
+		}
+		uac = String.format("uac/%s", uac);
+		
 		try {
-			ActorRef userAgentClient = getSystem().actorOf(uac, UserAgentClient.class,
+			return getSystem().actorOf(uac, UserAgentClient.class,
 					new UserAgentClient.State(uac));
-			// pass sender (SipService) to user agent client
-			userAgentClient.tell(message, sender);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
-			sender.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR), getSelf());
-		}
+		}				
+		return null;
 	}
 	
 	private void sendUnauthorized(ActorRef sender, SipRegister message, State state) {
-		// add extra header info (and nonce!)
+		// add extra header info and set nonce
 		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
 		if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));
 		state.setNonce(nonce);
@@ -143,20 +154,9 @@ public class User extends UntypedActor {
 		sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
 	}
 
-	@Override
-	public void postCreate(ActorRef creator) throws Exception {
-		State state = getState(null).getAsObject(State.class);
-	}
-
-	@Override
-	public void postActivate(String previousVersion) throws Exception {
-		State state = getState(null).getAsObject(State.class);
-	}
-
 	private Map<String, String> tokenize(String value) {
 		// Authorization: Digest username="124",realm="elasterix",nonce="24855234",
 		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
-
 		Map<String, String> map = new HashMap<String, String>();
 		StringTokenizer st = new StringTokenizer(value, " ,", false);
 		while(st.hasMoreTokens()) {
@@ -221,15 +221,14 @@ public class User extends UntypedActor {
 		//
 		//
 
-		public boolean removeUserAgentClient(String uid) {
-			return userAgentClients.remove(uid) != null;
+		public boolean removeUserAgentClient(String uac) {
+			return userAgentClients.remove(uac) != null;
 		}
 
-		public boolean addUserAgentClient(String uid, long expiration) {
-			boolean b = userAgentClients.containsKey(uid);
-			userAgentClients.put(uid, 
+		public void addUserAgentClient(String uac, long expiration) {
+			removeUserAgentClient(uac);
+			userAgentClients.put(uac, 
 					System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expiration));
-			return b;
 		}
 
 		protected void setNonce(long nonce) {
