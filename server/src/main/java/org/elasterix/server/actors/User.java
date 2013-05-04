@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 eBuddy BV
+ * Copyright 2013 Leonard Wolters
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.elasterix.elasticactors.ActorRef;
-import org.elasterix.elasticactors.UntypedActor;
+import org.elasticsoftware.elasticactors.ActorRef;
+import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasterix.server.messages.SipRegister;
 import org.elasterix.sip.codec.SipHeader;
 import org.elasterix.sip.codec.SipResponseStatus;
@@ -36,7 +36,7 @@ import org.springframework.util.StringUtils;
  * * 
  * @author Leonard Wolters
  */
-public class User extends UntypedActor {
+public final class User extends UntypedActor {
 	private static final Logger log = Logger.getLogger(User.class);
 
 	@Override

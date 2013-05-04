@@ -24,17 +24,17 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.elasterix.elasticactors</groupId>
+            <groupId>org.elasticsoftware.elasticactors</groupId>
             <artifactId>elasticactors-api</artifactId>
             <version>${elasticactors.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.elasterix.elasticactors</groupId>
+            <groupId>org.elasticsoftware.elasticactors</groupId>
             <artifactId>elasticactors-base</artifactId>
             <version>${elasticactors.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.elasterix.elasticactors</groupId>
+            <groupId>org.elasticsoftware.elasticactors</groupId>
             <artifactId>elasticactors-core</artifactId>
             <version>${elasticactors.version}</version>
             <scope>provided</scope>

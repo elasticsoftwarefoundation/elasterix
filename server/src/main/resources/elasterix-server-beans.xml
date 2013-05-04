@@ -33,16 +33,16 @@
 					Elastic Actor Framework related beans
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 	<!-- TODO: use a scan property to scan all messages in a particular package -->
-    <util:map id="messageSerializers" key-type="java.lang.Class" value-type="org.elasterix.elasticactors.serialization.MessageSerializer">
+    <util:map id="messageSerializers" key-type="java.lang.Class" value-type="org.elasticsoftware.elasticactors.serialization.MessageSerializer">
         <entry key="org.elasterix.server.messages.SipRegister">
-            <bean class="org.elasticsoftwarefoundation.elasticactors.base.serialization.JacksonMessageSerializer">
+            <bean class="org.elasticsoftware.elasticactors.base.serialization.JacksonMessageSerializer">
                 <constructor-arg ref="objectMapper"/>
             </bean>
         </entry>
     </util:map>
-    <util:map id="messageDeserializers" key-type="java.lang.Class" value-type="org.elasterix.elasticactors.serialization.MessageDeserializer">
+    <util:map id="messageDeserializers" key-type="java.lang.Class" value-type="org.elasticsoftware.elasticactors.serialization.MessageDeserializer">
         <entry key="org.elasterix.server.messages.SipRegister">
-            <bean class="org.elasticsoftwarefoundation.elasticactors.base.serialization.JacksonMessageDeserializer">
+            <bean class="org.elasticsoftware.elasticactors.base.serialization.JacksonMessageDeserializer">
                 <constructor-arg value="org.elasterix.server.messages.SipRegister"/>
                 <constructor-arg ref="objectMapper"/>
             </bean>

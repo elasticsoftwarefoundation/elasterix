@@ -18,13 +18,13 @@ package org.elasterix.server;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.elasterix.elasticactors.ActorRef;
-import org.elasterix.elasticactors.ActorSystem;
-import org.elasterix.elasticactors.DependsOn;
+import org.elasticsoftware.elasticactors.ActorRef;
+import org.elasticsoftware.elasticactors.ActorSystem;
+import org.elasticsoftware.elasticactors.DependsOn;
 import org.elasterix.server.actors.User;
 import org.elasterix.server.sip.SipService;
-import org.elasticsoftwarefoundation.elasticactors.base.SpringBasedActorSystem;
-import org.elasticsoftwarefoundation.elasticactors.base.state.JacksonActorState;
+import org.elasticsoftware.elasticactors.base.SpringBasedActorSystem;
+import org.elasticsoftware.elasticactors.base.state.JacksonActorState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
