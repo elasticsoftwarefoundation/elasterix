@@ -24,6 +24,7 @@ public enum SipHeader {
 	CONTENT_LENGTH("Content-Length"),
 	CONTENT_TYPE("Content-Type"),
 	CSEQ("CSeq"),
+	DATE("Date"), // added by Leonard (optional)
 	ERROR_INFO("Error-Info"),
 	EXPIRES("Expires"), // i.e. seconds
 	FROM("From"),

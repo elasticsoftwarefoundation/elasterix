@@ -20,10 +20,12 @@ import org.apache.log4j.Logger;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.ActorSystem;
 import org.elasticsoftware.elasticactors.UntypedActor;
+import org.elasticsoftware.server.actors.Dialog;
 import org.elasticsoftware.server.messages.SipMessage;
 import org.elasticsoftware.server.messages.SipRegister;
 import org.elasticsoftware.sip.SipMessageHandler;
 import org.elasticsoftware.sip.SipMessageSender;
+import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,9 +72,16 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     
     @Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
+		log.info(String.format("onUndeliverable. Message[%s]", message));
 		if(message instanceof SipRegister) {
 			SipRegister m = (SipRegister) message;
-			sendResponse(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND));
+
+			// Create new dialog actor
+			String uid = m.getUser();
+			String uacId = m.getUserAgentClient();
+			ActorRef actor = getSystem().actorOf(String.format("dialog/%s_%s", uid, uacId), 
+					Dialog.class, new Dialog.State(uid, uacId));
+			actor.tell(message, getSelf());
 		} else {
 			unhandled(message);
 		}
@@ -117,16 +126,28 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
         if(!StringUtils.hasLength(userId)) {
         	// a big warning here. Since no user is set, it might be possible
         	// that no message can be sent back.
-        	message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST);
+        	message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST, "No TO header found");
         	sendResponse(message);
         	return;
         }
-		
-		// Registering is a 'duplex' operation; i.e.
+        
+        // get UAC ID and update dialog..
+        String uacId = message.getUserAgentClient();
+        if(!StringUtils.hasLength(uacId)) {
+        	message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST, "No CALL_ID header found");
+        	sendResponse(message);
+        	return;
+        }
+        
+        // redirect to dialog actor
+        ActorRef dialog = actorSystem.actorFor(String.format("dialog/%s_%s", userId, uacId));
+        dialog.tell(message, actorSystem.serviceActorFor("sipService"));	
+
+        // Registering is a 'duplex' operation; i.e.
 		// both user and device register each other. The User actor redirects
         // the register message to UserAgentClient actor automatically.
-        ActorRef user = actorSystem.actorFor("user/" + userId);
-		user.tell(message, actorSystem.serviceActorFor("sipService"));		
+//      ActorRef user = actorSystem.actorFor("user/" + userId);
+//		user.tell(message, actorSystem.serviceActorFor("sipService"));		
 	}
 	
 	//////////////////////////////////////////////////////////////////////////
@@ -142,6 +163,14 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * @param message The message to communicate back to sip client
 	 */
 	private void sendResponse(SipMessage message) {
+		// set headers that must be always set
+		message.setHeader(SipHeader.SERVER, "Server-001");
+		message.setHeader(SipHeader.SUPPORTED, "replaces, timer");
+		message.setHeader(SipHeader.ALLOW, "INVITE, ACK, CANCEL, OPTIONS, BYE, "
+				+ "REFER, SUBSCRIBE, NOTIFY, INFO, PUBLISH");
+		if(message.getContent() == null || message.getContent().length == 0) {
+			message.setHeader(SipHeader.CONTENT_LENGTH, 0);
+		}
 		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
 	}
 

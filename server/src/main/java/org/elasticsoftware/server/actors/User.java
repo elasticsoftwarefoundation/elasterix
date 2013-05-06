@@ -33,7 +33,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * User Actor
- * * 
+ * 
  * @author Leonard Wolters
  */
 public final class User extends UntypedActor {
@@ -45,12 +45,12 @@ public final class User extends UntypedActor {
 	}
 
 	@Override
-	public void onReceive(ActorRef sender, Object message) throws Exception {
+	public void onReceive(ActorRef sipService, Object message) throws Exception {
 		log.info(String.format("onReceive. Message[%s]", message));
 
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
-			onRegister(sender, (SipRegister) message, state);
+			onRegister(sipService, (SipRegister) message, state);
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -60,12 +60,14 @@ public final class User extends UntypedActor {
 
 	protected void onRegister(ActorRef sender, SipRegister message, State state) {
 		if(log.isDebugEnabled()) log.debug(String.format("onRegister. [%s]", message));
-
+		
+		ActorRef sipService = getSystem().serviceActorFor("sipService");
+		
 		// check if authentication is present...
 		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
 		if(!StringUtils.hasLength(authorization)) {
 			if(log.isDebugEnabled()) log.debug("onRegister. No authorization set");
-			sendUnauthorized(sender, message, state);
+			sendUnauthorized(sipService, message, state, "No authorization header found");
 			return;
 		}
 		
@@ -76,8 +78,7 @@ public final class User extends UntypedActor {
 		if(!state.getUsername().equalsIgnoreCase(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided username[%s] "
 					+ "!= given username[%s]", val, state.getUsername()));
-//			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());
-			sendUnauthorized(sender, message, state);
+			sendUnauthorized(sipService, message, state, "Invalid username");
 			return;
 		}
 
@@ -86,8 +87,7 @@ public final class User extends UntypedActor {
 		if(!Long.toString(state.getNonce()).equalsIgnoreCase(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided nonce[%s] "
 					+ "!= given nonce[%d]", val, state.getNonce()));
-//			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());
-			sendUnauthorized(sender, message, state);
+			sendUnauthorized(sipService, message, state, "Nonce does not match");
 			return;
 		}
 		
@@ -96,15 +96,15 @@ public final class User extends UntypedActor {
 		if(!state.getSecretHash().equals(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided hash[%s] "
 					+ "!= given hash[%s]", val, state.getSecretHash()));
-//			sender.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST), getSelf());
-			sendUnauthorized(sender, message, state);
+			sendUnauthorized(sipService, message, state, "Hash is incorrect");
 			return;
 		}
 		
 		// get uac 
 		ActorRef userAgentClient = getUserAgentClient(message);
 		if(userAgentClient == null) {
-			sender.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR), 
+			sipService.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR,
+					String.format("User Agent Client[%s] not found", message.getUserAgentClient())), 
 					getSelf());
 			return;
 		}		
@@ -122,7 +122,7 @@ public final class User extends UntypedActor {
 		}
 
 		// send register message to device.
-		userAgentClient.tell(message, sender);
+		userAgentClient.tell(message, getSelf());
 	}
 	
 	private ActorRef getUserAgentClient(SipRegister message) {
@@ -144,14 +144,14 @@ public final class User extends UntypedActor {
 		return null;
 	}
 	
-	private void sendUnauthorized(ActorRef sender, SipRegister message, State state) {
+	private void sendUnauthorized(ActorRef sender, SipRegister message, State state, String description) {
 		// add extra header info and set nonce
 		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
 		if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));
 		state.setNonce(nonce);
 		message.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
 				+ "realm=\"elasticsoftware\", nonce=\"%d\"", nonce));
-		sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED), getSelf());
+		sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED, description), getSelf());
 	}
 
 	private Map<String, String> tokenize(String value) {

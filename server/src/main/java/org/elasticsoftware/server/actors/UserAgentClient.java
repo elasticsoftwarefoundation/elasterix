@@ -16,6 +16,9 @@
 
 package org.elasticsoftware.server.actors;
 
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -24,6 +27,7 @@ import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.server.messages.SipRegister;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.springframework.util.StringUtils;
 
 /**
  * User Agent Client (UAC)<br>
@@ -35,12 +39,12 @@ public final class UserAgentClient extends UntypedActor {
 	private static final Logger log = Logger.getLogger(UserAgentClient.class);
 
 	@Override
-	public void onReceive(ActorRef sender, Object message) throws Exception {
+	public void onReceive(ActorRef sipService, Object message) throws Exception {
 		log.info(String.format("onReceive. Message[%s]", message));
 
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
-			doRegister(sender, (SipRegister) message, state);
+			doRegister(sipService, (SipRegister) message, state);
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -51,27 +55,34 @@ public final class UserAgentClient extends UntypedActor {
 	protected void doRegister(ActorRef sender, SipRegister message, State state) {
 		if(log.isDebugEnabled()) log.debug(String.format("doRegister. [%s]",
 				message));
-
-		// check CSEQ
-		// http://tools.ietf.org/html/rfc3261#section-8.1.1.5
-		// http://tools.ietf.org/html/rfc3261#section-12.2.1.1
 		
+		ActorRef sipService = getSystem().serviceActorFor("sipService");
+
 		// set expiration. (seconds)
 		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
 		if(expires != null) {
 			state.setExpires(expires);
 		}
-
-		// Register OK
-		sender.tell(message.setSipResponseStatus(SipResponseStatus.OK), getSelf());
+		
+		// check for contact header
+		String contact = message.getHeader(SipHeader.CONTACT);
+		if(!StringUtils.hasLength(contact)) {
+			log.warn(String.format("doRegister. No contact header found"));
+			sipService.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST,
+					"No CONTACT header found"), getSelf());
+		}
+		
+		message.addHeader(SipHeader.DATE, new Date(state.getExpiration()).toString());
+		sipService.tell(message.setSipResponseStatus(SipResponseStatus.OK, null), getSelf());
 	}
 	
 	/**
-	 * State belonging to User
+	 * State belonging to User Agent Client
 	 */
 	public static final class State {
 		private final String uid;
 		private long expires = 0;
+		private long expiration = 0;
 
 		@JsonCreator
 		public State(@JsonProperty("uid") String uid) {
@@ -88,8 +99,14 @@ public final class UserAgentClient extends UntypedActor {
 			return expires;
 		}
 		
+		@JsonProperty("expiration")
+		public long getExpiration() {
+			return expiration;
+		}
+		
 		protected void setExpires(long expires) {
 			this.expires = expires;
+			this.expiration = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires);
 		}
 	}
 }

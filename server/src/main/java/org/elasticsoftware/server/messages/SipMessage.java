@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Joost van de Wijgerd
+ * Copyright 2013 Joost van de Wijgerd, Leonard Wolters
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,19 +30,20 @@ import org.elasticsoftware.sip.codec.SipServerCodec;
 import org.elasticsoftware.sip.codec.SipVersion;
 import org.elasticsoftware.sip.codec.impl.SipResponseImpl;
 import org.elasticsoftware.sip.codec.netty.SipResponseNetty;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
  */
 public abstract class SipMessage {
 	private int response;
+	private String responseMessage;
 	private String version;
     private final LinkedHashMap<String,List<String>> headers;
     protected final byte[] content;
 
     protected SipMessage(String version, Map<String, List<String>> headers, byte[] content) {
     	this.version = version;
-        //this.headers = headers;
     	this.headers = new LinkedHashMap<String,List<String>>();
     	this.headers.putAll(headers);
         this.content = content;
@@ -81,6 +82,16 @@ public abstract class SipMessage {
     	}
     	values.add(value);
     }
+    
+    public void setHeader(SipHeader header, String value) {
+    	headers.remove(header.getName());
+    	addHeader(header, value);
+    }
+    
+    public void setHeader(SipHeader header, Object value) {
+    	headers.remove(header.getName());
+    	addHeader(header, value.toString());
+    }
 
     @JsonIgnore
     public String getContentType() {
@@ -107,8 +118,18 @@ public abstract class SipMessage {
         return headers;
     }
     
-    public SipMessage setSipResponseStatus(SipResponseStatus responseStatus) {
+    @JsonProperty("responseMessage")
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+    
+    public SipMessage setSipResponseStatus(SipResponseStatus responseStatus, int a, int b) {
+    	return setSipResponseStatus(responseStatus, null);
+    }
+    
+    public SipMessage setSipResponseStatus(SipResponseStatus responseStatus, String message) {
     	this.response = responseStatus.getCode();
+    	this.responseMessage = message;
     	return this;
     }
     
@@ -126,5 +147,27 @@ public abstract class SipMessage {
     	}
     	// TODO: fix content
     	return response;
+    }
+    
+    @JsonIgnore
+    public String getUser() {
+    	String user = getHeader(SipHeader.TO);
+    	if(!StringUtils.hasLength(user)) {
+    		return user;
+    	}
+    	int idx = user.indexOf("sip:");
+    	if(idx != -1) {
+    		idx += 4;
+    		int idx2 = user.indexOf("@", idx);
+    		if(idx != -1) {
+    			return user.substring(idx, idx2);
+    		}
+    	}
+        return user;
+    }
+    
+    @JsonIgnore
+    public String getUserAgentClient() {
+        return getHeader(SipHeader.CALL_ID);
     }
 }
