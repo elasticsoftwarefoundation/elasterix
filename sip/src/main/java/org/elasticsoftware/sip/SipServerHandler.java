@@ -5,6 +5,7 @@ import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMessage;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -42,13 +43,9 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			// we need to check if the key used for caching this channel is 
 			// present. If no key is found, bounce message directly back
 			// to sender (whilst we still have this channel)
-			if(!StringUtils.hasLength(request.getHeaderValue(SipHeader.TO))) {
-				log.warn("messageReceived. No TO header found in SIP message. Bouncing it");
-				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
-				ctx.getChannel().write(request);
-				return;
-			}
-			sipChannelFactory.setChannel(request, ctx.getChannel());
+			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
+			sipChannelFactory.setChannel(request.getHeaderValue(SipHeader.FROM), 
+					ctx.getChannel());
 		}
 
 		// only approved sip messages are sent along. Syntactically wrong
@@ -66,19 +63,17 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			messageHandler.onCancel(request);
 			break;
 		case INVITE:
+			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
+			if(!checkForHeader(request, SipHeader.TO, ctx.getChannel())) return;
 			messageHandler.onInvite(request);
 			break;
 		case OPTIONS:
 			messageHandler.onInvite(request);
 			break;
 		case REGISTER:
-			// check for call-id
-			if(!StringUtils.hasLength(request.getHeaderValue(SipHeader.CALL_ID))) {
-				log.warn("No CALL_ID header found in SIP message. Bouncing it");
-				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
-				ctx.getChannel().write(request);
-				return;
-			}
+			if(!checkForHeader(request, SipHeader.CALL_ID, ctx.getChannel())) return;
+			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
+			//if(!checkForHeader(request, SipHeader.TO, ctx.getChannel())) return;
 			messageHandler.onRegister(request);
 			break;
 		default:
@@ -91,8 +86,18 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		// Response are not written here. The implementation of the message handler
 		// should sent/write the response to this request (using the 
 		// SipMessageSender), not this method. (except when exception occurs)
-		//writeResponse(request, e, SipResponseStatus.OK);
 	}
+    
+    private boolean checkForHeader(SipRequest request, SipHeader header, Channel channel) {
+    	if(!StringUtils.hasLength(request.getHeaderValue(header))) {
+			log.warn(String.format("No %s header found in SIP message. Bouncing it",
+					header.getName()));
+			request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
+			channel.write(request);
+			return false;
+		}
+    	return true;
+    }
 
 	private void writeResponse(SipMessage message, MessageEvent e, SipResponseStatus status) {
 		// Decide whether to close the connection or not.		

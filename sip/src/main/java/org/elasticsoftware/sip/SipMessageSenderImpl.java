@@ -3,6 +3,7 @@ package org.elasticsoftware.sip;
 import javax.annotation.PostConstruct;
 
 import org.apache.log4j.Logger;
+import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponse;
 import org.jboss.netty.channel.Channel;
@@ -34,7 +35,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	public void sendRequest(SipRequest request, SipMessageCallback callback) {
 		log.info(String.format("Sending Request\n%s", request));
 		
-		Channel c = sipChannelFactory.getChannel(request);
+		Channel c = sipChannelFactory.getChannel(request.getHeaderValue(SipHeader.TO));
 		if(c == null) {
 			log.error(String.format("sendRequest. No channel set/found."));
 			return;
@@ -51,7 +52,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 		log.info(String.format("Sending Response\n%s", response));
 		
 		// get connection for user
-		Channel c = sipChannelFactory.getChannel(response);
+		Channel c = sipChannelFactory.getChannel(response.getHeaderValue(SipHeader.FROM));
 		if(c == null) {
 			log.error(String.format("sendResponse. No channel set/found."));
 			return;

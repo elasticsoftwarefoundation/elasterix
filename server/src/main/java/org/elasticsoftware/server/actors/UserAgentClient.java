@@ -63,6 +63,12 @@ public final class UserAgentClient extends UntypedActor {
 		if(expires != null) {
 			state.setExpires(expires);
 		}
+
+		// schedule timeout...
+		if(expires != null) {
+			getSystem().getScheduler().scheduleOnce(getSelf(), 
+				message, getSelf(), expires, TimeUnit.SECONDS);
+		}
 		
 		// check for contact header
 		String contact = message.getHeader(SipHeader.CONTACT);

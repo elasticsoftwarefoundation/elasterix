@@ -26,6 +26,8 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
+import org.elasticsoftware.server.messages.SipInvite;
+import org.elasticsoftware.server.messages.SipMessage;
 import org.elasticsoftware.server.messages.SipRegister;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
@@ -45,30 +47,47 @@ public final class User extends UntypedActor {
 	}
 
 	@Override
-	public void onReceive(ActorRef sipService, Object message) throws Exception {
+	public void onReceive(ActorRef sender, Object message) throws Exception {
 		log.info(String.format("onReceive. Message[%s]", message));
 
+		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
-			onRegister(sipService, (SipRegister) message, state);
+			if(authenticate(sipService, (SipRegister) message, state)) {
+				register(sipService, (SipRegister) message, state);
+			}
+		} else if(message instanceof SipInvite) {
+			SipInvite m = (SipInvite) message;
+			if(m.isAuthenticated()) {
+				// sent RINGING to UAC's belonging to CALLEE
+				
+				// return RINGING to FROM user
+				((SipInvite) message).setSipResponseStatus(SipResponseStatus.RINGING, null);
+				sipService.tell(message, getSelf());				
+			} else {
+				if(authenticate(sipService, m, state)) {
+					m.setAuthenticated(true);
+					
+					// CALLER is authenticated. sent message to CALLEE
+					ActorRef callee = getSystem().actorFor(String.format("user/%s", m.getUser(SipHeader.TO)));
+					callee.tell(message, getSelf());
+				}
+			}
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
 			unhandled(message);
 		}
 	}
+	
+	private final boolean authenticate(ActorRef sender, SipMessage message, State state) {
 
-	protected void onRegister(ActorRef sender, SipRegister message, State state) {
-		if(log.isDebugEnabled()) log.debug(String.format("onRegister. [%s]", message));
-		
-		ActorRef sipService = getSystem().serviceActorFor("sipService");
-		
 		// check if authentication is present...
 		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
 		if(!StringUtils.hasLength(authorization)) {
-			if(log.isDebugEnabled()) log.debug("onRegister. No authorization set");
-			sendUnauthorized(sipService, message, state, "No authorization header found");
-			return;
+			if(log.isDebugEnabled()) log.debug("authenticate. No authorization set");
+			sendUnauthorized(sender, message, state, "No authorization header found");
+			return false;
 		}
 		
 		Map<String,String> map = tokenize(authorization);
@@ -76,34 +95,40 @@ public final class User extends UntypedActor {
 		// check username
 		String val = map.get("username");
 		if(!state.getUsername().equalsIgnoreCase(val)) {
-			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided username[%s] "
+			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided username[%s] "
 					+ "!= given username[%s]", val, state.getUsername()));
-			sendUnauthorized(sipService, message, state, "Invalid username");
-			return;
+			sendUnauthorized(sender, message, state, "Invalid username");
+			return false;
 		}
 
 		// check nonce
 		val = map.get("nonce");
 		if(!Long.toString(state.getNonce()).equalsIgnoreCase(val)) {
-			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided nonce[%s] "
+			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided nonce[%s] "
 					+ "!= given nonce[%d]", val, state.getNonce()));
-			sendUnauthorized(sipService, message, state, "Nonce does not match");
-			return;
+			sendUnauthorized(sender, message, state, "Nonce does not match");
+			return false;
 		}
 		
 		// check hash
 		val = map.get("response"); 
 		if(!state.getSecretHash().equals(val)) {
-			if(log.isDebugEnabled()) log.debug(String.format("onRegister. Provided hash[%s] "
+			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
 					+ "!= given hash[%s]", val, state.getSecretHash()));
-			sendUnauthorized(sipService, message, state, "Hash is incorrect");
-			return;
+			sendUnauthorized(sender, message, state, "Hash is incorrect");
+			return false;
 		}
 		
+		return true;
+	}
+
+	protected void register(ActorRef sender, SipRegister message, State state) {
+		if(log.isDebugEnabled()) log.debug(String.format("register. [%s]", message));
+
 		// get uac 
 		ActorRef userAgentClient = getUserAgentClient(message);
 		if(userAgentClient == null) {
-			sipService.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR,
+			sender.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR,
 					String.format("User Agent Client[%s] not found", message.getUserAgentClient())), 
 					getSelf());
 			return;
@@ -115,9 +140,15 @@ public final class User extends UntypedActor {
 			if(expires.longValue() == 0) {
 				// remove current binding with UAC set in message
 				state.removeUserAgentClient(userAgentClient.getActorId());
+				
+				// TODO Remove / Reset Dialog 
 			} else {
 				// update binding (with new expiration)
 				state.addUserAgentClient(userAgentClient.getActorId(), expires);
+				
+				// schedule timeout...
+				getSystem().getScheduler().scheduleOnce(getSelf(), 
+						message, getSelf(), expires, TimeUnit.SECONDS);
 			}
 		}
 
@@ -144,7 +175,7 @@ public final class User extends UntypedActor {
 		return null;
 	}
 	
-	private void sendUnauthorized(ActorRef sender, SipRegister message, State state, String description) {
+	private void sendUnauthorized(ActorRef sender, SipMessage message, State state, String description) {
 		// add extra header info and set nonce
 		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
 		if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));

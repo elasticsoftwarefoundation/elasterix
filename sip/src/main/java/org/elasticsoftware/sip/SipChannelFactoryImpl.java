@@ -52,17 +52,16 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 			new ConcurrentLinkedHashMap.Builder<String, Channel>().maximumWeightedCapacity(initialCacheSize).build();
 
 	@Override
-	public void setChannel(SipMessage message, Channel channel) {
+	public void setChannel(String address, Channel channel) {
 		// always reset channel (remove/add)
-		String key = getKey(message);
-		cache.remove(key);
-		cache.putIfAbsent(key, channel);
+		if(StringUtils.hasLength(address)) {
+			cache.put(address, channel);
+		}
 	}
 
 	@Override
-	public Channel getChannel(SipMessage message) {
-		String key = getKey(message);
-		return assureOpen(cache.get(key), message);
+	public Channel getChannel(String address) {
+		return assureOpen(cache, address);
 	}
 	
 	@PreDestroy
@@ -77,42 +76,40 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 		}
     }
 
-	private String getKey(SipMessage message) {
-		return message.getHeaderValue(SipHeader.TO);
-	}
-
-	private Channel assureOpen(Channel c, SipMessage sipMessage) {
+	private Channel assureOpen(ConcurrentMap<String, Channel> cache, String address) {
 
 		// check is channel is open
-		if(c != null &&  c.isConnected() && c.isOpen()) {
+		Channel c = cache.get(address);
+		if(c != null && c.isConnected() && c.isOpen()) {
 			return c;
 		}
 
-		String to = sipMessage.getHeaderValue(SipHeader.TO);
-		if(!StringUtils.hasLength(to)) {
-			log.warn("assureOpen. No TO header found in message. Can't connect channel");
+		if(!StringUtils.hasLength(address)) {
+			log.warn("assureOpen. No address given. Can't connect channel");
 			return c;
 		}
 		
 		// To: "Hans de Borst"<sip:124@sip.outerteams.com:5060>
-		int idx = to.lastIndexOf('@');
+		int idx = address.lastIndexOf('@');
 		if(idx != -1) {
-			to = to.substring(idx+1);
+			address = address.substring(idx+1);
 			try {
-				idx = to.indexOf(":");
-				String hostname = to.substring(0, idx);
-				int port = Integer.parseInt(to.substring(idx + 1, to.lastIndexOf('>')));
+				idx = address.indexOf(":");
+				String hostname = address.substring(0, idx);
+				int port = Integer.parseInt(address.substring(idx + 1, address.lastIndexOf('>')));
 				if(log.isDebugEnabled()) {
-					log.debug(String.format("assureOpen. Connecting to[%s:%d]", hostname, port));
+					log.debug(String.format("assureOpen. Connecting address[%s:%d]", hostname, port));
 				}
 				c = createChannel(hostname, port);
 			} catch (Exception e) {
 				log.warn(e.getMessage(), e);
 			}
 		} else {
-			log.warn(String.format("assureOpen. Invalid TO header[%s]. Can't connect channel",
-					to));			
+			log.warn(String.format("assureOpen. Invalid address[%s]. Can't connect channel",
+					address));			
 		}
+		// update cache
+		cache.put(address, c);
 		return c;
 	}
 	

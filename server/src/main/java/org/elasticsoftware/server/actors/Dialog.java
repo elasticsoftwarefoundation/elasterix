@@ -21,13 +21,14 @@ import org.springframework.util.StringUtils;
  * @author Leonard Wolters
  */
 public class Dialog extends UntypedActor {
-	private static final Logger log = Logger.getLogger(Dialog.class);
+	private static final Logger log = Logger.getLogger(Dialog.class);	
 
 	@Override
-	public void onReceive(ActorRef sipService, Object message) throws Exception {
+	public void onReceive(ActorRef sender, Object message) throws Exception {
 		log.info(String.format("onReceive. Message[%s]", message));
 
 		State state = getState(null).getAsObject(State.class);
+		ActorRef sipService = getSystem().serviceActorFor("sipService");
 
 		// get current (message) count 
 		String messageType = null;
@@ -63,8 +64,8 @@ public class Dialog extends UntypedActor {
 					state.incrementAndGetRegister(), messageType));
 		} else {
 			// CSeq: 1 REGISTER
-			StringTokenizer st = new StringTokenizer(((SipMessage) message).getHeader(SipHeader.CSEQ), " ", false);
-			while(st.countTokens() > 2) {
+			StringTokenizer st = new StringTokenizer(cSeq, " ", false);
+			while(st.countTokens() >= 2) {
 				try {
 					cSeqCount = Integer.parseInt(st.nextToken());
 				} catch (Exception e) {
@@ -109,10 +110,11 @@ public class Dialog extends UntypedActor {
 		log.info(String.format("onUndeliverable. Message[%s]", message));
 		
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
+		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
 			SipRegister m = (SipRegister) message;
 			sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
-					String.format("User[%s] not found", m.getUser())), getSelf());
+					String.format("User[%s] not found", state.getUser())), getSelf());
 		} else {
 			unhandled(message);
 		}
