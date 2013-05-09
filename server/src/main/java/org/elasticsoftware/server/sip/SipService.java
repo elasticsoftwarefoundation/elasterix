@@ -132,7 +132,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
         
         // redirect to dialog actor
         ActorRef dialog = actorSystem.actorFor(String.format("dialog/%s_%s", userId, uacId));
-        dialog.tell(message, actorSystem.serviceActorFor("sipService"));	
+        dialog.tell(message, actorSystem.serviceActorFor("sipService"));
 	}
 	
 	//////////////////////////////////////////////////////////////////////////

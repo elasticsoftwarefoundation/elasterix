@@ -59,17 +59,27 @@ public final class User extends UntypedActor {
 		} else if(message instanceof SipInvite) {
 			SipInvite m = (SipInvite) message;
 			if(m.isAuthenticated()) {
-				// sent RINGING to UAC's belonging to CALLEE
+				if(log.isDebugEnabled()) {
+					log.debug(String.format("onReceive. Invite: notify UAC's of callee[%s]", 
+						state.getUsername()));
+				}
+				// sent INVITE to UAC's belonging to CALLEE
 				
 				// return RINGING to FROM user
 				((SipInvite) message).setSipResponseStatus(SipResponseStatus.RINGING, null);
 				sipService.tell(message, getSelf());				
 			} else {
+				if(log.isDebugEnabled()) {
+					log.debug(String.format("onReceive. Invite: Authenticating caller[%s]", 
+							state.getUsername()));
+				}
+				// authenticate CALLER
 				if(authenticate(sipService, m, state)) {
 					m.setAuthenticated(true);
 					
 					// CALLER is authenticated. sent message to CALLEE
-					ActorRef callee = getSystem().actorFor(String.format("user/%s", m.getUser(SipHeader.TO)));
+					ActorRef callee = getSystem().actorFor(String.format("user/%s", 
+							m.getUser(SipHeader.TO)));
 					callee.tell(message, getSelf());
 				}
 			}
@@ -115,7 +125,7 @@ public final class User extends UntypedActor {
 		if(!state.getSecretHash().equals(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
 					+ "!= given hash[%s]", val, state.getSecretHash()));
-			sendUnauthorized(sender, message, state, "Hash is incorrect");
+			sendUnauthorized(sender, message, state, "Hash incorrect");
 			return false;
 		}
 		

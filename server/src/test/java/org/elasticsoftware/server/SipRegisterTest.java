@@ -16,95 +16,27 @@
 
 package org.elasticsoftware.server;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.elasticsoftware.elasticactors.ActorRef;
-import org.elasticsoftware.elasticactors.ActorSystem;
-import org.elasticsoftware.elasticactors.test.TestActorSystem;
-import org.elasticsoftware.server.actors.User;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipVersion;
 import org.elasticsoftware.sip.codec.impl.SipRequestImpl;
-import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.testng.Assert;
-import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 /**
  * Test that creates a test actor system and loads the ElasterixServer<br>
  * 
- * send a sip register message to the Sip Server
+ * test all different kinds of <code>Sip Register</code> messages 
  * see http://tools.ietf.org/html/rfc3261#section-10.2
  * 
  * @author Joost van de Wijgerd
  * @author Leonard Wolters
  */
-public class SipRegisterTest {
-	private static final Logger log = Logger.getLogger(SipRegisterTest.class);
-	protected ActorSystem actorSystem;
-	protected SipClient sipClient;
-	protected Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
-	
-	protected List<ActorRef> users = new ArrayList<ActorRef>();
-	protected List<ActorRef> uacs = new ArrayList<ActorRef>();
-
-	@BeforeSuite
-	public void init() throws Exception {
-		BasicConfigurator.resetConfiguration();
-		BasicConfigurator.configure();
+public class SipRegisterTest extends AbstractSipTest {
+	private static final boolean testEnabled = true;
 		
-		Logger.getRootLogger().setLevel(Level.WARN);
-		Logger.getLogger("org.elasticsoftware").setLevel(Level.DEBUG);
-
-		actorSystem = TestActorSystem.create(new ElasterixServer());
-		sipClient = new SipClient();
-
-		// create a couple of users
-		User.State state = new User.State("leonard@elasticsoftware.org", "lwolters", 
-				md5Encoder.encodePassword("test", null));
-		ActorRef ref = actorSystem.actorOf("user/lwolters", User.class, state);
-		users.add(ref);
-		ref = actorSystem.actorOf("user/jwijgerd", User.class, 
-				new User.State("joost@elasticsoftware.org", "jwijgerd", 
-						md5Encoder.encodePassword("test", null)));
-		users.add(ref);
-		Thread.sleep(300);
-	}
-	
-	@AfterSuite
-	protected void destroy() throws Exception {
-		for(ActorRef ref : users) {
-			actorSystem.stop(ref);
-		}
-		for(ActorRef ref : uacs) {
-			actorSystem.stop(ref);
-		}
-		if(sipClient != null) {
-			sipClient.close();
-		}
-	}
-	
-//	protected SipRequest createSipRequest() {
-//		//sipClient.sendMessage("sip-register.txt");
-//
-//		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-//		req.addHeader(SipHeader.MAX_FORWARDS, "70");
-//		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
-//		req.addHeader(SipHeader.CALL_ID, "a84b4c76e66710");
-//		req.addHeader(SipHeader.CSEQ, "314159 REGISTER");
-//		req.addHeader(SipHeader.FROM, "Leonard Wolters <sip:leonard@localhost.com>");
-//		req.addHeader(SipHeader.TO, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
-//		return req;
-//	}
-	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserNoTo() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		sipClient.sendMessage(req);
@@ -112,14 +44,13 @@ public class SipRegisterTest {
 		Thread.sleep(300);
 		String message = sipClient.getMessage();
 		Assert.assertNotNull(message);
-		log.info(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
 	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserNoCallId() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -129,24 +60,23 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
 	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterNonExistingUser() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:XXXXXX@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:XXXXXX@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
 		String message = sipClient.getMessage();
 		Assert.assertNotNull(message);
-		log.info(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 404 Not Found"));
 	}
 
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserNoAuthentication() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -157,10 +87,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.indexOf("WWW-Authenticate: Digest algorithm=MD5, realm=") != -1);
 	}
 	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserWrongUsername() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		setAuthorization(req, "jwijgerd", "", "");
 		sipClient.sendMessage(req);
@@ -172,10 +102,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.indexOf("WWW-Authenticate: Digest algorithm=MD5, realm=") != -1);
 	}
 	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserWrongNonce() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		setAuthorization(req, "lwolters", "123456789", "");
 		sipClient.sendMessage(req);
@@ -187,10 +117,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.indexOf("WWW-Authenticate: Digest algorithm=MD5, realm=") != -1);
 	}
 	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserWrongHash() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		setAuthorization(req, "lwolters", "-1", "");
 		sipClient.sendMessage(req);
@@ -201,10 +131,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
 	
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserWrongCSeqCount() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		req.addHeader(SipHeader.CSEQ, "2 REGISTER");
 		setAuthorization(req, "lwolters", "-1", "");
@@ -216,10 +146,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
 
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserWrongCSeqMethod() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		req.addHeader(SipHeader.CSEQ, "1 INVITE");
 		setAuthorization(req, "lwolters", "-1", "");
@@ -231,10 +161,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
 
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserRealNonce() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -252,10 +182,10 @@ public class SipRegisterTest {
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
 
-	@Test(enabled = true)
+	@Test(enabled = testEnabled)
 	public void testRegisterUserOk() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@localhost:8888>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
@@ -271,33 +201,6 @@ public class SipRegisterTest {
 		message = sipClient.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 200 OK"));
-	}
-
-	protected boolean startsWith(String input, String startsWith) {
-		input = input.trim();
-		startsWith = startsWith.trim();
-		
-		if(input.length() < startsWith.length()) {
-			System.err.println(String.format("Length input to short. input[%d] != startsWith[%d]", 
-					input.length(), startsWith.length()));
-			return false;
-		}
-		for(int i = 0; i < input.length(); i++) {
-			if(input.charAt(i) != startsWith.charAt(i)) {
-				System.err.println(String.format("Characters differ. Index[%d]. \n%s\n======\n%s", 
-						i, input.subSequence(0, i), startsWith.subSequence(0, i)));
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	protected void setAuthorization(SipRequest message, String userName, String nonce,
-			String hash) {
-		// Authorization: Digest username="124",realm="combird",nonce="24855234",
-		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
-		message.addHeader(SipHeader.AUTHORIZATION, String.format("Digest username=\"%s\",realm=\"elasticsoftware\""
-				+ ",nonce=\"%s\",uri=\"%s\",response=\"%s\",algorithm=MD5", userName, nonce, "", hash));
 	}
 }
 

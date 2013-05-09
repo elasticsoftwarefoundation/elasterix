@@ -125,7 +125,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
 			throws Exception {
-		log.error(e.getCause().getMessage(), e.getCause().getCause());
+		log.error(String.format("exceptionCaught: [%s] -> [%s]", 
+				e.getCause().getMessage(), e.getCause().getCause()), e.getCause());
 		e.getChannel().close();
 	}	
 
