@@ -14,8 +14,8 @@ import org.elasticsoftware.server.actors.UserAgentClient;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeTest;
 
 /**
  * @author Leonard Wolters
@@ -28,7 +28,7 @@ public abstract class AbstractSipTest {
 	protected List<ActorRef> users = new ArrayList<ActorRef>();
 	protected List<ActorRef> uacs = new ArrayList<ActorRef>();
 
-	@BeforeMethod
+	@BeforeTest
 	public void init() throws Exception {
 		BasicConfigurator.resetConfiguration();
 		BasicConfigurator.configure();
@@ -58,7 +58,7 @@ public abstract class AbstractSipTest {
 		Thread.sleep(300);
 	}
 
-	@AfterMethod
+	@AfterTest
 	public void destroy() throws Exception {
 		for(ActorRef ref : users) {
 			actorSystem.stop(ref);

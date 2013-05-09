@@ -36,28 +36,36 @@ import org.testng.annotations.Test;
  */
 public class SipInviteTest extends AbstractSipTest {
 	private static final Logger log = Logger.getLogger(SipInviteTest.class);
-	private static final boolean testEnabled = false;
+	private static final boolean testEnabled = true;
 	
 	@Test(enabled = testEnabled)
 	public void testInvite() throws Exception {
 		
-		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-		req.addHeader(SipHeader.CALL_ID, "xxx");
-		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
-		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
+//		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
+//		req.addHeader(SipHeader.CALL_ID, "xxx");
+//		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
+//		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
+//		sipClient.sendMessage(req);
+//		// sleep sometime in order for message to be sent back.
+//		Thread.sleep(300);
+//		// get nonce!
+//		String message = sipClient.getMessage();
+//		int idx = message.indexOf("nonce=") + 7;
+//		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
+//		setAuthorization(req, "lwolters", Long.toString(nonce), md5Encoder.encodePassword("test", null));
+//		sipClient.sendMessage(req);
+//		// sleep sometime in order for message to be sent back.
+//		Thread.sleep(300);
+//		message = sipClient.getMessage();
+//		Assert.assertNotNull(message);
+//		Assert.assertTrue(message.startsWith("SIP/2.0 200 OK"));
+		
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		sipClient.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		// get nonce!
 		String message = sipClient.getMessage();
-		int idx = message.indexOf("nonce=") + 7;
-		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
-		setAuthorization(req, "lwolters", Long.toString(nonce), md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
-		// sleep sometime in order for message to be sent back.
-		Thread.sleep(300);
-		message = sipClient.getMessage();
 		Assert.assertNotNull(message);
-		Assert.assertTrue(message.startsWith("SIP/2.0 200 OK"));
+		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
 }
