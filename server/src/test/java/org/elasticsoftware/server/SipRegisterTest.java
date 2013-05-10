@@ -34,7 +34,7 @@ import org.testng.annotations.Test;
  * @author Leonard Wolters
  */
 public class SipRegisterTest extends AbstractSipTest {
-	private static final boolean testEnabled = true;
+	private static final boolean testEnabled = false;
 		
 	@Test(enabled = testEnabled)
 	public void testRegisterUserNoTo() throws Exception {
