@@ -1,3 +1,19 @@
+/*
+ * Copyright 2013 Joost van de Wijgerd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.elasticsoftware.server;
 
 import java.util.ArrayList;
@@ -21,6 +37,7 @@ import org.testng.annotations.BeforeTest;
  * @author Leonard Wolters
  */
 public abstract class AbstractSipTest {
+    private TestActorSystem testActorSystem;
 	protected ActorSystem actorSystem;
 	protected SipClient sipClient;
 	protected Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
@@ -36,7 +53,8 @@ public abstract class AbstractSipTest {
 		Logger.getRootLogger().setLevel(Level.WARN);
 		Logger.getLogger("org.elasticsoftware").setLevel(Level.DEBUG);
 
-		actorSystem = TestActorSystem.create(new ElasterixServer());
+        testActorSystem = TestActorSystem.create();
+		actorSystem = testActorSystem.create(new ElasterixServer());
 		sipClient = new SipClient();
 
 		// create two users
@@ -60,15 +78,16 @@ public abstract class AbstractSipTest {
 
 	@AfterTest
 	public void destroy() throws Exception {
-		for(ActorRef ref : users) {
-			actorSystem.stop(ref);
-		}
-		for(ActorRef ref : uacs) {
-			actorSystem.stop(ref);
-		}
-		if(sipClient != null) {
-			sipClient.close();
-		}
+//		for(ActorRef ref : users) {
+//			actorSystem.stop(ref);
+//		}
+//		for(ActorRef ref : uacs) {
+//			actorSystem.stop(ref);
+//		}
+//		if(sipClient != null) {
+//			sipClient.close();
+//		}
+        testActorSystem.destroy();
 	}
 
 	protected boolean startsWith(String input, String startsWith) {
