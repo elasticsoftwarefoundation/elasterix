@@ -79,6 +79,7 @@ public final class User extends UntypedActor {
 				}
 				// forward message to all registered UAC's of callee
 				long now = System.currentTimeMillis();
+				boolean ringing = false;
 				for(Map.Entry<String,Long> uacEntry : state.getUserAgentClients().entrySet()) {
 					// check is UAC is expired
 					if(uacEntry.getValue() < now) {
@@ -89,12 +90,19 @@ public final class User extends UntypedActor {
 					} else {
 						ActorRef actor = getSystem().actorFor("uac/" + uacEntry.getKey());
 						actor.tell(message, getSelf());
+						ringing = true;
 					}
 				}
 				
-				// return RINGING to caller?
-				((SipInvite) message).setSipResponseStatus(SipResponseStatus.RINGING, null);
-				sipService.tell(message, getSelf());				
+				if(!ringing) {
+					((SipInvite) message).setSipResponseStatus(SipResponseStatus.GONE, 
+							String.format("No registered UAC for user[%s]", state.getUsername()));
+					sipService.tell(message, getSelf());				
+				} else {
+					((SipInvite) message).setSipResponseStatus(SipResponseStatus.TRYING, null);
+					sipService.tell(message, getSelf());				
+					
+				}
 			} else {
 				if(log.isDebugEnabled()) {
 					log.debug(String.format("onReceive. Invite: Authenticating caller[%s]", 

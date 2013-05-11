@@ -42,7 +42,6 @@ public class SipInviteTest extends AbstractSipTest {
 	public void testInviteNonExistingCaller() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
-		req.addHeader(SipHeader.CSEQ, "1 INVITE");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:xxx@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:xxx@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
@@ -58,7 +57,6 @@ public class SipInviteTest extends AbstractSipTest {
 	public void testInviteNonExistingCallee() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
-		req.addHeader(SipHeader.CSEQ, "1 INVITE");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:xxx@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
@@ -71,10 +69,9 @@ public class SipInviteTest extends AbstractSipTest {
 	}
 	
 	@Test(enabled = true)
-	public void testInviteOK() throws Exception {
+	public void testInviteNoRegistedUAC() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.CALL_ID, "xxx");
-		req.addHeader(SipHeader.CSEQ, "2 INVITE"); // 2 since state is preserved ..
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
@@ -83,6 +80,22 @@ public class SipInviteTest extends AbstractSipTest {
 		Thread.sleep(300);
 		String message = sipClient.getMessage();
 		Assert.assertNotNull(message);
-		Assert.assertTrue(message.startsWith("SIP/2.0 180 Ringing"));
+		Assert.assertTrue(message.startsWith("SIP/2.0 410 Gone"));
 	}
+	
+//	@Test(enabled = true)
+//	public void testInviteOK() throws Exception {
+//		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
+//		req.addHeader(SipHeader.CALL_ID, "xxx");
+//		req.addHeader(SipHeader.CSEQ, "3 INVITE"); 
+//		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
+//		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
+//		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
+//		sipClient.sendMessage(req);
+//		// sleep sometime in order for message to be sent back.
+//		Thread.sleep(300);
+//		String message = sipClient.getMessage();
+//		Assert.assertNotNull(message);
+//		Assert.assertTrue(message.startsWith("SIP/2.0 100 Trying"));
+//	}
 }
