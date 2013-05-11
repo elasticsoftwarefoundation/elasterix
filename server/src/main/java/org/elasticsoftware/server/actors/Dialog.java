@@ -7,6 +7,7 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
+import org.elasticsoftware.server.messages.SipInvite;
 import org.elasticsoftware.server.messages.SipMessage;
 import org.elasticsoftware.server.messages.SipRegister;
 import org.elasticsoftware.sip.codec.SipHeader;
@@ -25,7 +26,9 @@ public class Dialog extends UntypedActor {
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
-		log.info(String.format("onReceive. Message[%s]", message));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onReceive. Message[%s]", message));
+		}
 
 		State state = getState(null).getAsObject(State.class);
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
@@ -33,7 +36,10 @@ public class Dialog extends UntypedActor {
 		// get current (message) count 
 		String messageType = null;
 		int messageCount = -1;
-		if(message instanceof SipRegister) {
+		if(message instanceof SipInvite) {
+			messageType = "INVITE";
+			messageCount = state.incrementAndGetInvite();
+		} else if(message instanceof SipRegister) {
 			messageType = "REGISTER";
 			messageCount = state.incrementAndGetRegister();
 		} else {
@@ -43,6 +49,9 @@ public class Dialog extends UntypedActor {
 			return;
 		}
 		SipMessage sipMessage = (SipMessage) message;
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onReceive. STATE: Type[%s], count[%d]", messageType, messageCount));
+		}
 
 		// update CSEQ
 		// http://tools.ietf.org/html/rfc3261#section-8.1.1.5
@@ -63,7 +72,7 @@ public class Dialog extends UntypedActor {
 			sipMessage.addHeader(SipHeader.CSEQ, String.format("%d %s", 
 					state.incrementAndGetRegister(), messageType));
 		} else {
-			// CSeq: 1 REGISTER
+			// CSeq: 1 REGISTER || 304 INVITE .....
 			StringTokenizer st = new StringTokenizer(cSeq, " ", false);
 			while(st.countTokens() >= 2) {
 				try {
@@ -107,14 +116,16 @@ public class Dialog extends UntypedActor {
 
 	@Override
 	public void onUndeliverable(ActorRef sender, Object message) throws Exception {
-		log.info(String.format("onUndeliverable. Message[%s]", message));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onUndeliverable. Message[%s]", message));
+		}
 		
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		State state = getState(null).getAsObject(State.class);
-		if(message instanceof SipRegister) {
-			SipRegister m = (SipRegister) message;
+		if(message instanceof SipRegister || message instanceof SipInvite) {
+			SipMessage m = (SipMessage) message;
 			sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
-					String.format("User[%s] not found", state.getUser())), getSelf());
+					String.format("User[%s] (From) not found", state.getUser())), getSelf());
 		} else {
 			unhandled(message);
 		}
@@ -165,8 +176,8 @@ public class Dialog extends UntypedActor {
 		}
 
 		protected void reset() {
-			registerCount = 0;
-			inviteCount = 0;
+			registerCount = 1;
+			inviteCount = 1;
 		}
 	}
 }

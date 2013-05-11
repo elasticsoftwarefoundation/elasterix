@@ -40,7 +40,9 @@ public final class UserAgentClient extends UntypedActor {
 
 	@Override
 	public void onReceive(ActorRef sipService, Object message) throws Exception {
-		log.info(String.format("onReceive. Message[%s]", message));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onReceive. Message[%s]", message));
+		}
 
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
@@ -53,9 +55,6 @@ public final class UserAgentClient extends UntypedActor {
 	}
 
 	protected void doRegister(ActorRef sender, SipRegister message, State state) {
-		if(log.isDebugEnabled()) log.debug(String.format("doRegister. [%s]",
-				message));
-		
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 
 		// set expiration. (seconds)

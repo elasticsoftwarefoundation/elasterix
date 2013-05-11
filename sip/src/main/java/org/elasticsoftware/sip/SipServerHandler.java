@@ -72,8 +72,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			break;
 		case REGISTER:
 			if(!checkForHeader(request, SipHeader.CALL_ID, ctx.getChannel())) return;
+			if(!checkForHeader(request, SipHeader.CONTACT, ctx.getChannel())) return;
 			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
-			//if(!checkForHeader(request, SipHeader.TO, ctx.getChannel())) return;
 			messageHandler.onRegister(request);
 			break;
 		default:

@@ -178,7 +178,7 @@ public abstract class SipMessage {
     	return null;
     }
   
-    public class SipUser {
+    public static class SipUser {
     	private String displayName;
     	private String username;
     	private String domain;
@@ -208,7 +208,14 @@ public abstract class SipMessage {
         	// domain
         	idx = domain.indexOf(':');
         	if(idx != -1) {
-        		port = Integer.parseInt(domain.substring(idx + 1));
+        		// port might contain 'other' suffices
+        		// <sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>
+        		String sPort = domain.substring(idx + 1);
+        		int idx2 = sPort.indexOf(';');
+        		if(idx2 != -1) {
+        			sPort = sPort.substring(0, idx2);
+        		}
+        		port = Integer.parseInt(sPort);
         		domain = domain.substring(0, idx);
         	}
     	}

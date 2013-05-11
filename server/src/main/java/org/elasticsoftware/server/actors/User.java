@@ -16,6 +16,7 @@
 
 package org.elasticsoftware.server.actors;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -43,12 +44,25 @@ public final class User extends UntypedActor {
 
 	@Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
-		log.info(String.format("onUndeliverable. Message[%s]", message));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onUndeliverable. Message[%s]", message));
+		}
+		
+		ActorRef sipService = getSystem().serviceActorFor("sipService");
+		if(message instanceof SipInvite) {
+			SipInvite m = (SipInvite) message;
+			sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
+					String.format("User[%s] (To) not found", m.getUser(SipHeader.TO).getUsername())), 
+					getSelf());
+			sipService.tell(message, getSelf());
+		}
 	}
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
-		log.info(String.format("onReceive. Message[%s]", message));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onReceive. Message[%s]", message));
+		}
 
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		State state = getState(null).getAsObject(State.class);
@@ -63,9 +77,22 @@ public final class User extends UntypedActor {
 					log.debug(String.format("onReceive. Invite: notify UAC's of callee[%s]", 
 						state.getUsername()));
 				}
-				// sent INVITE to UAC's belonging to CALLEE
+				// forward message to all registered UAC's of callee
+				long now = System.currentTimeMillis();
+				for(Map.Entry<String,Long> uacEntry : state.getUserAgentClients().entrySet()) {
+					// check is UAC is expired
+					if(uacEntry.getValue() < now) {
+						log.info(String.format("User[%s] -> UAC[%s, %s] expired",
+								state.getUsername(), uacEntry.getKey(), 
+								new Date(uacEntry.getValue())));
+						state.removeUserAgentClient(uacEntry.getKey());
+					} else {
+						ActorRef actor = getSystem().actorFor("uac/" + uacEntry.getKey());
+						actor.tell(message, getSelf());
+					}
+				}
 				
-				// return RINGING to FROM user
+				// return RINGING to caller?
 				((SipInvite) message).setSipResponseStatus(SipResponseStatus.RINGING, null);
 				sipService.tell(message, getSelf());				
 			} else {
@@ -79,7 +106,7 @@ public final class User extends UntypedActor {
 					
 					// CALLER is authenticated. sent message to CALLEE
 					ActorRef callee = getSystem().actorFor(String.format("user/%s", 
-							m.getUser(SipHeader.TO)));
+							m.getUser(SipHeader.TO).getUsername()));
 					callee.tell(message, getSelf());
 				}
 			}
@@ -154,7 +181,8 @@ public final class User extends UntypedActor {
 				// TODO Remove / Reset Dialog 
 			} else {
 				// update binding (with new expiration)
-				state.addUserAgentClient(userAgentClient.getActorId(), expires);
+				state.addUserAgentClient(userAgentClient.getActorId(), 
+						System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires));
 				
 				// schedule timeout...
 				getSystem().getScheduler().scheduleOnce(getSelf(), 
@@ -187,7 +215,8 @@ public final class User extends UntypedActor {
 	
 	private void sendUnauthorized(ActorRef sender, SipMessage message, State state, String description) {
 		// add extra header info and set nonce
-		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
+		//long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
+		long nonce = state.getNonce() + 1;
 		if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));
 		state.setNonce(nonce);
 		message.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
@@ -222,7 +251,7 @@ public final class User extends UntypedActor {
 		private final String secretHash;
 		/** UID of User Agent Client (key) and expires (seconds) as value */
 		private Map<String, Long> userAgentClients = new HashMap<String, Long>();
-		private long nonce = -1;
+		private long nonce = 1;
 
 		@JsonCreator
 		public State(@JsonProperty("email") String email,
@@ -268,8 +297,7 @@ public final class User extends UntypedActor {
 
 		public void addUserAgentClient(String uac, long expiration) {
 			removeUserAgentClient(uac);
-			userAgentClients.put(uac, 
-					System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expiration));
+			userAgentClients.put(uac, expiration);
 		}
 
 		protected void setNonce(long nonce) {

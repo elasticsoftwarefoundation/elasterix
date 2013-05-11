@@ -78,16 +78,10 @@ public abstract class AbstractSipTest {
 
 	@AfterTest
 	public void destroy() throws Exception {
-//		for(ActorRef ref : users) {
-//			actorSystem.stop(ref);
-//		}
-//		for(ActorRef ref : uacs) {
-//			actorSystem.stop(ref);
-//		}
+        testActorSystem.destroy();
 //		if(sipClient != null) {
 //			sipClient.close();
 //		}
-        testActorSystem.destroy();
 	}
 
 	protected boolean startsWith(String input, String startsWith) {

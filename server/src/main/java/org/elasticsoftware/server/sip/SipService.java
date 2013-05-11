@@ -74,8 +74,8 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     @Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
 		log.info(String.format("onUndeliverable. Message[%s]", message));
-		if(message instanceof SipRegister) {
-			SipRegister m = (SipRegister) message;
+		if(message instanceof SipInvite|| message instanceof SipRegister) {
+			SipMessage m = (SipMessage) message;
 
 			// Create new dialog actor
 			String uid = m.getUser(SipHeader.FROM).getUsername();

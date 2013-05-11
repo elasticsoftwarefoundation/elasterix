@@ -57,4 +57,9 @@ public class SipRequestMessage extends SipMessage {
     public String getMethod() {
         return method;
     }
+    
+    @Override
+	public String toString() {
+		return String.format("SipMessage[%s, %s]", method, uri);
+	}
 }
