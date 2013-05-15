@@ -22,7 +22,8 @@ public class SipRegister extends SipRequestMessage {
 			@JsonProperty("version") String version,
 			@JsonProperty("method") String method,
 			@JsonProperty("headers") Map<String, List<String>> headers,
-			@JsonProperty("content") byte[] content) {
-		super(uri, version, method, headers, content);
+			@JsonProperty("content") byte[] content,
+			@JsonProperty("authenticated") boolean authenticated) {
+		super(uri, version, method, headers, content, authenticated);
 	}
 }

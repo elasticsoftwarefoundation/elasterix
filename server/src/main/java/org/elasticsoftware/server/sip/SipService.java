@@ -20,10 +20,12 @@ import org.apache.log4j.Logger;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.ActorSystem;
 import org.elasticsoftware.elasticactors.UntypedActor;
+import org.elasticsoftware.server.ServerConfig;
 import org.elasticsoftware.server.actors.Dialog;
 import org.elasticsoftware.server.messages.SipInvite;
 import org.elasticsoftware.server.messages.SipMessage;
 import org.elasticsoftware.server.messages.SipRegister;
+import org.elasticsoftware.server.messages.SipUser;
 import org.elasticsoftware.sip.SipMessageHandler;
 import org.elasticsoftware.sip.SipMessageSender;
 import org.elasticsoftware.sip.codec.SipHeader;
@@ -74,7 +76,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     @Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
 		log.info(String.format("onUndeliverable. Message[%s]", message));
-		if(message instanceof SipInvite|| message instanceof SipRegister) {
+		if(message instanceof SipInvite || message instanceof SipRegister) {
 			SipMessage m = (SipMessage) message;
 
 			// Create new dialog actor
@@ -142,20 +144,46 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	//////////////////////////////////////////////////////////////////////////
 	
 	/**
+	 * sendRequest sends forth a <b>SIP</b> request to the Contact
+	 * header
+	 * 
+	 * @param message The message to send along
+	 */
+	private void sendRequest(SipMessage message) {
+	}
+	
+	/**
 	 * SendResponse sends back a <b>acknowledge</b> response on incoming
 	 * <code>SipRequest</code>. 
 	 * 
 	 * @param message The message to communicate back to sip client
 	 */
 	private void sendResponse(SipMessage message) {
-		// set headers that must be always set
-		message.setHeader(SipHeader.SERVER, "Server-001");
-		message.setHeader(SipHeader.SUPPORTED, "replaces, timer");
-		message.setHeader(SipHeader.ALLOW, "INVITE, ACK, CANCEL, OPTIONS, BYE, "
-				+ "REFER, SUBSCRIBE, NOTIFY, INFO, PUBLISH");
+		
+		//
+		// set required headers 		
+		// 
+		message.setHeader(SipHeader.ALLOW, ServerConfig.getAllow());
+		message.setHeader(SipHeader.DATE, ServerConfig.getDateNow());
+		message.setHeader(SipHeader.SERVER, ServerConfig.getServerName());
+		message.setHeader(SipHeader.SUPPORTED, ServerConfig.getSupported());
+		
+		// 
+		// alter existing headers
+		//
+		SipUser contact = message.getUser(SipHeader.CONTACT);
+		message.appendHeader(SipHeader.VIA, "received", contact.getDomain());
+		message.appendHeader(SipHeader.VIA, "rport", Long.toString(contact.getPort()));
+		
+		//
+		// Optionally, remove headers
+		//
+		message.removeHeader(SipHeader.MAX_FORWARDS);
+		message.removeHeader(SipHeader.USER_AGENT);
+				
 		if(message.getContent() == null || message.getContent().length == 0) {
 			message.setHeader(SipHeader.CONTENT_LENGTH, 0);
-		}
+		}		
 		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
 	}
 

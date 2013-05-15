@@ -29,6 +29,7 @@ import org.elasticsoftware.sip.codec.SipRequest;
 public class SipRequestMessage extends SipMessage {
     private final String uri;
     private final String method;
+    private boolean authenticated = false;
 
     public SipRequestMessage(SipRequest request) {
         super(request.getProtocolVersion().toString(), request.getHeaders(),
@@ -42,10 +43,12 @@ public class SipRequestMessage extends SipMessage {
     				   @JsonProperty("version") String version,
     				   @JsonProperty("method") String method,
                        @JsonProperty("headers") Map<String, List<String>> headers,
-                       @JsonProperty("content") byte[] content) {
+                       @JsonProperty("content") byte[] content,
+                       @JsonProperty("authenticated") boolean authenticated) {
         super(version, headers, content);
         this.uri = uri;
         this.method = method;
+        this.authenticated = authenticated;
     }
 
     @JsonProperty("uri")
@@ -57,6 +60,15 @@ public class SipRequestMessage extends SipMessage {
     public String getMethod() {
         return method;
     }
+    
+    @JsonProperty("authenticated")
+    public boolean isAuthenticated() {
+		return authenticated;
+	}
+
+	public void setAuthenticated(boolean authenticated) {
+		this.authenticated = authenticated;
+	}
     
     @Override
 	public String toString() {

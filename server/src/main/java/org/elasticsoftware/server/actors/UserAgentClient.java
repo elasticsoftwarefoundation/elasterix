@@ -24,6 +24,7 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
+import org.elasticsoftware.server.messages.SipInvite;
 import org.elasticsoftware.server.messages.SipRegister;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
@@ -47,6 +48,8 @@ public final class UserAgentClient extends UntypedActor {
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRegister) {
 			doRegister(sipService, (SipRegister) message, state);
+		} else if(message instanceof SipInvite) {
+			// sent message to registered uac
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));

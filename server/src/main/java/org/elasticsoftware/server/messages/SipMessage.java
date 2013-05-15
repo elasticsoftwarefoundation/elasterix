@@ -17,9 +17,11 @@
 package org.elasticsoftware.server.messages;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -92,6 +94,20 @@ public abstract class SipMessage {
     	headers.remove(header.getName());
     	addHeader(header, value.toString());
     }
+    
+    public boolean appendHeader(SipHeader header, String key, String value) {
+    	String val = getHeader(header);
+    	if(StringUtils.hasLength(val)) {
+    		// TODO check for duplicate?
+    		setHeader(header, String.format("%s;%s=%s", val, key, value));
+    		return true;
+    	}
+    	return false;
+    }
+    
+    public boolean removeHeader(SipHeader header) {
+    	return headers.remove(header.getName()) != null;
+    }
 
     @JsonIgnore
     public String getContentType() {
@@ -150,8 +166,9 @@ public abstract class SipMessage {
     }
     
     /**
-     * Parses a traditional sip user element, e.g. <br>
-     * "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00
+     * Parses a traditional sip user element belonging to given header, e.g. <br>
+     * "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00<br>
+     * If no header is passed, SipHeader.TO will be used
      * 
      * @param header
      * @return
@@ -172,69 +189,51 @@ public abstract class SipMessage {
     public String getUserAgentClient() {
         return getHeader(SipHeader.CALL_ID);
     }
-    
-    @JsonIgnore
-    public SipUser getSipUser(SipHeader header) {
-    	return null;
-    }
-  
-    public static class SipUser {
-    	private String displayName;
-    	private String username;
-    	private String domain;
-    	private int port;
-
-    	protected SipUser(String value) {
-    		// "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00
-    		int idx = value.indexOf("<");
-        	if(idx != -1) {
-        		displayName = value.substring(0, idx).replace('\"', ' ').trim();
-        		value = value.substring(idx+1, value.indexOf('>'));
-        		// value => sip:124@sip.outerteams.com:5060
-            }
-
-        	idx = value.indexOf('@');
-        	if(idx != -1) {
-        		username = value.substring(0, idx);
-        		domain = value.substring(idx+1);
-        	}
-
-        	// username => sip:124
-        	idx = username.indexOf(':');
-        	if(idx != -1) {
-        		username = username.substring(idx+1);
-        	}
-
-        	// domain
-        	idx = domain.indexOf(':');
-        	if(idx != -1) {
-        		// port might contain 'other' suffices
-        		// <sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>
-        		String sPort = domain.substring(idx + 1);
-        		int idx2 = sPort.indexOf(';');
-        		if(idx2 != -1) {
-        			sPort = sPort.substring(0, idx2);
-        		}
-        		port = Integer.parseInt(sPort);
-        		domain = domain.substring(0, idx);
-        	}
-    	}
-    	
-    	public String getDisplayName() {
-			return displayName;
+	
+	/**
+	 * Tokenizes value belonging to given header, e.g.
+	 * Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
+	 * uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
+	 * <br>
+	 * <br>
+	 * will be tokenized into:
+	 * <ol>
+	 *  <li>digest      -> digest</li>
+	 *  <li>username    -> 124</li>
+	 *  <li>realm       -> elasticsoftware</li>
+	 *  <li>nonce       -> 24855234</li>
+	 *  <li>uri         -> sip:sip.outerteams.com:5060</li>
+	 *  <li>response    -> 749c35e9fe30d6ba46cc801bdfe535a0</li>
+	 *  <li>algorithm   -> MD5</li>
+	 * </ol>
+	 * <br>
+	 * <b>This method does **not** handle spaces and comma correctly in attribute values</b>
+	 * 
+	 * @param value
+	 * @return
+	 */
+	public Map<String, String> tokenize(SipHeader header) {
+		Map<String, String> map = new HashMap<String, String>();
+		
+		// sanity check
+		String value = getHeader(header);
+		if(StringUtils.isEmpty(value)) {
+			return map;
 		}
-		public String getUsername() {
-			return username;
+		
+		// Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
+		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
+		StringTokenizer st = new StringTokenizer(value, " ,", false);
+		while(st.hasMoreTokens()) {
+			String token = st.nextToken();
+			int idx = token.indexOf("=");
+			if(idx != -1) {
+				map.put(token.substring(0, idx).toLowerCase(), 
+						token.substring(idx+1).replace('\"', ' ').trim());
+			} else {
+				map.put(token.toLowerCase(), token);
+			}
 		}
-		public String getDomain() {
-			return domain;
-		}
-		public int getPort() {
-			return port;
-		}
-		@Override
-		public String toString() {
-			return String.format("User[%s, %s, %s, %d]", displayName, username, domain, port);
-		}
-    }
+		return map;
+	}
 }

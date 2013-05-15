@@ -13,8 +13,6 @@ import org.elasticsoftware.sip.codec.SipRequest;
  * @author Leonard Wolters
  */
 public class SipInvite extends SipRequestMessage {
-	private boolean authenticated = false;
-	
 	public SipInvite(SipRequest request) {
 		super(request);
 	}
@@ -26,19 +24,9 @@ public class SipInvite extends SipRequestMessage {
 			@JsonProperty("headers") Map<String, List<String>> headers,
 			@JsonProperty("content") byte[] content,
 			@JsonProperty("authenticated") boolean authenticated) {
-		super(uri, version, method, headers, content);
-		this.authenticated = authenticated;
+		super(uri, version, method, headers, content, authenticated);
 	}
-	
-	@JsonProperty("authenticated")
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-	
-	public void setAuthenticated(boolean authenticated) {
-		this.authenticated = authenticated;
-	}
-	
+		
 	@Override
 	public String toString() {
 		return super.toString();

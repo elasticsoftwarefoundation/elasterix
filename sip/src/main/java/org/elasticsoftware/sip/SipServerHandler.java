@@ -25,10 +25,11 @@ import org.springframework.util.StringUtils;
  * @author Leonard Wolters
  */
 public class SipServerHandler extends SimpleChannelUpstreamHandler {
-	private static final Logger log = Logger.getLogger(SipServerHandler.class);
+	private static final Logger log = Logger.getLogger(SipServerHandler.class);	
 
 	private SipMessageHandler messageHandler;
 	private SipChannelFactory sipChannelFactory;
+	private boolean strictParsing = true;
 
     @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
@@ -43,7 +44,7 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			// we need to check if the key used for caching this channel is 
 			// present. If no key is found, bounce message directly back
 			// to sender (whilst we still have this channel)
-			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
+			if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.FROM)) return;
 			sipChannelFactory.setChannel(request.getHeaderValue(SipHeader.FROM), 
 					ctx.getChannel());
 		}
@@ -63,17 +64,15 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			messageHandler.onCancel(request);
 			break;
 		case INVITE:
-			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
-			if(!checkForHeader(request, SipHeader.TO, ctx.getChannel())) return;
+			if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.FROM, SipHeader.TO)) return;
 			messageHandler.onInvite(request);
 			break;
 		case OPTIONS:
 			messageHandler.onInvite(request);
 			break;
 		case REGISTER:
-			if(!checkForHeader(request, SipHeader.CALL_ID, ctx.getChannel())) return;
-			if(!checkForHeader(request, SipHeader.CONTACT, ctx.getChannel())) return;
-			if(!checkForHeader(request, SipHeader.FROM, ctx.getChannel())) return;
+			if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.CALL_ID, 
+					SipHeader.CONTACT, SipHeader.FROM, SipHeader.VIA)) return;
 			messageHandler.onRegister(request);
 			break;
 		default:
@@ -88,14 +87,17 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		// SipMessageSender), not this method. (except when exception occurs)
 	}
     
-    private boolean checkForHeader(SipRequest request, SipHeader header, Channel channel) {
-    	if(!StringUtils.hasLength(request.getHeaderValue(header))) {
-			log.warn(String.format("No %s header found in SIP message. Bouncing it",
-					header.getName()));
-			request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
-			channel.write(request);
-			return false;
-		}
+    private boolean checkForHeaders(SipRequest request, Channel channel, SipHeader... headers) {
+    	if(!strictParsing) return true;
+    	for(SipHeader header : headers) {
+	    	if(!StringUtils.hasLength(request.getHeaderValue(header))) {
+				log.warn(String.format("No %s header found in SIP message. Bouncing it",
+						header.getName()));
+				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
+				channel.write(request);
+				return false;
+			}
+    	}
     	return true;
     }
 
