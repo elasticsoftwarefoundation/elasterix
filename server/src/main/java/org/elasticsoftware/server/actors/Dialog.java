@@ -8,9 +8,6 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
-import org.elasticsoftware.server.messages.SipInvite;
-import org.elasticsoftware.server.messages.SipMessage;
-import org.elasticsoftware.server.messages.SipRegister;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.server.messages.SipUser;
 import org.elasticsoftware.sip.codec.SipHeader;
@@ -58,13 +55,16 @@ public class Dialog extends UntypedActor {
 		}
 		
 		// CSEQ OK, pass message to user
-		if(message instanceof SipRegister) {
+		switch(sipMessage.getSipMethod()) {
+		case REGISTER:
 			ActorRef user = getSystem().actorFor("user/" + state.getUsername());
 			user.tell(message, getSelf());		
-		} else if(message instanceof SipInvite) {
+			return;
+		case INVITE:
 			SipUser toUser = sipMessage.getUser(SipHeader.TO);
-			ActorRef user = getSystem().actorFor("user/" + toUser.getUsername());
+			user = getSystem().actorFor("user/" + toUser.getUsername());
 			user.tell(message, getSelf());	
+			return;
 		}
 	}
 
@@ -76,8 +76,8 @@ public class Dialog extends UntypedActor {
 		
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		State state = getState(null).getAsObject(State.class);
-		if(message instanceof SipRegister || message instanceof SipInvite) {
-			SipMessage m = (SipMessage) message;
+		if(message instanceof SipRequestMessage) {
+			SipRequestMessage m = (SipRequestMessage) message;
 			sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
 					String.format("User[%s] (From) not found", state.getUsername())), getSelf());
 		} else {
@@ -127,14 +127,13 @@ public class Dialog extends UntypedActor {
 			// append TO user with UID tag
 			String tag = UUID.randomUUID().toString();
 			state.setUserTag(tag);
-			sipMessage.appendHeader(SipHeader.TO, "tag", tag);
+			sipMessage.appendHeader(SipHeader.TO, "tag", state.getUserTag());
 			return false;
 		} else {
 			if(log.isDebugEnabled()) {
 				log.debug(String.format("checkAuthentication. Telling User[%s] to authenticate",
 						state.getUsername()));
 			}
-			// tell user to authenticate
 			ActorRef user = getSystem().actorFor("user/" + state.getUsername());
 			user.tell(sipMessage, getSelf());	
 			return true;
@@ -152,28 +151,30 @@ public class Dialog extends UntypedActor {
 	 * @param state
 	 * @return
 	 */
-	private boolean checkCSeq(ActorRef sipService, SipMessage sipMessage, State state) {
+	private boolean checkCSeq(ActorRef sipService, SipRequestMessage sipRequest, State state) {
 		// CSeq must be updated for each request within a single dialog.
 		// A dialog involves a user, a single UAC and the server
 		
 		// get current (message) count 
 		String messageType = null;
 		int messageCount = -1;
-		if(sipMessage instanceof SipInvite) {
+		switch(sipRequest.getSipMethod()) {
+		case INVITE:
 			messageType = "INVITE";
 			messageCount = state.incrementAndGetInvite();
-		} else if(sipMessage instanceof SipRegister) {
+			break;
+		case REGISTER:
 			messageType = "REGISTER";
 			messageCount = state.incrementAndGetRegister();
-//		} else if (sipMessage instanceof SipOptions) {
+//		case OPTIONS:
 //			  CSEQ is always 102 OPTIONS
-		} else {
+		default:
 			log.info(String.format("checkCSeq. Unsupported message[%s]", 
-					sipMessage.getClass().getSimpleName()));
+					sipRequest.getClass().getSimpleName()));
 			return false;
 		}
 		
-		String cSeq = sipMessage.getHeader(SipHeader.CSEQ);
+		String cSeq = sipRequest.getHeader(SipHeader.CSEQ);
 		int cSeqCount = -1;
 		String cSeqMethod = null;
 		if(!StringUtils.hasLength(cSeq)) {
@@ -181,7 +182,7 @@ public class Dialog extends UntypedActor {
 			log.warn(String.format("checkCSeq. No CSEQ set for Dialog[%s,%s]. Creating new one",
 					state.getUsername(), state.getUserAgentClient()));
 			state.reset();
-			sipMessage.addHeader(SipHeader.CSEQ, String.format("%d %s", 
+			sipRequest.addHeader(SipHeader.CSEQ, String.format("%d %s", 
 					state.incrementAndGetRegister(), messageType));
 		} else {
 			// CSeq: 1 REGISTER || 304 INVITE .....
@@ -190,9 +191,9 @@ public class Dialog extends UntypedActor {
 				try {
 					cSeqCount = Integer.parseInt(st.nextToken());
 				} catch (Exception e) {
-					sipMessage.setSipResponseStatus(SipResponseStatus.BAD_REQUEST, 
+					sipRequest.setSipResponseStatus(SipResponseStatus.BAD_REQUEST, 
 							String.format("Invalid CSEQ[%s]", cSeq));
-					sipService.tell(sipMessage, getSelf());
+					sipService.tell(sipRequest, getSelf());
 					return true;
 				}
 				cSeqMethod = st.nextToken();
@@ -202,9 +203,9 @@ public class Dialog extends UntypedActor {
 			if(!messageType.equalsIgnoreCase(cSeqMethod)) {
 				log.warn(String.format("checkCSeq. CSEQ method[%s] doens't equals message type[%s]",
 						cSeqMethod, messageType));
-				sipMessage.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED,
+				sipRequest.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED,
 						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, messageType));
-				sipService.tell(sipMessage, getSelf());
+				sipService.tell(sipRequest, getSelf());
 				return true;
 			}
 			
@@ -213,10 +214,10 @@ public class Dialog extends UntypedActor {
 				log.warn(String.format("checkCSeq. CSEQ count[%d] doens't equals message count[%d]",
 						cSeqCount, messageCount));
 				// TODO: do we need to reset state?
-				sipMessage.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED, 
+				sipRequest.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED, 
 						String.format("CSEQ count[%d] doens't equals message count[%d]",
 								cSeqCount, messageCount));
-				sipService.tell(sipMessage, getSelf());
+				sipService.tell(sipRequest, getSelf());
 				return true;
 			}
 		}

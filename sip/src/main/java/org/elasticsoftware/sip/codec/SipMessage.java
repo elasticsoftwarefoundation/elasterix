@@ -57,7 +57,7 @@ public interface SipMessage {
     /**
      * Returns the protocol version of this message.
      */
-    SipVersion getProtocolVersion();
+    SipVersion getVersion();
 
     /**
      * Returns the content of this message.  If there is no content or

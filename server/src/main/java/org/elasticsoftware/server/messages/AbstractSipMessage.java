@@ -27,38 +27,38 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponse;
+import org.elasticsoftware.sip.codec.SipResponseImpl;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
-import org.elasticsoftware.sip.codec.SipServerCodec;
 import org.elasticsoftware.sip.codec.SipVersion;
-import org.elasticsoftware.sip.codec.impl.SipResponseImpl;
-import org.elasticsoftware.sip.codec.netty.SipResponseNetty;
 import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
  */
-public abstract class SipMessage {
+public abstract class AbstractSipMessage {
 	private int response;
 	private String responseMessage;
 	private String version;
-    private final LinkedHashMap<String,List<String>> headers;
+    private final LinkedHashMap<String,List<String>> headers = new LinkedHashMap<String,List<String>>();
     protected final byte[] content;
 
-    protected SipMessage(String version, Map<String, List<String>> headers, byte[] content) {
+    protected AbstractSipMessage(String version, Map<String, List<String>> headers, byte[] content) {
     	this.version = version;
-    	this.headers = new LinkedHashMap<String,List<String>>();
-    	this.headers.putAll(headers);
+    	if(headers != null) {
+    		this.headers.putAll(headers);
+    	}
         this.content = content;
     }
     
-    protected SipMessage(String version, List<Map.Entry<String, String>> headers, byte[] content) {
+    protected AbstractSipMessage(String version, List<Map.Entry<String, String>> headers, byte[] content) {
     	this.version = version;
-    	this.headers = new LinkedHashMap<String, List<String>>();
-        for(Map.Entry<String, String> entry : headers) {
-        	List<String> values = new ArrayList<String>();
-        	values.add(entry.getValue());
-        	this.headers.put(entry.getKey(), values);
-        }
+    	if(headers != null) {
+	        for(Map.Entry<String, String> entry : headers) {
+	        	List<String> values = new ArrayList<String>();
+	        	values.add(entry.getValue());
+	        	this.headers.put(entry.getKey(), values);
+	        }
+    	}
         this.content = content;
     }
     
@@ -139,11 +139,11 @@ public abstract class SipMessage {
         return responseMessage;
     }
     
-    public SipMessage setSipResponseStatus(SipResponseStatus responseStatus, int a, int b) {
+    public AbstractSipMessage setSipResponseStatus(SipResponseStatus responseStatus, int a, int b) {
     	return setSipResponseStatus(responseStatus, null);
     }
     
-    public SipMessage setSipResponseStatus(SipResponseStatus responseStatus, String message) {
+    public AbstractSipMessage setSipResponseStatus(SipResponseStatus responseStatus, String message) {
     	this.response = responseStatus.getCode();
     	this.responseMessage = message;
     	return this;
@@ -152,12 +152,7 @@ public abstract class SipMessage {
     public SipResponse toSipResponse() {
     	SipResponseStatus status = SipResponseStatus.lookup(response);
     	SipVersion version = SipVersion.lookup(this.version, true);
-    	SipResponse response = null;
-    	if(SipServerCodec.USE_NETTY_IMPLEMENTATION) {
-        	response = new SipResponseNetty(version, status);
-    	} else {
-        	response = new SipResponseImpl(version, status);
-    	}
+    	SipResponse response = new SipResponseImpl(version, status);
     	for(Map.Entry<String, List<String>> entry : headers.entrySet()) {
     		response.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
     	}

@@ -6,8 +6,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
 import org.apache.log4j.Logger;
-import org.elasticsoftware.sip.codec.SipRequestDecoder;
-import org.elasticsoftware.sip.codec.SipResponseEncoder;
+import org.elasticsoftware.sip.codec.SipMessageDecoder;
+import org.elasticsoftware.sip.codec.SipMessageEncoder;
 import org.elasticsoftware.sip.ssl.DummySecureSslContextFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
@@ -21,15 +21,15 @@ import org.springframework.beans.factory.annotation.Value;
  * 
  * @author Leonard Wolters
  */
-public class SipServerPipelineFactory implements ChannelPipelineFactory {
-	private static final Logger log = Logger.getLogger(SipServerPipelineFactory.class);
+public class SipPipelineFactory implements ChannelPipelineFactory {
+	private static final Logger log = Logger.getLogger(SipPipelineFactory.class);
 
     private final SipServerHandler handler;
 	private boolean ssl = false;
 	private boolean compression = true;
 	private SSLContext sslContext;
 
-    public SipServerPipelineFactory(SipServerHandler handler) {
+    public SipPipelineFactory(SipServerHandler handler) {
         this.handler = handler;
     }
 
@@ -45,8 +45,8 @@ public class SipServerPipelineFactory implements ChannelPipelineFactory {
 			pipeline.addLast("ssl", new SslHandler(engine));
 		}
 
-		pipeline.addLast("decoder", new SipRequestDecoder());
-		pipeline.addLast("encoder", new SipResponseEncoder());		
+		pipeline.addLast("decoder", new SipMessageDecoder());
+		pipeline.addLast("encoder", new SipMessageEncoder());		
 		if(compression) {
 			pipeline.addLast("deflater", new HttpContentCompressor());
 		}

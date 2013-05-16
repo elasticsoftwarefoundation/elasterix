@@ -22,20 +22,21 @@ import org.elasticsoftware.elasticactors.ActorSystem;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.server.ServerConfig;
 import org.elasticsoftware.server.actors.Dialog;
-import org.elasticsoftware.server.messages.SipInvite;
-import org.elasticsoftware.server.messages.SipMessage;
-import org.elasticsoftware.server.messages.SipRegister;
+import org.elasticsoftware.server.messages.AbstractSipMessage;
+import org.elasticsoftware.server.messages.SipRequestMessage;
+import org.elasticsoftware.server.messages.SipResponseMessage;
 import org.elasticsoftware.server.messages.SipUser;
 import org.elasticsoftware.sip.SipMessageHandler;
 import org.elasticsoftware.sip.SipMessageSender;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Default implementation of the Sip Message Handler.<br>
  * <br>
- * This is a Service Actor based implemenation.
+ * This is a Service Actor based implementation.
  * 
  * @author Leonard Wolters
  */
@@ -58,14 +59,13 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 
     @Override
     public void onReceive(ActorRef actorRef, Object message) throws Exception {
-		if(log.isDebugEnabled() && message instanceof SipMessage) {
-			log.debug(String.format("onReceive. Status[%d]", ((SipMessage) message).getResponse()));
+		if(log.isDebugEnabled() && message instanceof AbstractSipMessage) {
+			log.debug(String.format("onReceive. Status[%d]", ((AbstractSipMessage) message).getResponse()));
 		}
 
-    	if(message instanceof SipRegister) {
-    		sendResponse((SipRegister) message);
-		} else if (message instanceof SipInvite) {
-    		sendResponse((SipInvite) message);
+    	if(message instanceof SipRequestMessage) {
+    		sendResponse((SipRequestMessage) message);
+		} else if (message instanceof SipResponseMessage) {
     	} else {
     		log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -76,8 +76,8 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     @Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
 		log.info(String.format("onUndeliverable. Message[%s]", message));
-		if(message instanceof SipInvite || message instanceof SipRegister) {
-			SipMessage m = (SipMessage) message;
+		if(message instanceof SipRequestMessage) {
+			SipRequestMessage m = (SipRequestMessage) message;
 
 			// Create new dialog actor
 			String uid = m.getUser(SipHeader.FROM).getUsername();
@@ -97,34 +97,17 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     //////////////////////////////////////////////////////////////////////////
 
     @Override
-	public void onAck(SipRequest request) {
+	public void onRequest(SipRequest request) {
+		if(log.isDebugEnabled()) log.debug(String.format("onRequest\n%s", request));
+        tellDialog(new SipRequestMessage(request));
 	}
-
-	@Override
-	public void onBye(SipRequest request) {
-	}
-
-	@Override
-	public void onCancel(SipRequest request) {
-	}
-
-	@Override
-	public void onInvite(SipRequest request) {
-		if(log.isDebugEnabled()) log.debug(String.format("onInvite\n%s", request));
-        tellDialog(new SipInvite(request));
-	}
-
-	@Override
-	public void onOptions(SipRequest request) {
-	}
-
-	@Override
-	public void onRegister(SipRequest request) {
-		if(log.isDebugEnabled()) log.debug(String.format("onRegister\n%s", request));
-        tellDialog(new SipRegister(request));
+    
+    @Override
+	public void onResponse(SipResponse response) {
+		if(log.isDebugEnabled()) log.debug(String.format("onResponse\n%s", response));
 	}
 	
-	private void tellDialog(SipMessage message) {
+	private void tellDialog(AbstractSipMessage message) {
 		
 		// get user ID (must be present, check done #SipServerHandler)
         String userId = message.getUser(SipHeader.FROM).getUsername();
@@ -132,7 +115,9 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
         // get UAC ID (must be present, check done #SipServerHandler)
         String uacId = message.getUserAgentClient();
         
-        // redirect to dialog actor
+        // redirect to dialog actor. Order of actorId matters: 
+        // userId -> uacId == incoming (from uac to server)
+        // uacId -> userId == outgoing (from server to uac)
         ActorRef dialog = actorSystem.actorFor(String.format("dialog/%s_%s", userId, uacId));
         dialog.tell(message, actorSystem.serviceActorFor("sipService"));
 	}
@@ -149,7 +134,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * 
 	 * @param message The message to send along
 	 */
-	private void sendRequest(SipMessage message) {
+	private void sendRequest(SipRequestMessage message) {
 	}
 	
 	/**
@@ -158,7 +143,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * 
 	 * @param message The message to communicate back to sip client
 	 */
-	private void sendResponse(SipMessage message) {
+	private void sendResponse(AbstractSipMessage message) {
 		
 		//
 		// set required headers 		

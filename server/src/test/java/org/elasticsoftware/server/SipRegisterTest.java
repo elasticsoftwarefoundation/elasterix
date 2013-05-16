@@ -22,8 +22,8 @@ import org.apache.log4j.Logger;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipRequestImpl;
 import org.elasticsoftware.sip.codec.SipVersion;
-import org.elasticsoftware.sip.codec.impl.SipRequestImpl;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -73,6 +73,7 @@ public class SipRegisterTest extends AbstractSipTest {
 		Thread.sleep(300);
 		String message = sipClient.getMessage();
 		Assert.assertNotNull(message);
+		log.info(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
 	

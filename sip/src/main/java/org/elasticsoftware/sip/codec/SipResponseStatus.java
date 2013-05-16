@@ -67,13 +67,15 @@ public enum SipResponseStatus {
 	SERVER_TIMEOUT(504, "Server Time-Out"),
 	VERSION_NOT_SUPPORTED(505, "Version Not Supported"),
 	MESSAGE_TOO_LARGE(513, "Message Too Large"),
+	// CUSTOM
+	RESPONSE_CODE_NOT_SUPPORTED(599, "Sip Response code not supported"),
 	
 	/** 600 range are GLOBAL FAILURE response codes*/
 	BUSY_EVERYWHERE(600, "Busy Everywhere"),
 	DECLINE(603, "Decline"),
 	DOES_NOT_EXIST_ANYWHERE(604, "Does Not Exist Anywhere"),
 	NOT_ACCEPTABLE_SERVER(606, "Not Acceptable");
-
+	
     private final int code;
     private final String reasonPhrase;
     private final boolean provisional;

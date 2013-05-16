@@ -1,8 +1,5 @@
-package org.elasticsoftware.sip.codec.netty;
+package org.elasticsoftware.sip.codec;
 
-import org.elasticsoftware.sip.codec.SipResponse;
-import org.elasticsoftware.sip.codec.SipResponseStatus;
-import org.elasticsoftware.sip.codec.SipVersion;
 import org.jboss.netty.util.internal.StringUtil;
 
 /**
@@ -10,7 +7,7 @@ import org.jboss.netty.util.internal.StringUtil;
  * 
  * @author Leonard Wolters
  */
-public class SipResponseNetty extends SipMessageNetty implements SipResponse {
+public class SipResponseImpl extends SipMessageImpl implements SipResponse {
 	
     /**
      * Creates a new instance.
@@ -18,15 +15,18 @@ public class SipResponseNetty extends SipMessageNetty implements SipResponse {
      * @param version the Sip version of this response
      * @param responseStatus  the status of this response
      */
-    public SipResponseNetty(SipVersion version, SipResponseStatus responseStatus) {
-        super(version);
-        setResponseStatus(responseStatus);
+    public SipResponseImpl(SipVersion version, SipResponseStatus responseStatus) {
+        super(version, responseStatus);
+    }
+    
+    protected SipResponseImpl(SipMessage message) {
+    	super(message);
     }
     
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
-        buf.append(getProtocolVersion().name()).append(' ');
+        buf.append(getVersion().name()).append(' ');
         buf.append(getResponseStatus().getCode()).append(' ');
         buf.append(getResponseStatus().getReasonPhrase());
         buf.append(StringUtil.NEWLINE);

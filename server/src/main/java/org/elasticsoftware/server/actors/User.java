@@ -27,9 +27,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.server.ServerConfig;
-import org.elasticsoftware.server.messages.SipInvite;
-import org.elasticsoftware.server.messages.SipMessage;
-import org.elasticsoftware.server.messages.SipRegister;
+import org.elasticsoftware.server.messages.AbstractSipMessage;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
@@ -54,12 +52,15 @@ public final class User extends UntypedActor {
 		}
 		
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
-		if(message instanceof SipInvite) {
-			SipInvite m = (SipInvite) message;
-			sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
-					String.format("User[%s] (To) not found", m.getUser(SipHeader.TO).getUsername())), 
-					getSelf());
-			sipService.tell(message, getSelf());
+		if(message instanceof SipRequestMessage) {
+			SipRequestMessage m = (SipRequestMessage) message;
+			switch(m.getSipMethod()) {
+			case INVITE:
+				sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
+						String.format("User[%s] (To) not found", m.getUser(SipHeader.TO).getUsername())), 
+						getSelf());
+				sipService.tell(message, getSelf());
+			}
 		}
 	}
 
@@ -73,35 +74,41 @@ public final class User extends UntypedActor {
 		State state = getState(null).getAsObject(State.class);
 		
 		// authenticated?
+		SipRequestMessage request = null;
 		if(message instanceof SipRequestMessage) {
-			SipRequestMessage sipMessage = (SipRequestMessage) message;
-			if(!sipMessage.isAuthenticated()) {
+			request = (SipRequestMessage) message;
+			if(!request.isAuthenticated()) {
 				if(log.isDebugEnabled()) {
 					log.debug(String.format("onReceive. Authenticating user[%s]", state.getUsername()));
 				}
-				if(authenticate(sipService, sipMessage, state)) {
+				if(authenticate(sipService, request, state)) {
 					// Successfully authenticated. Inform sender (dialog) and continue
-					sipMessage.setAuthenticated(true);
-					sender.tell(sipMessage, getSelf());
+					request.setAuthenticated(true);
+					sender.tell(request, getSelf());
 				} else {
 					// not authenticated. Response already sent. Voiding
 				}
 				return;
 			} 
-		}
+		} 
 		
-		if(message instanceof SipRegister) {
-			register(sipService, (SipRegister) message, state);				
-		} else if(message instanceof SipInvite) {
-			invite(sipService, (SipInvite) message, state);
-		} else {
-			log.warn(String.format("onReceive. Unsupported message[%s]", 
-					message.getClass().getSimpleName()));
-			unhandled(message);
+		if(request != null) {
+			switch (request.getSipMethod()) {
+			case REGISTER:
+				register(sipService, request, state);	
+				return;
+			case INVITE:
+				invite(sipService, request, state);
+				return;
+			default:
+				log.warn(String.format("onReceive. Unsupported message[%s]", 
+						message.getClass().getSimpleName()));
+				unhandled(message);
+			}
 		}
 	}
 
-	protected void register(ActorRef sipService, SipRegister message, State state) {
+	protected void register(ActorRef sipService, SipRequestMessage message, State state) {
 		if(log.isDebugEnabled()) log.debug(String.format("register. [%s]", message));
 
 		// get uac 
@@ -141,7 +148,7 @@ public final class User extends UntypedActor {
 		userAgentClient.tell(message, getSelf());
 	}
 	
-	protected void invite(ActorRef sipService, SipInvite message, State state) {
+	protected void invite(ActorRef sipService, SipRequestMessage message, State state) {
 		if(log.isDebugEnabled()) {
 			log.debug(String.format("invite: notify UAC's of callee[%s]", 
 				state.getUsername()));
@@ -170,14 +177,14 @@ public final class User extends UntypedActor {
 		// did we rang a device?
 		if(!ringing) {
 			log.info(String.format("invite. No registered UAC for user[%s]", state.getUsername()));
-			((SipInvite) message).setSipResponseStatus(SipResponseStatus.GONE, 
+			message.setSipResponseStatus(SipResponseStatus.GONE, 
 					String.format("No registered UAC for user[%s]", state.getUsername()));
 			sipService.tell(message, getSelf());				
 		} else {
 			// OK, the message is sent to at least one UAC. Wait for the response
 			// to be sent back by this UAC. For now, return a 'trying' which is a
 			// decent message
-			((SipInvite) message).setSipResponseStatus(SipResponseStatus.TRYING, null);
+			message.setSipResponseStatus(SipResponseStatus.TRYING, null);
 			sipService.tell(message, getSelf());				
 		}
 	}
@@ -190,7 +197,7 @@ public final class User extends UntypedActor {
 	 * @param state
 	 * @return
 	 */
-	private final boolean authenticate(ActorRef sender, SipMessage message, State state) {
+	private final boolean authenticate(ActorRef sender, AbstractSipMessage message, State state) {
 
 		// check if authentication is present...
 		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
@@ -241,7 +248,7 @@ public final class User extends UntypedActor {
 	 * @param state
 	 * @param description
 	 */
-	private void sendUnauthorized(ActorRef sender, SipMessage message, State state, String description) {
+	private void sendUnauthorized(ActorRef sender, AbstractSipMessage message, State state, String description) {
 		// Generate nonce and set WWW-AUTHENTICATE header
 		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
 		//long nonce = state.getNonce() + 1;

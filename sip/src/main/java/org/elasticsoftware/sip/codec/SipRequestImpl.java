@@ -1,9 +1,5 @@
-package org.elasticsoftware.sip.codec.netty;
+package org.elasticsoftware.sip.codec;
 
-import org.elasticsoftware.sip.codec.SipMethod;
-import org.elasticsoftware.sip.codec.SipRequest;
-import org.elasticsoftware.sip.codec.SipResponseStatus;
-import org.elasticsoftware.sip.codec.SipVersion;
 import org.jboss.netty.util.internal.StringUtil;
 
 /**
@@ -11,7 +7,7 @@ import org.jboss.netty.util.internal.StringUtil;
  * 
  * @author Leonard Wolters
  */
-public class SipRequestNetty extends SipMessageNetty implements SipRequest {
+public class SipRequestImpl extends SipMessageImpl implements SipRequest {
     private SipMethod method;
     private String uri;
 
@@ -22,8 +18,8 @@ public class SipRequestNetty extends SipMessageNetty implements SipRequest {
      * @param method      the SIP method of the request
      * @param uri         the URI or path of the request
      */
-    public SipRequestNetty(SipVersion version, SipMethod method, String uri) {
-        super(version);
+    public SipRequestImpl(SipVersion version, SipMethod method, String uri) {
+        super(version, null);
         setMethod(method);
         setUri(uri);
     }
@@ -35,8 +31,8 @@ public class SipRequestNetty extends SipMessageNetty implements SipRequest {
      * 
      * @param responseStatus
      */
-    public SipRequestNetty(SipResponseStatus responseStatus) {
-    	super(responseStatus);
+    public SipRequestImpl(SipResponseStatus responseStatus) {
+    	super(SipVersion.SIP_2_0, responseStatus);
     }
 
     @Override
@@ -66,7 +62,7 @@ public class SipRequestNetty extends SipMessageNetty implements SipRequest {
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
-        buf.append(String.format("%s %s %s", getMethod().name(), getUri(), getProtocolVersion().name()));
+        buf.append(String.format("%s %s %s", getMethod().name(), getUri(), getVersion().name()));
         buf.append(StringUtil.NEWLINE);
         appendHeaders(buf);
 
@@ -74,4 +70,9 @@ public class SipRequestNetty extends SipMessageNetty implements SipRequest {
         buf.setLength(buf.length() - StringUtil.NEWLINE.length());
         return buf.toString();
     }
+
+	@Override
+	public SipResponse toSipResponse() {
+		return new SipResponseImpl(this);
+	}
 }

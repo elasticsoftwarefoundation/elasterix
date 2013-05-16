@@ -69,7 +69,7 @@ public class SipClient {
 		
 		// initial line
 		StringBuffer buf = new StringBuffer(String.format("%s %s %s", request.getMethod().name(),
-                request.getUri(), request.getProtocolVersion().toString()));
+                request.getUri(), request.getVersion().toString()));
         buf.append(StringUtil.NEWLINE);
 		
 		// headers

@@ -24,10 +24,12 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
-import org.elasticsoftware.server.messages.SipInvite;
-import org.elasticsoftware.server.messages.SipRegister;
+import org.elasticsoftware.server.ServerConfig;
+import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipVersion;
 import org.springframework.util.StringUtils;
 
 /**
@@ -46,18 +48,24 @@ public final class UserAgentClient extends UntypedActor {
 		}
 
 		State state = getState(null).getAsObject(State.class);
-		if(message instanceof SipRegister) {
-			doRegister(sipService, (SipRegister) message, state);
-		} else if(message instanceof SipInvite) {
-			// sent message to registered uac
-		} else {
-			log.warn(String.format("onReceive. Unsupported message[%s]", 
-					message.getClass().getSimpleName()));
-			unhandled(message);
+		if(message instanceof SipRequestMessage) {
+			SipRequestMessage m = (SipRequestMessage) message;
+			switch(m.getSipMethod()) {
+			case REGISTER:
+				register(sipService, m, state);
+				return;
+			case INVITE:
+				invite(sipService, m, state);
+				return;
+			default:
+				log.warn(String.format("onReceive. Unsupported message[%s]", 
+						message.getClass().getSimpleName()));
+				unhandled(message);
+			}
 		}
 	}
 
-	protected void doRegister(ActorRef sender, SipRegister message, State state) {
+	protected void register(ActorRef sender, SipRequestMessage message, State state) {
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 
 		// set expiration. (seconds)
@@ -82,6 +90,35 @@ public final class UserAgentClient extends UntypedActor {
 		
 		message.addHeader(SipHeader.DATE, new Date(state.getExpiration()).toString());
 		sipService.tell(message.setSipResponseStatus(SipResponseStatus.OK, null), getSelf());
+	}
+	
+	protected void invite(ActorRef sender, SipRequestMessage message, State state) {
+		// ok, construct a new request message (invite) and sent it to 
+		// the sip client of user...
+		
+		SipVersion version = SipVersion.SIP_2_0;
+		
+		// uri is complete CONTACT header without trailing '<' and ending '>'
+		String uri = message.getHeader(SipHeader.CONTACT);
+		if(uri.startsWith("<")) uri = uri.substring(1);
+		if(uri.endsWith(">")) uri = uri.substring(0, uri.length() - 1);
+		
+		// create sip invite message
+		SipRequestMessage sipInvite = new SipRequestMessage(uri, version.toString(), 
+				SipMethod.INVITE.name(), null, null, false);
+		sipInvite.addHeader(SipHeader.CALL_ID, ServerConfig.getCallId());
+		sipInvite.addHeader(SipHeader.CONTACT, String.format("<sip:%s@%s:%d;transport=%s;rinstance=6f8dc969b62d1466>",
+				ServerConfig.getUsername(), ServerConfig.getIPAddress(), ServerConfig.getSipPort(), 
+				ServerConfig.getProtocol()));
+		sipInvite.addHeader(SipHeader.CSEQ, "");
+		sipInvite.addHeader(SipHeader.FROM, String.format("\"%s\"<sip:%s@%s:%d>;tag=6d473a67",
+				ServerConfig.getUsername(), ServerConfig.getUsername(), ServerConfig.getIPAddress(), 
+				ServerConfig.getSipPort()));
+		sipInvite.addHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
+		sipInvite.addHeader(SipHeader.TO, message.getHeader(SipHeader.TO));
+		sipInvite.addHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
+				version.toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(), 
+				ServerConfig.getSipPort()));
 	}
 	
 	/**

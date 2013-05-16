@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMessage;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipResponse;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -34,9 +35,9 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
-		SipRequest request = (SipRequest) e.getMessage();
+    	SipRequest message = (SipRequest) e.getMessage();
 		if(log.isDebugEnabled()) {
-			log.debug(String.format("messageReceived\n%s", request));
+			log.debug(String.format("messageReceived\n%s", message));
 		}
 		
 		// update LRU cache (if set)
@@ -44,8 +45,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			// we need to check if the key used for caching this channel is 
 			// present. If no key is found, bounce message directly back
 			// to sender (whilst we still have this channel)
-			if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.FROM)) return;
-			sipChannelFactory.setChannel(request.getHeaderValue(SipHeader.FROM), 
+			if(strictParsing && !checkForHeaders(message, ctx.getChannel(), SipHeader.FROM)) return;
+			sipChannelFactory.setChannel(message.getHeaderValue(SipHeader.FROM), 
 					ctx.getChannel());
 		}
 
@@ -53,38 +54,42 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		// messages are immediately returned with appropriate response status
 		
 		// delegate action to handler
-		switch(request.getMethod()) {
-		case ACK:
-			messageHandler.onAck(request);
-			break;
-		case BYE:
-			messageHandler.onBye(request);
-			break;
-		case CANCEL:
-			messageHandler.onCancel(request);
-			break;
-		case INVITE:
-			if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.FROM, SipHeader.TO)) return;
-			messageHandler.onInvite(request);
-			break;
-		case OPTIONS:
-			messageHandler.onInvite(request);
-			break;
-		case REGISTER:
-			if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.CALL_ID, 
-					SipHeader.CONTACT, SipHeader.FROM, SipHeader.VIA)) return;
-			messageHandler.onRegister(request);
-			break;
-		default:
-			log.error(String.format("Unrecognized method[%s]", 
-					request.getMethod().name()));
-			writeResponse(request, e, SipResponseStatus.NOT_IMPLEMENTED);
-			return;
+		if(message instanceof SipRequest) {
+			SipRequest request = (SipRequest) message;
+			
+			switch(request.getMethod()) {
+			case ACK:
+//				messageHandler.onAck(request);
+				break;
+			case BYE:
+//				messageHandler.onBye(request);
+				break;
+			case CANCEL:
+//				messageHandler.onCancel(request);
+				break;
+			case INVITE:
+				if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.FROM, SipHeader.TO)) return;
+//				messageHandler.onInvite(request);
+				break;
+			case OPTIONS:
+//				messageHandler.onInvite(request);
+				break;
+			case REGISTER:
+				if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.CALL_ID, 
+						SipHeader.CONTACT, SipHeader.FROM, SipHeader.VIA)) return;
+//				messageHandler.onRegister(request);
+				break;
+			default:
+				log.error(String.format("Unrecognized method[%s]", 
+						request.getMethod().name()));
+				writeResponse(request, e, SipResponseStatus.NOT_IMPLEMENTED);
+				return;
+			}
+			messageHandler.onRequest(request);
+		} else if (message instanceof SipResponse) {
+			SipResponse response = (SipResponse) message;
+			messageHandler.onResponse(response);
 		}
-		
-		// Response are not written here. The implementation of the message handler
-		// should sent/write the response to this request (using the 
-		// SipMessageSender), not this method. (except when exception occurs)
 	}
     
     private boolean checkForHeaders(SipRequest request, Channel channel, SipHeader... headers) {
@@ -94,7 +99,7 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 				log.warn(String.format("No %s header found in SIP message. Bouncing it",
 						header.getName()));
 				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
-				channel.write(request);
+				channel.write(request.toSipResponse());
 				return false;
 			}
     	}

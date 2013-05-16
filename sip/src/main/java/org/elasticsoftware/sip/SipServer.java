@@ -49,7 +49,7 @@ public class SipServer {
 					Executors.newCachedThreadPool());
 		}
 		if(channelPipelineFactory == null) {
-			channelPipelineFactory = new SipServerPipelineFactory(sipServerHandler);
+			channelPipelineFactory = new SipPipelineFactory(sipServerHandler);
 		}
 		ServerBootstrap bootstrap = new ServerBootstrap(channelFactory);
 		bootstrap.setOption("backlog", socketBacklog);

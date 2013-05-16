@@ -22,8 +22,8 @@ import org.apache.log4j.Logger;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipRequestImpl;
 import org.elasticsoftware.sip.codec.SipVersion;
-import org.elasticsoftware.sip.codec.impl.SipRequestImpl;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

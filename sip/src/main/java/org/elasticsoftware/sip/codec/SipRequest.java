@@ -17,4 +17,11 @@ public interface SipRequest extends SipMessage {
      * Returns the URI (or path) of this request.
      */
     String getUri();
+    
+    /**
+     * Convert to sip response..
+     * 
+     * @return
+     */
+    SipResponse toSipResponse();
 }

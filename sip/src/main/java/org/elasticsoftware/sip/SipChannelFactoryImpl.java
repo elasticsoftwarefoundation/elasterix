@@ -23,8 +23,6 @@ import java.util.concurrent.Executors;
 import javax.annotation.PreDestroy;
 
 import org.apache.log4j.Logger;
-import org.elasticsoftware.sip.codec.SipHeader;
-import org.elasticsoftware.sip.codec.SipMessage;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
@@ -129,7 +127,7 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 				Executors.newCachedThreadPool());
 		ClientBootstrap bootstrap = new ClientBootstrap(channelFactory);
 		//bootstrap.setPipelineFactory(new SipClientPipelineFactory(false,false));
-		bootstrap.setPipelineFactory(new SipServerPipelineFactory(sipServerHandler));
+		bootstrap.setPipelineFactory(new SipPipelineFactory(sipServerHandler));
 		ChannelFuture future = bootstrap.connect(new InetSocketAddress(host, port));
 		
 		// open / connect to channel

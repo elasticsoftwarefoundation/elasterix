@@ -20,28 +20,30 @@ import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
 
 /**
  * @author Leonard Wolters
  */
-public class SipRequestMessage extends SipMessage {
+public class SipRequestMessage extends AbstractSipMessage {
     private final String uri;
     private final String method;
     private boolean authenticated = false;
 
     public SipRequestMessage(SipRequest request) {
-        super(request.getProtocolVersion().toString(), request.getHeaders(),
+        super(request.getVersion().toString(), request.getHeaders(),
                 null);
         this.uri = request.getUri();
         this.method = request.getMethod().name();
     }
     
     @JsonCreator
-    public SipRequestMessage(@JsonProperty("uri") String uri,
+    public SipRequestMessage( @JsonProperty("method") String method,
+    				   @JsonProperty("uri") String uri,
     				   @JsonProperty("version") String version,
-    				   @JsonProperty("method") String method,
                        @JsonProperty("headers") Map<String, List<String>> headers,
                        @JsonProperty("content") byte[] content,
                        @JsonProperty("authenticated") boolean authenticated) {
@@ -65,6 +67,11 @@ public class SipRequestMessage extends SipMessage {
     public boolean isAuthenticated() {
 		return authenticated;
 	}
+    
+    @JsonIgnore
+    public SipMethod getSipMethod() {
+        return SipMethod.lookup(method);
+    }
 
 	public void setAuthenticated(boolean authenticated) {
 		this.authenticated = authenticated;
@@ -72,6 +79,6 @@ public class SipRequestMessage extends SipMessage {
     
     @Override
 	public String toString() {
-		return String.format("SipMessage[%s, %s]", method, uri);
+		return String.format("SipRequestMessage[%s, %s]", method, uri);
 	}
 }
