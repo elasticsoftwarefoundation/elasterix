@@ -42,12 +42,13 @@ public final class UserAgentClient extends UntypedActor {
 	private static final Logger log = Logger.getLogger(UserAgentClient.class);
 
 	@Override
-	public void onReceive(ActorRef sipService, Object message) throws Exception {
+	public void onReceive(ActorRef sender, Object message) throws Exception {
 		if(log.isDebugEnabled()) {
 			log.debug(String.format("onReceive. Message[%s]", message));
 		}
 
 		State state = getState(null).getAsObject(State.class);
+		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage m = (SipRequestMessage) message;
 			switch(m.getSipMethod()) {
@@ -65,8 +66,7 @@ public final class UserAgentClient extends UntypedActor {
 		}
 	}
 
-	protected void register(ActorRef sender, SipRequestMessage message, State state) {
-		ActorRef sipService = getSystem().serviceActorFor("sipService");
+	protected void register(ActorRef sipService, SipRequestMessage message, State state) {
 
 		// set expiration. (seconds)
 		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
@@ -84,15 +84,15 @@ public final class UserAgentClient extends UntypedActor {
 		String contact = message.getHeader(SipHeader.CONTACT);
 		if(!StringUtils.hasLength(contact)) {
 			log.warn(String.format("doRegister. No contact header found"));
-			sipService.tell(message.setSipResponseStatus(SipResponseStatus.BAD_REQUEST,
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.BAD_REQUEST,
 					"No CONTACT header found"), getSelf());
 		}
 		
 		message.addHeader(SipHeader.DATE, new Date(state.getExpiration()).toString());
-		sipService.tell(message.setSipResponseStatus(SipResponseStatus.OK, null), getSelf());
+		sipService.tell(message.toSipResponseMessage(SipResponseStatus.OK, null), getSelf());
 	}
 	
-	protected void invite(ActorRef sender, SipRequestMessage message, State state) {
+	protected void invite(ActorRef sipService, SipRequestMessage message, State state) {
 		// ok, construct a new request message (invite) and sent it to 
 		// the sip client of user...
 		
@@ -103,7 +103,7 @@ public final class UserAgentClient extends UntypedActor {
 		if(uri.startsWith("<")) uri = uri.substring(1);
 		if(uri.endsWith(">")) uri = uri.substring(0, uri.length() - 1);
 		
-		// create sip invite message
+		// create sip invite request message
 		SipRequestMessage sipInvite = new SipRequestMessage(uri, version.toString(), 
 				SipMethod.INVITE.name(), null, null, false);
 		sipInvite.addHeader(SipHeader.CALL_ID, ServerConfig.getCallId());
@@ -119,6 +119,8 @@ public final class UserAgentClient extends UntypedActor {
 		sipInvite.addHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
 				version.toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(), 
 				ServerConfig.getSipPort()));
+		// tell dialog
+		sipService.tell(sipInvite, getSelf());
 	}
 	
 	/**

@@ -26,18 +26,12 @@ import java.util.StringTokenizer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.sip.codec.SipHeader;
-import org.elasticsoftware.sip.codec.SipResponse;
-import org.elasticsoftware.sip.codec.SipResponseImpl;
-import org.elasticsoftware.sip.codec.SipResponseStatus;
-import org.elasticsoftware.sip.codec.SipVersion;
 import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
  */
-public abstract class AbstractSipMessage {
-	private int response;
-	private String responseMessage;
+public abstract class AbstractSipMessage {	
 	private String version;
     private final LinkedHashMap<String,List<String>> headers = new LinkedHashMap<String,List<String>>();
     protected final byte[] content;
@@ -119,11 +113,6 @@ public abstract class AbstractSipMessage {
         return content;
     }
     
-    @JsonProperty("response")
-    public int getResponse() {
-    	return response;
-    }
-    
     @JsonProperty("version")
     public String getVersion() {
     	return version;
@@ -133,33 +122,7 @@ public abstract class AbstractSipMessage {
     public Map<String, List<String>> getHeaders() {
         return headers;
     }
-    
-    @JsonProperty("responseMessage")
-    public String getResponseMessage() {
-        return responseMessage;
-    }
-    
-    public AbstractSipMessage setSipResponseStatus(SipResponseStatus responseStatus, int a, int b) {
-    	return setSipResponseStatus(responseStatus, null);
-    }
-    
-    public AbstractSipMessage setSipResponseStatus(SipResponseStatus responseStatus, String message) {
-    	this.response = responseStatus.getCode();
-    	this.responseMessage = message;
-    	return this;
-    }
-    
-    public SipResponse toSipResponse() {
-    	SipResponseStatus status = SipResponseStatus.lookup(response);
-    	SipVersion version = SipVersion.lookup(this.version, true);
-    	SipResponse response = new SipResponseImpl(version, status);
-    	for(Map.Entry<String, List<String>> entry : headers.entrySet()) {
-    		response.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
-    	}
-    	// TODO: fix content
-    	return response;
-    }
-    
+     
     /**
      * Parses a traditional sip user element belonging to given header, e.g. <br>
      * "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00<br>

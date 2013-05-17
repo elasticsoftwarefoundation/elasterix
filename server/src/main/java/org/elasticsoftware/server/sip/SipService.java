@@ -60,12 +60,13 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     @Override
     public void onReceive(ActorRef actorRef, Object message) throws Exception {
 		if(log.isDebugEnabled() && message instanceof AbstractSipMessage) {
-			log.debug(String.format("onReceive. Status[%d]", ((AbstractSipMessage) message).getResponse()));
+			log.debug(String.format("onReceive. Message[%s]", message));
 		}
 
     	if(message instanceof SipRequestMessage) {
-    		sendResponse((SipRequestMessage) message);
-		} else if (message instanceof SipResponseMessage) {
+    		sendRequest((SipRequestMessage) message);
+    	} else if(message instanceof SipResponseMessage) {
+    		sendResponse((SipResponseMessage) message);
     	} else {
     		log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -134,16 +135,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * 
 	 * @param message The message to send along
 	 */
-	private void sendRequest(SipRequestMessage message) {
-	}
-	
-	/**
-	 * SendResponse sends back a <b>acknowledge</b> response on incoming
-	 * <code>SipRequest</code>. 
-	 * 
-	 * @param message The message to communicate back to sip client
-	 */
-	private void sendResponse(AbstractSipMessage message) {
+	private void sendResponse(SipResponseMessage message) {
 		
 		//
 		// set required headers 		
@@ -170,6 +162,16 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 			message.setHeader(SipHeader.CONTENT_LENGTH, 0);
 		}		
 		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
+	}
+	
+	/**
+	 * SendResponse sends back a <b>acknowledge</b> response on incoming
+	 * <code>SipRequest</code>. 
+	 * 
+	 * @param message The message to communicate back to sip client
+	 */
+	private void sendRequest(SipRequestMessage message) {
+		
 	}
 
     public void setActorSystem(ActorSystem actorSystem) {

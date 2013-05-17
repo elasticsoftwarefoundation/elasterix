@@ -24,6 +24,7 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipResponseStatus;
 
 /**
  * @author Leonard Wolters
@@ -31,8 +32,9 @@ import org.elasticsoftware.sip.codec.SipRequest;
 public class SipRequestMessage extends AbstractSipMessage {
     private final String uri;
     private final String method;
+    
     private boolean authenticated = false;
-
+    
     public SipRequestMessage(SipRequest request) {
         super(request.getVersion().toString(), request.getHeaders(),
                 null);
@@ -67,18 +69,23 @@ public class SipRequestMessage extends AbstractSipMessage {
     public boolean isAuthenticated() {
 		return authenticated;
 	}
-    
-    @JsonIgnore
-    public SipMethod getSipMethod() {
-        return SipMethod.lookup(method);
-    }
 
 	public void setAuthenticated(boolean authenticated) {
 		this.authenticated = authenticated;
 	}
+
+    @JsonIgnore
+    public SipMethod getSipMethod() {
+        return SipMethod.lookup(method);
+    }
     
     @Override
 	public String toString() {
 		return String.format("SipRequestMessage[%s, %s]", method, uri);
 	}
+    
+    public SipResponseMessage toSipResponseMessage(SipResponseStatus status, String additionalMessage) {
+    	return new SipResponseMessage(this.getVersion().toString(), status.getCode(), 
+    			getHeaders(), getContent(), additionalMessage);
+    }
 }

@@ -21,13 +21,18 @@ import java.util.Map;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponse;
+import org.elasticsoftware.sip.codec.SipResponseImpl;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipVersion;
 
 /**
  * @author Leonard Wolters
  */
 public class SipResponseMessage extends AbstractSipMessage {
+	private int response;
+	private String responseMessage;
    
     public SipResponseMessage(SipResponse response) {
         super(response.getVersion().toString(), response.getHeaders(),
@@ -49,4 +54,31 @@ public class SipResponseMessage extends AbstractSipMessage {
 	public String toString() {
 		return String.format("SipResponseMessage[%d, %s]", getResponse(), getResponseMessage());
 	}
+    
+    public SipResponseMessage setSipResponseStatus(SipResponseStatus responseStatus, String message) {
+    	this.response = responseStatus.getCode();
+    	this.responseMessage = message;
+    	return this;
+    }
+    
+    @JsonProperty("responseMessage")
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+    
+    @JsonProperty("response")
+    public int getResponse() {
+    	return response;
+    }
+    
+    public SipResponse toSipResponse() {
+    	SipResponseStatus status = SipResponseStatus.lookup(response);
+    	SipVersion version = SipVersion.lookup(getVersion(), true);
+    	SipResponse response = new SipResponseImpl(version, status);
+    	for(Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {
+    		response.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
+    	}
+    	// TODO: fix content
+    	return response;
+    }
 }

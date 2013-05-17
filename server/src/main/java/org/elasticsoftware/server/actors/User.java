@@ -27,7 +27,6 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.server.ServerConfig;
-import org.elasticsoftware.server.messages.AbstractSipMessage;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
@@ -56,7 +55,7 @@ public final class User extends UntypedActor {
 			SipRequestMessage m = (SipRequestMessage) message;
 			switch(m.getSipMethod()) {
 			case INVITE:
-				sipService.tell(m.setSipResponseStatus(SipResponseStatus.NOT_FOUND,
+				sipService.tell(m.toSipResponseMessage(SipResponseStatus.NOT_FOUND,
 						String.format("User[%s] (To) not found", m.getUser(SipHeader.TO).getUsername())), 
 						getSelf());
 				sipService.tell(message, getSelf());
@@ -119,7 +118,7 @@ public final class User extends UntypedActor {
 					new UserAgentClient.State(uac));
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
-			sipService.tell(message.setSipResponseStatus(SipResponseStatus.SERVER_INTERNAL_ERROR,
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.SERVER_INTERNAL_ERROR,
 					String.format("User Agent Client[%s] not found", message.getUserAgentClient())), 
 					getSelf());
 			return;
@@ -177,15 +176,13 @@ public final class User extends UntypedActor {
 		// did we rang a device?
 		if(!ringing) {
 			log.info(String.format("invite. No registered UAC for user[%s]", state.getUsername()));
-			message.setSipResponseStatus(SipResponseStatus.GONE, 
-					String.format("No registered UAC for user[%s]", state.getUsername()));
-			sipService.tell(message, getSelf());				
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.GONE, 
+					String.format("No registered UAC for user[%s]", state.getUsername())), getSelf());				
 		} else {
 			// OK, the message is sent to at least one UAC. Wait for the response
 			// to be sent back by this UAC. For now, return a 'trying' which is a
 			// decent message
-			message.setSipResponseStatus(SipResponseStatus.TRYING, null);
-			sipService.tell(message, getSelf());				
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.TRYING, null), getSelf());				
 		}
 	}
 	
@@ -197,13 +194,13 @@ public final class User extends UntypedActor {
 	 * @param state
 	 * @return
 	 */
-	private final boolean authenticate(ActorRef sender, AbstractSipMessage message, State state) {
+	private final boolean authenticate(ActorRef sipService, SipRequestMessage message, State state) {
 
 		// check if authentication is present...
 		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
 		if(!StringUtils.hasLength(authorization)) {
 			if(log.isDebugEnabled()) log.debug("authenticate. No authorization set");
-			sendUnauthorized(sender, message, state, "No authorization header found");
+			sendUnauthorized(sipService, message, state, "No authorization header found");
 			return false;
 		}
 		
@@ -214,7 +211,7 @@ public final class User extends UntypedActor {
 		if(!state.getUsername().equalsIgnoreCase(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided username[%s] "
 					+ "!= given username[%s]", val, state.getUsername()));
-			sendUnauthorized(sender, message, state, "Invalid username");
+			sendUnauthorized(sipService, message, state, "Invalid username");
 			return false;
 		}
 
@@ -223,7 +220,7 @@ public final class User extends UntypedActor {
 		if(!Long.toString(state.getNonce()).equalsIgnoreCase(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided nonce[%s] "
 					+ "!= given nonce[%d]", val, state.getNonce()));
-			sendUnauthorized(sender, message, state, "Nonce does not match");
+			sendUnauthorized(sipService, message, state, "Nonce does not match");
 			return false;
 		}
 		
@@ -232,7 +229,7 @@ public final class User extends UntypedActor {
 		if(!state.getSecretHash().equals(val)) {
 			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
 					+ "!= given hash[%s]", val, state.getSecretHash()));
-			sendUnauthorized(sender, message, state, "Hash incorrect");
+			sendUnauthorized(sipService, message, state, "Hash incorrect");
 			return false;
 		}
 		
@@ -248,7 +245,7 @@ public final class User extends UntypedActor {
 	 * @param state
 	 * @param description
 	 */
-	private void sendUnauthorized(ActorRef sender, AbstractSipMessage message, State state, String description) {
+	private void sendUnauthorized(ActorRef sipService, SipRequestMessage message, State state, String description) {
 		// Generate nonce and set WWW-AUTHENTICATE header
 		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
 		//long nonce = state.getNonce() + 1;
@@ -258,7 +255,7 @@ public final class User extends UntypedActor {
 				+ "realm=\"%s\", nonce=\"%d\"", ServerConfig.getRealm(), nonce));
 		
 		// send message back
-		sender.tell(message.setSipResponseStatus(SipResponseStatus.UNAUTHORIZED, description), getSelf());
+		sipService.tell(message.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED, description), getSelf());
 	}
 
 	/**
