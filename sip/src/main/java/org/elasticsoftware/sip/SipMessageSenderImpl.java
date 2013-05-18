@@ -35,7 +35,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	public void sendRequest(SipRequest request, SipMessageCallback callback) {
 		log.info(String.format("Sending Request\n%s", request));
 		
-		Channel c = sipChannelFactory.getChannel(request.getHeaderValue(SipHeader.TO));
+		Channel c = sipChannelFactory.getChannel(request.getSipUser(SipHeader.TO));
 		if(c == null) {
 			log.error(String.format("sendRequest. No channel set/found."));
 			return;
@@ -51,8 +51,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	public void sendResponse(SipResponse response, SipMessageCallback callback) {
 		log.info(String.format("Sending Response\n%s", response));
 		
-		// get connection for user
-		Channel c = sipChannelFactory.getChannel(response.getHeaderValue(SipHeader.FROM));
+		Channel c = sipChannelFactory.getChannel(response.getSipUser(SipHeader.CONTACT));
 		if(c == null) {
 			log.error(String.format("sendResponse. No channel set/found."));
 			return;

@@ -30,6 +30,7 @@ import org.elasticsoftware.server.ServerConfig;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.util.StringUtils;
 
 /**
@@ -72,10 +73,10 @@ public final class User extends UntypedActor {
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		State state = getState(null).getAsObject(State.class);
 		
-		// authenticated?
-		SipRequestMessage request = null;
 		if(message instanceof SipRequestMessage) {
-			request = (SipRequestMessage) message;
+			SipRequestMessage request = (SipRequestMessage) message;
+
+			// authenticated?
 			if(!request.isAuthenticated()) {
 				if(log.isDebugEnabled()) {
 					log.debug(String.format("onReceive. Authenticating user[%s]", state.getUsername()));
@@ -89,9 +90,7 @@ public final class User extends UntypedActor {
 				}
 				return;
 			} 
-		} 
-		
-		if(request != null) {
+
 			switch (request.getSipMethod()) {
 			case REGISTER:
 				register(sipService, request, state);	
@@ -104,7 +103,7 @@ public final class User extends UntypedActor {
 						message.getClass().getSimpleName()));
 				unhandled(message);
 			}
-		}
+		} 
 	}
 
 	protected void register(ActorRef sipService, SipRequestMessage message, State state) {
@@ -114,8 +113,9 @@ public final class User extends UntypedActor {
 		ActorRef userAgentClient = null;
 		try {
 			String uac = String.format("uac/%s", message.getUserAgentClient());
+			SipUser user = message.getUser(SipHeader.CONTACT);
 			userAgentClient = getSystem().actorOf(uac, UserAgentClient.class,
-					new UserAgentClient.State(uac));
+					new UserAgentClient.State(uac, user.getDomain(), user.getPort()));
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			sipService.tell(message.toSipResponseMessage(SipResponseStatus.SERVER_INTERNAL_ERROR,
@@ -131,6 +131,10 @@ public final class User extends UntypedActor {
 				// remove current binding with UAC set in message
 				state.removeUserAgentClient(userAgentClient.getActorId());
 			} else {
+				if(log.isDebugEnabled()) {
+					log.debug(String.format("register. Registering UAC[%s] for User[%s]",
+							userAgentClient.getActorId(), state.getUsername()));
+				}
 				message.appendHeader(SipHeader.CONTACT, "expires", Long.toString(expires));
 
 				// update binding (with new expiration)
@@ -167,13 +171,13 @@ public final class User extends UntypedActor {
 					log.debug(String.format("invite. User[%s], ringing UAC[%s]",
 							state.getUsername(), uacEntry.getKey()));
 				}
-				ActorRef actor = getSystem().actorFor("uac/" + uacEntry.getKey());
+				ActorRef actor = getSystem().actorFor(uacEntry.getKey());
 				actor.tell(message, getSelf());
 				ringing = true;
 			}
 		}
 		
-		// did we rang a device?
+		// did we rang a device (or at least notified a single UAC)?
 		if(!ringing) {
 			log.info(String.format("invite. No registered UAC for user[%s]", state.getUsername()));
 			sipService.tell(message.toSipResponseMessage(SipResponseStatus.GONE, 

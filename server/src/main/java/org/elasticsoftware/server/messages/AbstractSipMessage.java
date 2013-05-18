@@ -26,6 +26,7 @@ import java.util.StringTokenizer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.util.StringUtils;
 
 /**

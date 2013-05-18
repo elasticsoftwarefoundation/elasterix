@@ -106,22 +106,22 @@ public class SipMessageDecoder extends AbstractSipMessageDecoder {
 	 * @param initialLine
 	 * @return
 	 */
-	private SipRequest decodeRequest(String[] initialLine) {
+	private SipMessage decodeRequest(String[] initialLine) {
 		SipVersion version = SipVersion.lookup(initialLine[2], false);
     	if(version == null) {
     		log.warn(String.format("constructRequest. Invalid Sip Version[%s]", initialLine[2]));
-    		return new SipRequestImpl(SipResponseStatus.VERSION_NOT_SUPPORTED);
+    		return new SipMessageImpl(SipVersion.SIP_2_0, SipResponseStatus.VERSION_NOT_SUPPORTED);
     	}
     	SipMethod method = SipMethod.lookup(initialLine[0], false);
     	if(method == null) {
     		log.warn(String.format("constructRequest. Invalid Sip Method[%s]", initialLine[0]));
-    		return new SipRequestImpl(SipResponseStatus.METHOD_NOT_ALLOWED);
+    		return new SipMessageImpl(SipVersion.SIP_2_0, SipResponseStatus.METHOD_NOT_ALLOWED);
     	}
     	String uri = initialLine[1];
     	Matcher matcher = URI_PATTERN.matcher(uri);  
 		if(!matcher.matches()) {
 			log.warn(String.format("constructRequest. Invalid URI[%s]", uri));
-			return new SipRequestImpl(SipResponseStatus.BAD_REQUEST);				
+    		return new SipMessageImpl(SipVersion.SIP_2_0, SipResponseStatus.BAD_REQUEST);
 		}
 		// TODO: Check domain of URI (do we accept this? Or do we need to transfer / redirect
 		// request?

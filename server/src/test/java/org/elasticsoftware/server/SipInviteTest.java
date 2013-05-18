@@ -48,10 +48,10 @@ public class SipInviteTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<xxx@sip.localhost.com:5060>;tag=6d473a67");
 		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 404 Not Found"));
 	}
@@ -64,10 +64,10 @@ public class SipInviteTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>;tag=6d473a67");
 		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:xxx@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 404 Not Found"));
 	}
@@ -80,27 +80,46 @@ public class SipInviteTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>;tag=6d473a67");
 		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
 		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 410 Gone"));
 	}
 	
-//	@Test(enabled = true)
-//	public void testInviteOK() throws Exception {
-//		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-//		req.addHeader(SipHeader.CALL_ID, "xxx");
-//		req.addHeader(SipHeader.CSEQ, "3 INVITE"); 
-//		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
-//		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
-//		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
-//		sipClient.sendMessage(req);
-//		// sleep sometime in order for message to be sent back.
-//		Thread.sleep(300);
-//		String message = sipClient.getMessage();
-//		Assert.assertNotNull(message);
+	@Test(enabled = true)
+	public void testInviteOK() throws Exception {
+		// first let joost register himself ..
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.CALL_ID, "joost_uac");
+		req.addHeader(SipHeader.CONTACT, "<sip:jwijgerd@127.0.0.1:8990;transport=UDP;rinstance=6f8dc969b62d1466>");
+		req.addHeader(SipHeader.EXPIRES, "120");
+		req.addHeader(SipHeader.FROM, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>;tag=6d473a67");
+		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
+		req.addHeader(SipHeader.VIA, "yyy");
+		setAuthorization(req, "jwijgerd", "1", md5Encoder.encodePassword("test", null));
+		sipServer.sendMessage(req);
+		// sleep sometime in order for message to be sent back.
+		Thread.sleep(300);
+		
+		// then let leonard invite joost
+		req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
+		req.addHeader(SipHeader.CONTACT, "<sip:lwolters@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>;tag=6d473a67");
+		req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:jwijgerd@sip.localhost.com:5060>");
+		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
+		sipServer.sendMessage(req);
+		// sleep sometime in order for message to be sent back.
+		Thread.sleep(300);
+		String message = sipServer.getMessage();
+		Assert.assertNotNull(message);
+		log.info(message);
 //		Assert.assertTrue(message.startsWith("SIP/2.0 100 Trying"));
-//	}
+		Thread.sleep(300);
+		message = sipServer.getMessage();
+		Assert.assertNotNull(message);
+		log.info(message);
+	}
 }

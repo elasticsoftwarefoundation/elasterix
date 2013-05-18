@@ -1,4 +1,4 @@
-package org.elasticsoftware.server.messages;
+package org.elasticsoftware.sip.codec;
 
 /**
  * Sip User Domain Object<br>

@@ -23,13 +23,13 @@ import java.util.concurrent.Executors;
 import javax.annotation.PreDestroy;
 
 import org.apache.log4j.Logger;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.springframework.beans.factory.annotation.Required;
-import org.springframework.util.StringUtils;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 
@@ -50,16 +50,28 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 			new ConcurrentLinkedHashMap.Builder<String, Channel>().maximumWeightedCapacity(initialCacheSize).build();
 
 	@Override
-	public void setChannel(String address, Channel channel) {
-		// always reset channel (remove/add)
-		if(StringUtils.hasLength(address)) {
-			cache.put(address, channel);
+	public void setChannel(SipUser user, Channel channel) {
+		if(user == null) {
+			log.warn(String.format("setChannel. No user provided"));
+			return;
 		}
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("setChannel. Caching channel for [%s]", key(user)));
+		}
+		cache.put(key(user), channel);
+	}
+	
+	private String key(SipUser sipUser) {
+		return String.format("%s:%d", sipUser.getDomain(), sipUser.getPort());
 	}
 
 	@Override
-	public Channel getChannel(String address) {
-		return assureOpen(cache, address);
+	public Channel getChannel(SipUser user) {
+		if(user == null) {
+			log.warn("getChannel. No user provided");
+			return null;
+		}
+		return assureOpen(cache, user);
 	}
 	
 	@PreDestroy
@@ -74,40 +86,27 @@ public class SipChannelFactoryImpl implements SipChannelFactory {
 		}
     }
 
-	private Channel assureOpen(ConcurrentMap<String, Channel> cache, String address) {
-
-		// check is channel is open
-		Channel c = cache.get(address);
-		if(c != null && c.isConnected() && c.isOpen()) {
-			return c;
-		}
-
-		if(!StringUtils.hasLength(address)) {
-			log.warn("assureOpen. No address given. Can't connect channel");
-			return c;
-		}
+	private Channel assureOpen(ConcurrentMap<String, Channel> cache, SipUser user) {
 		
-		// To: "Hans de Borst"<sip:124@sip.outerteams.com:5060>
-		int idx = address.lastIndexOf('@');
-		if(idx != -1) {
-			address = address.substring(idx+1);
-			try {
-				idx = address.indexOf(":");
-				String hostname = address.substring(0, idx);
-				int port = Integer.parseInt(address.substring(idx + 1, address.lastIndexOf('>')));
-				if(log.isDebugEnabled()) {
-					log.debug(String.format("assureOpen. Connecting address[%s:%d]", hostname, port));
-				}
-				c = createChannel(hostname, port);
-			} catch (Exception e) {
-				log.warn(e.getMessage(), e);
+		// check is channel is open
+		Channel c = cache.get(key(user));
+		if(c != null && c.isConnected() && c.isOpen()) {
+			if(log.isDebugEnabled()) {
+				log.debug(String.format("assureOpen. Cache hit [%s]", key(user)));
 			}
-		} else {
-			log.warn(String.format("assureOpen. Invalid address[%s]. Can't connect channel",
-					address));			
+			return c;
 		}
-		// update cache
-		cache.put(address, c);
+
+		try {
+			if(log.isDebugEnabled()) {
+				log.debug(String.format("assureOpen. Connecting address[%s:%d]", 
+						user.getDomain(), user.getPort()));
+			}
+			c = createChannel(user.getDomain(), user.getPort());
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+		cache.put(key(user), c);
 		return c;
 	}
 	

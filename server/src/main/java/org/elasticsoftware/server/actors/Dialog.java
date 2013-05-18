@@ -9,9 +9,10 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.server.messages.SipRequestMessage;
-import org.elasticsoftware.server.messages.SipUser;
+import org.elasticsoftware.server.messages.SipResponseMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.springframework.security.authentication.encoding.PasswordEncoder;
 import org.springframework.util.StringUtils;
@@ -32,38 +33,45 @@ public class Dialog extends UntypedActor {
 		if(log.isDebugEnabled()) log.debug(String.format("onReceive. Message[%s]", message));
 
 		// check message type
-		if(!(message instanceof SipRequestMessage)) {
+		State state = getState(null).getAsObject(State.class);
+		if(message instanceof SipRequestMessage) {
+			SipRequestMessage sipMessage = (SipRequestMessage) message;
+
+			// check if authenticated
+			if(checkAuthentication(sipMessage, state)) {
+				return;
+			}
+			
+			// CSeq must be updated for each request within a single dialog.
+			// A dialog involves a user, a single UAC and the server
+			ActorRef sipService = getSystem().serviceActorFor("sipService");
+			if(checkCSeq(sipService, sipMessage, state)) {
+				return;
+			}
+			
+			// CSEQ OK, pass message to user
+			switch(sipMessage.getSipMethod()) {
+			case REGISTER:
+				ActorRef user = getSystem().actorFor("user/" + state.getUsername());
+				user.tell(message, getSelf());		
+				return;
+			case INVITE:
+				SipUser toUser = sipMessage.getUser(SipHeader.TO);
+				user = getSystem().actorFor("user/" + toUser.getUsername());
+				user.tell(message, getSelf());	
+				return;
+			case BYE:
+			case ACK:
+			case CANCEL:
+			case OPTIONS:
+			default:
+			}
+		} else if (message instanceof SipResponseMessage) {
+			
+		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
 			unhandled(message);
-			return;
-		}
-
-		SipRequestMessage sipMessage = (SipRequestMessage) message;
-		State state = getState(null).getAsObject(State.class);
-		
-		// check if authenticated
-		if(checkAuthentication(sipMessage, state)) {
-			return;
-		}
-
-		// CSeq must be updated for each request within a single dialog.
-		// A dialog involves a user, a single UAC and the server
-		ActorRef sipService = getSystem().serviceActorFor("sipService");
-		if(checkCSeq(sipService, sipMessage, state)) {
-			return;
-		}
-		
-		// CSEQ OK, pass message to user
-		switch(sipMessage.getSipMethod()) {
-		case REGISTER:
-			ActorRef user = getSystem().actorFor("user/" + state.getUsername());
-			user.tell(message, getSelf());		
-			return;
-		case INVITE:
-			SipUser toUser = sipMessage.getUser(SipHeader.TO);
-			user = getSystem().actorFor("user/" + toUser.getUsername());
-			user.tell(message, getSelf());	
 			return;
 		}
 	}
@@ -166,11 +174,12 @@ public class Dialog extends UntypedActor {
 		case REGISTER:
 			messageType = "REGISTER";
 			messageCount = state.incrementAndGetRegister();
+			break;
 //		case OPTIONS:
 //			  CSEQ is always 102 OPTIONS
 		default:
-			log.info(String.format("checkCSeq. Unsupported message[%s]", 
-					sipRequest.getClass().getSimpleName()));
+			log.info(String.format("checkCSeq. Unsupported method[%s]", 
+					sipRequest.getSipMethod().name()));
 			return false;
 		}
 		
@@ -182,8 +191,7 @@ public class Dialog extends UntypedActor {
 			log.warn(String.format("checkCSeq. No CSEQ set for Dialog[%s,%s]. Creating new one",
 					state.getUsername(), state.getUserAgentClient()));
 			state.reset();
-			sipRequest.addHeader(SipHeader.CSEQ, String.format("%d %s", 
-					state.incrementAndGetRegister(), messageType));
+			sipRequest.addHeader(SipHeader.CSEQ, String.format("1 %s", messageType));
 		} else {
 			// CSeq: 1 REGISTER || 304 INVITE .....
 			StringTokenizer st = new StringTokenizer(cSeq, " ", false);

@@ -23,17 +23,6 @@ public class SipRequestImpl extends SipMessageImpl implements SipRequest {
         setMethod(method);
         setUri(uri);
     }
-    
-    /**
-     * Creates a new instance. <br>
-     * Often this constructor is used to indicate syntactically incorrect
-     * sip requests
-     * 
-     * @param responseStatus
-     */
-    public SipRequestImpl(SipResponseStatus responseStatus) {
-    	super(SipVersion.SIP_2_0, responseStatus);
-    }
 
     @Override
     public SipMethod getMethod() {

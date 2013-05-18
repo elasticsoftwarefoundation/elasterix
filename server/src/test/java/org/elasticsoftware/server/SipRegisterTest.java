@@ -42,10 +42,10 @@ public class SipRegisterTest extends AbstractSipTest {
 	@Test(enabled = true)
 	public void testRegisterUserNoFrom() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
@@ -54,10 +54,10 @@ public class SipRegisterTest extends AbstractSipTest {
 	public void testRegisterUserNoContact() throws Exception {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
@@ -68,10 +68,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
 		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		log.info(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
@@ -84,10 +84,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
 		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 400 Bad Request"));
 	}
@@ -99,10 +99,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:XXXXXX@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 404 Not Found"));
 	}
@@ -114,10 +114,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 		Assert.assertTrue(message.indexOf("WWW-Authenticate: Digest algorithm=MD5, realm=") != -1);
@@ -131,10 +131,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
 		setAuthorization(req, "jwijgerd", "", "");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 		Assert.assertTrue(message.indexOf("WWW-Authenticate: Digest algorithm=MD5, realm=") != -1);
@@ -148,10 +148,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
 		setAuthorization(req, "lwolters", "123456789", "");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 		Assert.assertTrue(message.indexOf("WWW-Authenticate: Digest algorithm=MD5, realm=") != -1);
@@ -165,10 +165,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
 		setAuthorization(req, "lwolters", "-1", "");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		log.info("\n\n\n\n\n\n\n\n\n\n\n\n\n" + message);
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
@@ -183,10 +183,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
 		setAuthorization(req, "lwolters", "-1", "");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
@@ -200,10 +200,10 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
 		setAuthorization(req, "lwolters", "-1", "");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
@@ -215,18 +215,18 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
 		// get nonce!
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		int idx = message.indexOf("nonce=") + 7;
 		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
 		setAuthorization(req, "lwolters", Long.toString(nonce), "");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		message = sipClient.getMessage();
+		message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}
@@ -238,18 +238,18 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.VIA, "yyy");
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
 		// get nonce!
-		String message = sipClient.getMessage();
+		String message = sipServer.getMessage();
 		int idx = message.indexOf("nonce=") + 7;
 		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
 		setAuthorization(req, "lwolters", Long.toString(nonce), md5Encoder.encodePassword("test", null));
-		sipClient.sendMessage(req);
+		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
-		message = sipClient.getMessage();
+		message = sipServer.getMessage();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 200 OK"));
 	}

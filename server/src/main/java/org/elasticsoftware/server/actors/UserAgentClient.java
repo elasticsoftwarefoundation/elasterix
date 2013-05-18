@@ -29,6 +29,7 @@ import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.elasticsoftware.sip.codec.SipVersion;
 import org.springframework.util.StringUtils;
 
@@ -104,9 +105,8 @@ public final class UserAgentClient extends UntypedActor {
 		if(uri.endsWith(">")) uri = uri.substring(0, uri.length() - 1);
 		
 		// create sip invite request message
-		SipRequestMessage sipInvite = new SipRequestMessage(uri, version.toString(), 
-				SipMethod.INVITE.name(), null, null, false);
-		sipInvite.addHeader(SipHeader.CALL_ID, ServerConfig.getCallId());
+		SipRequestMessage sipInvite = new SipRequestMessage(SipMethod.INVITE.name(), uri, 
+				version.toString(), null, null, false);
 		sipInvite.addHeader(SipHeader.CONTACT, String.format("<sip:%s@%s:%d;transport=%s;rinstance=6f8dc969b62d1466>",
 				ServerConfig.getUsername(), ServerConfig.getIPAddress(), ServerConfig.getSipPort(), 
 				ServerConfig.getProtocol()));
@@ -114,12 +114,11 @@ public final class UserAgentClient extends UntypedActor {
 		sipInvite.addHeader(SipHeader.FROM, String.format("\"%s\"<sip:%s@%s:%d>;tag=6d473a67",
 				ServerConfig.getUsername(), ServerConfig.getUsername(), ServerConfig.getIPAddress(), 
 				ServerConfig.getSipPort()));
-		sipInvite.addHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
-		sipInvite.addHeader(SipHeader.TO, message.getHeader(SipHeader.TO));
-		sipInvite.addHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
-				version.toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(), 
-				ServerConfig.getSipPort()));
-		// tell dialog
+		SipUser user = message.getUser(SipHeader.TO);
+		sipInvite.addHeader(SipHeader.TO, String.format("\"%s\"<sip:%s@%s:%d>;tag=6d473a67", 
+				user.getDisplayName(), user.getUsername(), state.getIPAddress(), state.getPort()));
+		
+		// send SIP Request to UAC
 		sipService.tell(sipInvite, getSelf());
 	}
 	
@@ -130,10 +129,16 @@ public final class UserAgentClient extends UntypedActor {
 		private final String uid;
 		private long expires = 0;
 		private long expiration = 0;
+		private String ipAddress;
+		private int port;
 
 		@JsonCreator
-		public State(@JsonProperty("uid") String uid) {
+		public State(@JsonProperty("uid") String uid, 
+				@JsonProperty("ipAddress") String ipAddress, 
+				@JsonProperty("port") int port) {
 			this.uid = uid;
+			this.ipAddress = ipAddress;
+			this.port = port;
 		}
 
 		@JsonProperty("uid")
@@ -149,6 +154,16 @@ public final class UserAgentClient extends UntypedActor {
 		@JsonProperty("expiration")
 		public long getExpiration() {
 			return expiration;
+		}
+		
+		@JsonProperty("ipAddress")
+		public String getIPAddress() {
+			return ipAddress;
+		}
+		
+		@JsonProperty("port")
+		public int getPort() {
+			return port;
 		}
 		
 		protected void setExpires(long expires) {

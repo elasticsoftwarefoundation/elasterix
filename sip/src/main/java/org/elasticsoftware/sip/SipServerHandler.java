@@ -35,7 +35,7 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
-    	SipRequest message = (SipRequest) e.getMessage();
+    	SipMessage message = (SipMessage) e.getMessage();
 		if(log.isDebugEnabled()) {
 			log.debug(String.format("messageReceived\n%s", message));
 		}
@@ -45,9 +45,11 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			// we need to check if the key used for caching this channel is 
 			// present. If no key is found, bounce message directly back
 			// to sender (whilst we still have this channel)
-			if(strictParsing && !checkForHeaders(message, ctx.getChannel(), SipHeader.FROM)) return;
-			sipChannelFactory.setChannel(message.getHeaderValue(SipHeader.FROM), 
-					ctx.getChannel());
+			if(message instanceof SipRequest) {
+				sipChannelFactory.setChannel(message.getSipUser(SipHeader.CONTACT), ctx.getChannel());
+			} else if(message instanceof SipResponse) {
+				sipChannelFactory.setChannel(message.getSipUser(SipHeader.CONTACT), ctx.getChannel());
+			}
 		}
 
 		// only approved sip messages are sent along. Syntactically wrong

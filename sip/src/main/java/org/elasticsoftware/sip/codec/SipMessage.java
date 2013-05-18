@@ -111,4 +111,12 @@ public interface SipMessage {
      * @return
      */
     long getContentLength(long defaultValue);
+    
+    /**
+     * Returns a SIP user belonging to given header
+     * 
+     * @param header
+     * @return
+     */
+    SipUser getSipUser(SipHeader header);
 }

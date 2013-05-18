@@ -25,12 +25,12 @@ import org.elasticsoftware.server.actors.Dialog;
 import org.elasticsoftware.server.messages.AbstractSipMessage;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.server.messages.SipResponseMessage;
-import org.elasticsoftware.server.messages.SipUser;
 import org.elasticsoftware.sip.SipMessageHandler;
 import org.elasticsoftware.sip.SipMessageSender;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponse;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -171,7 +171,20 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * @param message The message to communicate back to sip client
 	 */
 	private void sendRequest(SipRequestMessage message) {
+		//
+		// set required headers
+		//
+		message.setHeader(SipHeader.CALL_ID, ServerConfig.getCallId());
+		message.setHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
 		
+		//
+		// Add header
+		//
+		message.setHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
+				message.getVersion().toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(), 
+				ServerConfig.getSipPort()));
+		
+		sipMessageSender.sendRequest(message.toSipRequest(), dummyCallback);
 	}
 
     public void setActorSystem(ActorSystem actorSystem) {

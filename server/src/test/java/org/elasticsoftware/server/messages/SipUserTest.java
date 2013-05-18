@@ -3,6 +3,7 @@ package org.elasticsoftware.server.messages;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.util.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;

@@ -3,6 +3,7 @@ package org.elasticsoftware.server;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -26,27 +27,43 @@ import org.springframework.util.StringUtils;
  */
 public class SipClient {
 	private static final Logger log = Logger.getLogger(SipClient.class);
-	/** Socket to communicate with SIP server */
-	private Socket serverSocket;
-	
+	private String socketType;
+	private Socket socket;
 	private Stack<String> messages = new Stack<String>();
-
-	public SipClient() {
+	
+	public SipClient(int port) {
 		try {
-			serverSocket = new Socket("localhost", 5060);
+			socketType = "LOCAL";
+			socket = initSocket(new ServerSocket(port).accept());
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+	}
+
+	public SipClient(String host, int port) {
+		try {
+			socketType = "REMOTE";
+			socket = initSocket(new Socket("localhost", port));
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+		}
+	}
+	
+	public Socket initSocket(final Socket socket) throws Exception {
+		try {
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
 					StringBuffer buffer = new StringBuffer();
 					try {
 						BufferedReader in = new BufferedReader(
-								new InputStreamReader(serverSocket.getInputStream()));
+								new InputStreamReader(socket.getInputStream()));
 						String line;
 						while (null != ((line = in.readLine()))) {
 							if(StringUtils.hasLength(line)) {
 								buffer.append(line).append("\n");
 							} else {
-								log.info("Message received");
+								log.info(String.format("Message received[%s]", socketType));
 								messages.add(buffer.toString());
 								buffer.setLength(0);
 							}
@@ -59,6 +76,7 @@ public class SipClient {
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 		}
+		return socket;
 	}
 	
 	public String getMessage() {
@@ -96,7 +114,7 @@ public class SipClient {
 	}
 	
 	protected void sendMessage(byte[] data, String content) throws Exception {
-		DataOutputStream dos = new DataOutputStream(serverSocket.getOutputStream());
+		DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 		if(data != null) {
 			log.debug(String.format("Sending data\n%s", new String(data, Charset.forName("UTF-8"))));
 			dos.write(data);
@@ -106,46 +124,12 @@ public class SipClient {
 		}
 		dos.flush();
 	}
-
-//	protected String sendMessage(URL url, byte[] data) throws Exception {
-//		try {
-//			// setup connection
-//			URLConnection conn = url.openConnection();
-//			log.info("Opening connection: " + url);
-//			conn.setDoOutput(true);			
-//			conn.setUseCaches(false);
-//			
-//			conn.setRequestProperty("Content-Type", "text/plain; charset=UTF-8");			
-//			//conn.setRequestProperty("Accept", "application/xml");
-//
-//			// POST data
-//			DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
-//			log.debug(String.format("Sending data\n%s", new String(data, Charset.forName("UTF-8"))));
-//			dos.write(data);
-//			dos.flush();
-//			dos.close();
-//
-//			// GET response
-//			DataInputStream dis = new DataInputStream(conn.getInputStream());
-//			StringBuffer buffer = new StringBuffer();
-//			String line;
-//			while (null != ((line = dis.readLine()))) {
-//				buffer.append(line);
-//			}
-//			dis.close();
-//
-//			return buffer.toString();
-//		} catch (Exception e) {
-//			log.error(e.getMessage(), e);
-//		}
-//		return null;
-//	}
 	
 	public void close() throws Exception {
-		if(serverSocket != null) {
-			serverSocket.shutdownInput();
-			serverSocket.shutdownOutput();
-			serverSocket.close();
+		if(socket != null) {
+			socket.shutdownInput();
+			socket.shutdownOutput();
+			socket.close();
 		}
 	}
 }

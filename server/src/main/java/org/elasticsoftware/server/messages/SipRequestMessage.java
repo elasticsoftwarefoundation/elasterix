@@ -22,9 +22,12 @@ import java.util.Map;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipRequestImpl;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipVersion;
 
 /**
  * @author Leonard Wolters
@@ -87,5 +90,14 @@ public class SipRequestMessage extends AbstractSipMessage {
     public SipResponseMessage toSipResponseMessage(SipResponseStatus status, String additionalMessage) {
     	return new SipResponseMessage(this.getVersion().toString(), status.getCode(), 
     			getHeaders(), getContent(), additionalMessage);
+    }
+    
+    public SipRequest toSipRequest() {
+    	SipRequest request = new SipRequestImpl(SipVersion.lookup(getVersion()), getSipMethod(), getUri());
+    	for(Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {
+    		request.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
+    	}
+    	// TODO fix content
+    	return request;
     }
 }

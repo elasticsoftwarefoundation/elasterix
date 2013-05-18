@@ -130,6 +130,18 @@ public class SipMessageImpl implements SipMessage {
     public Set<String> getHeaderNames() {
         return headers.keySet();
     }
+    
+    @Override
+    public SipUser getSipUser(SipHeader header) {
+    	if(header == null) {
+    		header = SipHeader.TO;
+    	}
+    	String user = getHeaderValue(header);
+    	if(!StringUtils.hasLength(user)) {
+    		return null;
+    	}
+    	return new SipUser(user);
+    }
 
 	@Override
 	public String toString() {

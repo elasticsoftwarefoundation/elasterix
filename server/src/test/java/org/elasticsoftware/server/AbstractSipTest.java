@@ -26,7 +26,6 @@ import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.ActorSystem;
 import org.elasticsoftware.elasticactors.test.TestActorSystem;
 import org.elasticsoftware.server.actors.User;
-import org.elasticsoftware.server.actors.UserAgentClient;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
@@ -39,11 +38,12 @@ import org.testng.annotations.BeforeTest;
 public abstract class AbstractSipTest {
     private TestActorSystem testActorSystem;
 	protected ActorSystem actorSystem;
-	protected SipClient sipClient;
+	protected SipClient sipServer;
+	protected SipClient sipLeonard;
+	protected SipClient sipJoost;
 	protected Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
 	
 	protected List<ActorRef> users = new ArrayList<ActorRef>();
-	protected List<ActorRef> uacs = new ArrayList<ActorRef>();
 
 	@BeforeTest
 	public void init() throws Exception {
@@ -55,8 +55,11 @@ public abstract class AbstractSipTest {
 
         testActorSystem = TestActorSystem.create();
 		actorSystem = testActorSystem.create(new ElasterixServer());
-		sipClient = new SipClient();
-
+		
+		sipServer = new SipClient("localhost", 5060);
+		//sipLocalClient = new SipClient(8989);
+		//sipLocalClient = new SipClient(8990);
+		
 		// create two users
 		User.State state = new User.State("leonard@elasticsoftware.org", "lwolters", 
 				md5Encoder.encodePassword("test", null));
@@ -67,11 +70,6 @@ public abstract class AbstractSipTest {
 						md5Encoder.encodePassword("test", null)));
 		users.add(ref);
 		
-		// create UAC
-		UserAgentClient.State uacState = new UserAgentClient.State("device1");
-		ref = actorSystem.actorOf("uac/device1", UserAgentClient.class, uacState);
-		uacs.add(ref);
-
 		// wait some time for actors to be created
 		Thread.sleep(300);
 	}

@@ -16,6 +16,7 @@
 
 package org.elasticsoftware.sip;
 
+import org.elasticsoftware.sip.codec.SipUser;
 import org.jboss.netty.channel.Channel;
 
 /**
@@ -27,11 +28,11 @@ public interface SipChannelFactory {
 	 * @param message
 	 * @param channel
 	 */
-	void setChannel(String address, Channel channel);
+	void setChannel(SipUser user, Channel channel);
 	
 	/**
 	 * @param message
 	 * @return
 	 */
-	Channel getChannel(String address);
+	Channel getChannel(SipUser user);
 }
