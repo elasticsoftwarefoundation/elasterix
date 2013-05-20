@@ -18,11 +18,12 @@ package com.biasedbit.efflux.packet;
 
 import com.biasedbit.efflux.util.ByteUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.*;
 
 /**
  * @author <a href="http://bruno.biasedbit.com/">Bruno de Carvalho</a>

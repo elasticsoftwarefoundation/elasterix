@@ -19,15 +19,15 @@ package com.biasedbit.efflux.session;
 import com.biasedbit.efflux.packet.DataPacket;
 import com.biasedbit.efflux.participant.RtpParticipant;
 import com.biasedbit.efflux.participant.RtpParticipantInfo;
-import org.junit.After;
-import org.junit.Test;
+import org.testng.annotations.AfterMethod;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.*;
 
 /**
  * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>
@@ -36,7 +36,7 @@ public class MultiParticipantSessionTest {
 
     private MultiParticipantSession session;
 
-    @After
+    @AfterMethod
     public void tearDown() {
         if (this.session != null) {
             this.session.terminate();

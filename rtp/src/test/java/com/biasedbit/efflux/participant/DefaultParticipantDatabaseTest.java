@@ -18,15 +18,16 @@ package com.biasedbit.efflux.participant;
 
 import com.biasedbit.efflux.packet.DataPacket;
 import com.biasedbit.efflux.packet.SdesChunk;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.*;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import static org.testng.Assert.*;
 
 /**
  * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>
@@ -36,7 +37,7 @@ public class DefaultParticipantDatabaseTest {
     private DefaultParticipantDatabase database;
     private TestListener listener;
 
-    @Before
+    @BeforeMethod
     public void setUp() throws Exception {
         this.listener = new TestListener();
         this.database = new DefaultParticipantDatabase("testDatabase", this.listener);
