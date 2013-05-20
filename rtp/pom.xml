@@ -1,17 +1,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <artifactId>elasterix-parent</artifactId>
+        <groupId>org.elasticsoftware.elasterix</groupId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.factor45.efflux</groupId>
-    <artifactId>efflux</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <artifactId>elasterix-rtp</artifactId>
     <packaging>jar</packaging>
 
-    <name>efflux</name>
-    <url>http://efflux.biasedbit.com</url>
-    <description>
-        Missing description
-    </description>
+    <name>Elastic Software Foundation :: Elasterix :: RTP</name>
+    <url>https://github.com/elasticsoftwarefoundation/elasterix</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <inceptionYear>2010</inceptionYear>
     <developers>
         <developer>
@@ -28,40 +33,10 @@
         </license>
     </licenses>
 
-    <properties>
-        <netty.version>3.5.8.Final</netty.version>
-        <slf4j.version>1.6.1</slf4j.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
-    <repositories>
-        <repository>
-            <id>repository.jboss.org</id>
-            <url>http://repository.jboss.org/nexus/content/groups/public/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <!-- JBoss's nexus, for netty and docbook stuff -->
-        <pluginRepository>
-            <id>repository.jboss.org</id>
-            <url>http://repository.jboss.org/nexus/content/groups/public/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
 
     <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.7</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
@@ -87,45 +62,15 @@
             <optional>true</optional>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
-            <version>1.2.16</version>
+            <version>${log4j.version}</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Compiler configuration -->
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
-                </configuration>
-            </plugin>
 
-            <!-- jar code -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
-                <configuration>
-                    <excludes>
-                        <exclude>**/log4j.properties</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
 
-            <!-- tests -->
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <forkMode>never</forkMode>
-                    <excludes>
-                        <exclude>**/Abstract*</exclude>
-                        <exclude>**/*TestUtil*</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
 
             <!-- javadoc generation
             <plugin>
@@ -207,57 +152,8 @@
             </plugin>
             -->
 
-            <!-- attach sources -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-source</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <attach>true</attach>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
 
-            <!-- package building -->
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>generate-distribution</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <descriptors>
-                        <descriptor>${basedir}/src/assembly/default.xml</descriptor>
-                    </descriptors>
-                    <attach>false</attach>
-                    <appendAssemblyId>true</appendAssemblyId>
-                    <tarLongFileMode>gnu</tarLongFileMode>
-                </configuration>
-            </plugin>
 
-            <!-- IDEA integration -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-idea-plugin</artifactId>
-                <version>2.2</version>
-                <configuration>
-                    <downloadSources>true</downloadSources>
-                    <jdkLevel>1.6</jdkLevel>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 </project>
