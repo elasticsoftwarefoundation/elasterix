@@ -16,9 +16,6 @@
 
 package org.elasticsoftware.server;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -39,12 +36,9 @@ public abstract class AbstractSipTest {
     private TestActorSystem testActorSystem;
 	protected ActorSystem actorSystem;
 	protected SipClient sipServer;
-	protected SipClient sipLeonard;
-	protected SipClient sipJoost;
+	protected SipClient localSipServer;
 	protected Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
 	
-	protected List<ActorRef> users = new ArrayList<ActorRef>();
-
 	@BeforeTest
 	public void init() throws Exception {
 		BasicConfigurator.resetConfiguration();
@@ -55,33 +49,28 @@ public abstract class AbstractSipTest {
 
         testActorSystem = TestActorSystem.create();
 		actorSystem = testActorSystem.create(new ElasterixServer());
-		
+
 		sipServer = new SipClient("localhost", 5060);
-		//sipLocalClient = new SipClient(8989);
-		//sipLocalClient = new SipClient(8990);
+		localSipServer = new SipClient(9090);
 		
 		// create two users
 		User.State state = new User.State("leonard@elasticsoftware.org", "lwolters", 
 				md5Encoder.encodePassword("test", null));
 		ActorRef ref = actorSystem.actorOf("user/lwolters", User.class, state);
-		users.add(ref);
-		ref = actorSystem.actorOf("user/jwijgerd", User.class, 
-				new User.State("joost@elasticsoftware.org", "jwijgerd", 
-						md5Encoder.encodePassword("test", null)));
-		users.add(ref);
+		
+		state = new User.State("joost@elasticsoftware.org", "jwijgerd", 
+				md5Encoder.encodePassword("test", null));
+		ref = actorSystem.actorOf("user/jwijgerd", User.class, state);
 		
 		// wait some time for actors to be created
 		Thread.sleep(300);
 	}
-
+	
 	@AfterTest
 	public void destroy() throws Exception {
         testActorSystem.destroy();
-//		if(sipClient != null) {
-//			sipClient.close();
-//		}
 	}
-
+	
 	protected boolean startsWith(String input, String startsWith) {
 		input = input.trim();
 		startsWith = startsWith.trim();
@@ -107,5 +96,9 @@ public abstract class AbstractSipTest {
 		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
 		message.addHeader(SipHeader.AUTHORIZATION, String.format("Digest username=\"%s\",realm=\"elasticsoftware\""
 				+ ",nonce=\"%s\",uri=\"%s\",response=\"%s\",algorithm=MD5", userName, nonce, "", hash));
+	}
+	
+	protected SipClient getSipClient() {
+		return new SipClient("localhost", 5060);
 	}
 }

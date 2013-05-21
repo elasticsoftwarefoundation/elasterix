@@ -37,7 +37,7 @@ public class SipResponseMessage extends AbstractSipMessage {
     public SipResponseMessage(SipResponse response) {
         super(response.getVersion().toString(), response.getHeaders(),
                 null);
-        setSipResponseStatus(response.getResponseStatus(), null);
+        setSipResponseStatus(response.getResponseStatus());
     }
     
     @JsonCreator
@@ -47,7 +47,8 @@ public class SipResponseMessage extends AbstractSipMessage {
                        @JsonProperty("content") byte[] content,
     				   @JsonProperty("responseMessage") String responseMessage) {
         super(version, headers, content);
-        setSipResponseStatus(SipResponseStatus.lookup(response), responseMessage);
+        this.response = response;
+        this.responseMessage = responseMessage;
     }
     
     @Override
@@ -55,9 +56,9 @@ public class SipResponseMessage extends AbstractSipMessage {
 		return String.format("SipResponseMessage[%d, %s]", getResponse(), getResponseMessage());
 	}
     
-    public SipResponseMessage setSipResponseStatus(SipResponseStatus responseStatus, String message) {
+    public SipResponseMessage setSipResponseStatus(SipResponseStatus responseStatus) {
     	this.response = responseStatus.getCode();
-    	this.responseMessage = message;
+    	this.responseMessage = responseStatus.getOptionalMessage();
     	return this;
     }
     
@@ -73,6 +74,7 @@ public class SipResponseMessage extends AbstractSipMessage {
     
     public SipResponse toSipResponse() {
     	SipResponseStatus status = SipResponseStatus.lookup(response);
+    	status.setOptionalMessage(responseMessage);
     	SipVersion version = SipVersion.lookup(getVersion(), true);
     	SipResponse response = new SipResponseImpl(version, status);
     	for(Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {

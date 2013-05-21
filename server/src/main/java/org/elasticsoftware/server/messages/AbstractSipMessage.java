@@ -36,7 +36,7 @@ public abstract class AbstractSipMessage {
 	private String version;
     private final LinkedHashMap<String,List<String>> headers = new LinkedHashMap<String,List<String>>();
     protected final byte[] content;
-
+    
     protected AbstractSipMessage(String version, Map<String, List<String>> headers, byte[] content) {
     	this.version = version;
     	if(headers != null) {
@@ -123,7 +123,7 @@ public abstract class AbstractSipMessage {
     public Map<String, List<String>> getHeaders() {
         return headers;
     }
-     
+    
     /**
      * Parses a traditional sip user element belonging to given header, e.g. <br>
      * "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00<br>

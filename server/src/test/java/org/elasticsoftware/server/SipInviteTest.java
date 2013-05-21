@@ -17,8 +17,11 @@
 package org.elasticsoftware.server;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.elasticsoftware.server.actors.User;
+import org.elasticsoftware.server.actors.UserAgentClient;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipRequest;
@@ -89,7 +92,75 @@ public class SipInviteTest extends AbstractSipTest {
 	}
 	
 	@Test(enabled = true)
-	public void testInviteOK() throws Exception {
+	public void testInviteWithoutRegisteredUAC() throws Exception {
+		// register piet
+		String userId = "piet0";
+		String uacId = "uac/aaabbbccc0";
+		User.State state = new User.State(userId + "@elasticsoftware.org", userId, 
+				md5Encoder.encodePassword("test", null));
+		state.addUserAgentClient(uacId, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10));
+		actorSystem.actorOf("user/" + userId, User.class, state);
+		
+		// do not register UAC
+		
+		// then let leonard invite piet
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
+		req.addHeader(SipHeader.CONTACT, "<sip:lwolters@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>;tag=6d473a67");
+		req.addHeader(SipHeader.TO, "\"Piet\"<sip:" + userId + "@sip.localhost.com:5060>");
+		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
+		sipServer.sendMessage(req);
+		// sleep sometime in order for message(s) to be sent back. Order of message is not assured
+		Thread.sleep(1000);
+		String message1 = sipServer.getMessage();
+		Assert.assertNotNull(message1);
+		String message2 = sipServer.getMessage();
+		if(message1.startsWith("SIP/2.0 410 Gone")) {
+			Assert.assertTrue(message2.startsWith("SIP/2.0 100 Trying"));
+		} else if(message1.startsWith("SIP/2.0 100 Trying")) {
+			Assert.assertTrue(message2.startsWith("SIP/2.0 410 Gone"));
+		} else {
+			log.warn("\n\n\n\n\n\n\n\n\n\n\n" + message1);
+			Assert.fail("Wrong messages");
+		}
+	}
+	
+	@Test(enabled = true)
+	public void testInviteWithRegisteredUAC() throws Exception {
+		// register piet
+		String userId = "piet1";
+		String uacId = "uac/aaabbbccc1";
+		User.State state = new User.State(userId + "@elasticsoftware.org", userId, 
+				md5Encoder.encodePassword("test", null));
+		state.addUserAgentClient(uacId, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10));
+		actorSystem.actorOf("user/" + userId, User.class, state);
+		
+		// register UAC
+		// due to multi threading turned off for single tests !@#!@#! 
+		// we can't use the local sip client...
+		UserAgentClient.State uacState = new UserAgentClient.State(uacId, "127.0.0.1", 9090);
+		actorSystem.actorOf(uacId, UserAgentClient.class, uacState);
+		
+		// then let leonard invite piet
+		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
+		req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
+		req.addHeader(SipHeader.CONTACT, "<sip:lwolters@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
+		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>;tag=6d473a67");
+		req.addHeader(SipHeader.TO, "\"Piet\"<sip:" + userId +"@sip.localhost.com:5060>");
+		setAuthorization(req, "lwolters", "1", md5Encoder.encodePassword("test", null));
+		sipServer.sendMessage(req);
+		// sleep sometime in order for message(s) to be sent back.
+		Thread.sleep(300);
+		String message = sipServer.getMessage();
+		Assert.assertNotNull(message);
+		Assert.assertTrue(message.startsWith("SIP/2.0 100 Trying"));
+		// sleep sometime in order for message(s) to be sent back.
+		Thread.sleep(5000);		
+	}
+	
+	@Test(enabled = true)
+	public void testInviteWithRegisterMessage() throws Exception {
 		// first let joost register himself ..
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.CALL_ID, "joost_uac");
@@ -102,6 +173,7 @@ public class SipInviteTest extends AbstractSipTest {
 		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
+		sipServer.getMessage(); // call this method in order to remove message..
 		
 		// then let leonard invite joost
 		req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");

@@ -6,6 +6,7 @@ import static org.jboss.netty.handler.codec.http.HttpConstants.SP;
 
 import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
@@ -60,6 +61,10 @@ public class SipMessageEncoder extends AbstractSipMessageEncoder {
         buf.writeBytes(String.valueOf(response.getResponseStatus().getCode()).getBytes(charSet));
         buf.writeByte(SP);
         buf.writeBytes(String.valueOf(response.getResponseStatus().getReasonPhrase()).getBytes(charSet));
+        if(StringUtils.hasLength(response.getResponseStatus().getOptionalMessage())) {
+            buf.writeByte(SP);
+            buf.writeBytes(String.format("(%s)", response.getResponseStatus().getOptionalMessage()).getBytes(charSet));
+        }
         buf.writeByte(CR);
         buf.writeByte(LF);
 	}

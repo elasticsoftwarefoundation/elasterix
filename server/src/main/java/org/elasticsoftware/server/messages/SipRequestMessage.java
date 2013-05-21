@@ -86,12 +86,12 @@ public class SipRequestMessage extends AbstractSipMessage {
 	public String toString() {
 		return String.format("SipRequestMessage[%s, %s]", method, uri);
 	}
-    
-    public SipResponseMessage toSipResponseMessage(SipResponseStatus status, String additionalMessage) {
+
+    public SipResponseMessage toSipResponseMessage(SipResponseStatus status) {
     	return new SipResponseMessage(this.getVersion().toString(), status.getCode(), 
-    			getHeaders(), getContent(), additionalMessage);
+    			getHeaders(), getContent(), status.getOptionalMessage());
     }
-    
+
     public SipRequest toSipRequest() {
     	SipRequest request = new SipRequestImpl(SipVersion.lookup(getVersion()), getSipMethod(), getUri());
     	for(Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {

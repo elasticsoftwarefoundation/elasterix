@@ -86,8 +86,16 @@ public class Dialog extends UntypedActor {
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage m = (SipRequestMessage) message;
-			sipService.tell(m.toSipResponseMessage(SipResponseStatus.NOT_FOUND,
-					String.format("User[%s] (From) not found", state.getUsername())), getSelf());
+			switch(m.getSipMethod()) {
+			case REGISTER:
+				sipService.tell(m.toSipResponseMessage(SipResponseStatus.NOT_FOUND.setOptionalMessage(
+						String.format("User[%s] (From) not found", state.getUsername()))), getSelf());
+				break;
+			case INVITE:
+				sipService.tell(m.toSipResponseMessage(SipResponseStatus.NOT_FOUND.setOptionalMessage(
+						String.format("User[%s] (TO) not found", state.getUsername()))), getSelf());
+				break;
+			}
 		} else {
 			unhandled(message);
 		}
@@ -199,8 +207,8 @@ public class Dialog extends UntypedActor {
 				try {
 					cSeqCount = Integer.parseInt(st.nextToken());
 				} catch (Exception e) {
-					sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.BAD_REQUEST, 
-							String.format("Invalid CSEQ[%s]", cSeq)), getSelf());
+					sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.BAD_REQUEST.setOptionalMessage( 
+							String.format("Invalid CSEQ[%s]", cSeq))), getSelf());
 					return true;
 				}
 				cSeqMethod = st.nextToken();
@@ -210,8 +218,8 @@ public class Dialog extends UntypedActor {
 			if(!messageType.equalsIgnoreCase(cSeqMethod)) {
 				log.warn(String.format("checkCSeq. CSEQ method[%s] doens't equals message type[%s]",
 						cSeqMethod, messageType));
-				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED,
-						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, messageType)), 
+				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(
+						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, messageType))), 
 						getSelf());
 				return true;
 			}
@@ -221,9 +229,9 @@ public class Dialog extends UntypedActor {
 				log.warn(String.format("checkCSeq. CSEQ count[%d] doens't equals message count[%d]",
 						cSeqCount, messageCount));
 				// TODO: do we need to reset state?
-				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED, 
+				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage( 
 						String.format("CSEQ count[%d] doens't equals message count[%d]", 
-								cSeqCount, messageCount)), getSelf());
+								cSeqCount, messageCount))), getSelf());
 				return true;
 			}
 		}

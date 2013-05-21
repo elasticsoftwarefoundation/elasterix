@@ -79,6 +79,8 @@ public enum SipResponseStatus {
     private final int code;
     private final String reasonPhrase;
     private final boolean provisional;
+    private final ThreadLocal<String> optionalMessage = new ThreadLocal<String>();
+    
     private SipResponseStatus(int code, String reasonPhrase) {
     	this(code, reasonPhrase, false);
     }
@@ -117,5 +119,14 @@ public enum SipResponseStatus {
     		}
     	}
     	return null;
+    }
+    
+    public SipResponseStatus setOptionalMessage(String optionalMessage) {
+    	this.optionalMessage.set(optionalMessage);
+    	return this;
+    }
+    
+    public String getOptionalMessage() {
+    	return this.optionalMessage.get();
     }
 }

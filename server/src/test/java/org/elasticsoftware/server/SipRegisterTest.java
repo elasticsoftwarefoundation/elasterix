@@ -169,7 +169,6 @@ public class SipRegisterTest extends AbstractSipTest {
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
 		String message = sipServer.getMessage();
-		log.info("\n\n\n\n\n\n\n\n\n\n\n\n\n" + message);
 		Assert.assertNotNull(message);
 		Assert.assertTrue(message.startsWith("SIP/2.0 401 Unauthorized"));
 	}

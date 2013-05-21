@@ -56,10 +56,12 @@ public final class User extends UntypedActor {
 			SipRequestMessage m = (SipRequestMessage) message;
 			switch(m.getSipMethod()) {
 			case INVITE:
-				sipService.tell(m.toSipResponseMessage(SipResponseStatus.NOT_FOUND,
-						String.format("User[%s] (To) not found", m.getUser(SipHeader.TO).getUsername())), 
-						getSelf());
-				sipService.tell(message, getSelf());
+				if(log.isDebugEnabled()) {
+					log.debug(String.format("onUndeliverable. UAC[%s] does not exist", 
+							receiver.getActorId()));
+				}
+				sipService.tell(m.toSipResponseMessage(SipResponseStatus.GONE.setOptionalMessage(
+						String.format("UAC[%s] not found", receiver.getActorId()))), getSelf());
 			}
 		}
 	}
@@ -118,9 +120,8 @@ public final class User extends UntypedActor {
 					new UserAgentClient.State(uac, user.getDomain(), user.getPort()));
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
-			sipService.tell(message.toSipResponseMessage(SipResponseStatus.SERVER_INTERNAL_ERROR,
-					String.format("User Agent Client[%s] not found", message.getUserAgentClient())), 
-					getSelf());
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.SERVER_INTERNAL_ERROR.setOptionalMessage(
+					String.format("User Agent Client[%s] not found", message.getUserAgentClient()))), getSelf());
 			return;
 		}		
 
@@ -171,6 +172,7 @@ public final class User extends UntypedActor {
 					log.debug(String.format("invite. User[%s], ringing UAC[%s]",
 							state.getUsername(), uacEntry.getKey()));
 				}
+				// sent message to UAC
 				ActorRef actor = getSystem().actorFor(uacEntry.getKey());
 				actor.tell(message, getSelf());
 				ringing = true;
@@ -180,13 +182,13 @@ public final class User extends UntypedActor {
 		// did we rang a device (or at least notified a single UAC)?
 		if(!ringing) {
 			log.info(String.format("invite. No registered UAC for user[%s]", state.getUsername()));
-			sipService.tell(message.toSipResponseMessage(SipResponseStatus.GONE, 
-					String.format("No registered UAC for user[%s]", state.getUsername())), getSelf());				
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.GONE.setOptionalMessage( 
+					String.format("No registered UAC for user[%s]", state.getUsername()))), getSelf());				
 		} else {
 			// OK, the message is sent to at least one UAC. Wait for the response
 			// to be sent back by this UAC. For now, return a 'trying' which is a
 			// decent message
-			sipService.tell(message.toSipResponseMessage(SipResponseStatus.TRYING, null), getSelf());				
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.TRYING), getSelf());				
 		}
 	}
 	
@@ -259,7 +261,8 @@ public final class User extends UntypedActor {
 				+ "realm=\"%s\", nonce=\"%d\"", ServerConfig.getRealm(), nonce));
 		
 		// send message back
-		sipService.tell(message.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED, description), getSelf());
+		sipService.tell(message.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(description)), 
+				getSelf());
 	}
 
 	/**
@@ -321,9 +324,15 @@ public final class User extends UntypedActor {
 			return userAgentClients.remove(uac) != null;
 		}
 
-		public void addUserAgentClient(String uac, long expiration) {
+		/**
+		 * ExpirationDate is the actual Date in ms when timeout occurs
+		 * 
+		 * @param uac
+		 * @param expiration
+		 */
+		public void addUserAgentClient(String uac, long expirationDate) {
 			removeUserAgentClient(uac);
-			userAgentClients.put(uac, expiration);
+			userAgentClients.put(uac, expirationDate);
 		}
 
 		protected void setNonce(long nonce) {

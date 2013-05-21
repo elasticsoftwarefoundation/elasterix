@@ -85,12 +85,12 @@ public final class UserAgentClient extends UntypedActor {
 		String contact = message.getHeader(SipHeader.CONTACT);
 		if(!StringUtils.hasLength(contact)) {
 			log.warn(String.format("doRegister. No contact header found"));
-			sipService.tell(message.toSipResponseMessage(SipResponseStatus.BAD_REQUEST,
-					"No CONTACT header found"), getSelf());
+			sipService.tell(message.toSipResponseMessage(SipResponseStatus.BAD_REQUEST.setOptionalMessage(
+					"No CONTACT header found")), getSelf());
 		}
 		
 		message.addHeader(SipHeader.DATE, new Date(state.getExpiration()).toString());
-		sipService.tell(message.toSipResponseMessage(SipResponseStatus.OK, null), getSelf());
+		sipService.tell(message.toSipResponseMessage(SipResponseStatus.OK), getSelf());
 	}
 	
 	protected void invite(ActorRef sipService, SipRequestMessage message, State state) {

@@ -161,6 +161,10 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 		if(message.getContent() == null || message.getContent().length == 0) {
 			message.setHeader(SipHeader.CONTENT_LENGTH, 0);
 		}		
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("sendResponse. [%d, %s]", message.getResponse(), 
+					message.getResponseMessage()));
+		}
 		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
 	}
 	
