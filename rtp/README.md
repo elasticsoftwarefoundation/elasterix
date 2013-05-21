@@ -23,3 +23,7 @@ License
 Quick & Dirty examples
 ----------------------
 Coming soon.
+
+Testing with real streams
+----------------------
+Use VLC: http://www.videolan.org/doc/streaming-howto/en/ch04.html
