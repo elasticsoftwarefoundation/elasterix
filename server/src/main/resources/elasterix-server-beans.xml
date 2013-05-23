@@ -47,7 +47,8 @@
 	</bean>
 
     <bean id="sipServer" class="org.elasticsoftware.sip.SipServer" init-method="start" destroy-method="stop">
-    	<property name="channelFactory" ref="nioServerSocketChannelFactory"/>
+    	<property name="serverChannelFactory" ref="nioServerSocketChannelFactory"/>
+        <property name="datagramChannelFactory" ref="nioDatagramChannelFactory"/>
     	<property name="port" value="5060"/>
         <property name="sipServerHandler" ref="sipServerHandler"/>
     </bean>
@@ -70,6 +71,14 @@
 		<constructor-arg index="1" ref="workerExecutor"/>
 		<constructor-arg index="2" type="int" ref="localMaxThread"/>
 	</bean>
+
+    <bean id="nioDatagramChannelFactory" class="org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory">
+        <constructor-arg index="0" ref="workerExecutor"/>
+        <constructor-arg index="1" type="int" ref="localMaxThread"/>
+        <constructor-arg index="2">
+            <util:constant static-field="org.jboss.netty.channel.socket.InternetProtocolFamily.IPv4"/>
+        </constructor-arg>
+    </bean>
 
 	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 					Runtime related beans

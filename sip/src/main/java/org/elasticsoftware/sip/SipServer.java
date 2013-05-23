@@ -7,10 +7,14 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.log4j.Logger;
+import org.jboss.netty.bootstrap.ConnectionlessBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.ServerChannelFactory;
+import org.jboss.netty.channel.socket.DatagramChannelFactory;
+import org.jboss.netty.channel.socket.InternetProtocolFamily;
+import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
@@ -38,20 +42,21 @@ public class SipServer {
 	private boolean childSocketTcpNoDelay = true;
 	private int childSocketReceiveBufferSize = 8192;
 	private int childSocketSendBufferSize = 8192;
-	private ChannelFactory channelFactory;
+	private ServerChannelFactory serverChannelFactory;
+    private DatagramChannelFactory datagramChannelFactory;
 	private ChannelPipelineFactory channelPipelineFactory;
 
 	@PostConstruct
 	public void start() {
-		if(channelFactory == null) {
-			channelFactory = new NioServerSocketChannelFactory(
+		if(serverChannelFactory == null) {
+			serverChannelFactory = new NioServerSocketChannelFactory(
 					Executors.newCachedThreadPool(),
 					Executors.newCachedThreadPool());
 		}
 		if(channelPipelineFactory == null) {
 			channelPipelineFactory = new SipPipelineFactory(sipServerHandler);
 		}
-		ServerBootstrap bootstrap = new ServerBootstrap(channelFactory);
+		ServerBootstrap bootstrap = new ServerBootstrap(serverChannelFactory);
 		bootstrap.setOption("backlog", socketBacklog);
 		bootstrap.setOption("reuseAddress", socketReuseAddress);
 		bootstrap.setOption("child.keepAlive", childSocketKeepAlive);
@@ -60,11 +65,21 @@ public class SipServer {
 		bootstrap.setOption("child.sendBufferSize", childSocketSendBufferSize);
 		bootstrap.setPipelineFactory(channelPipelineFactory);
 		serverChannel = bootstrap.bind(new InetSocketAddress(port));
+
+        if(datagramChannelFactory == null) {
+            datagramChannelFactory = new NioDatagramChannelFactory(InternetProtocolFamily.IPv4);
+        }
+        // udp connection
+        ConnectionlessBootstrap udpBootstrap = new ConnectionlessBootstrap(datagramChannelFactory);
+        // @todo: add properties
+        udpBootstrap.setPipelineFactory(channelPipelineFactory);
+        udpBootstrap.bind(new InetSocketAddress(port));
 	}
 	
 	@PreDestroy
     public void stop() {
         serverChannel.close();
+
     }
 	
 	////////////////////////////////////
@@ -84,8 +99,12 @@ public class SipServer {
         this.sipServerHandler = sipServerHandler;
     }
     
-    public void setChannelFactory(ChannelFactory channelFactory) {
-    	this.channelFactory = channelFactory;
+    public void setServerChannelFactory(ServerChannelFactory channelFactory) {
+    	this.serverChannelFactory = channelFactory;
+    }
+
+    public void setDatagramChannelFactory(DatagramChannelFactory datagramChannelFactory) {
+        this.datagramChannelFactory = datagramChannelFactory;
     }
 
     ////////////////////////////////////
