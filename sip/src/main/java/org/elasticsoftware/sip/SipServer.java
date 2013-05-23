@@ -31,8 +31,9 @@ public class SipServer {
 	/** Default port for the SIP server */
 	private int port = 5060;
 
-	/** Server channel */
+	/** TCP Server channel */
 	private Channel serverChannel;
+    private Channel datagramChannel;
 
     private SipServerHandler sipServerHandler;
 
@@ -73,13 +74,13 @@ public class SipServer {
         ConnectionlessBootstrap udpBootstrap = new ConnectionlessBootstrap(datagramChannelFactory);
         // @todo: add properties
         udpBootstrap.setPipelineFactory(channelPipelineFactory);
-        udpBootstrap.bind(new InetSocketAddress(port));
+        datagramChannel = udpBootstrap.bind(new InetSocketAddress(port));
 	}
 	
 	@PreDestroy
     public void stop() {
         serverChannel.close();
-
+        datagramChannel.close();
     }
 	
 	////////////////////////////////////
