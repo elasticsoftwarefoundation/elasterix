@@ -81,10 +81,10 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 			SipRequestMessage m = (SipRequestMessage) message;
 
 			// Create new dialog actor
-			String uid = m.getUser(SipHeader.FROM).getUsername();
-			String uacId = m.getUserAgentClient();
-			ActorRef actor = getSystem().actorOf(String.format("dialog/%s_%s", uid, uacId), 
-					Dialog.class, new Dialog.State(uid, uacId));
+			SipUser user = m.getSipUser(SipHeader.FROM);
+			String callId = m.getCallDialog();
+			ActorRef actor = getSystem().actorOf(String.format("dialog/%s", callId), 
+					Dialog.class, new Dialog.State(user.getUsername(), callId, m.getMethod()));
 			actor.tell(message, getSelf());
 		} else {
 			unhandled(message);
@@ -110,16 +110,11 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	
 	private void tellDialog(AbstractSipMessage message) {
 		
-		// get user ID (must be present, check done #SipServerHandler)
-        String userId = message.getUser(SipHeader.FROM).getUsername();
+        // get call ID (must be present, check done #SipServerHandler)
+        String callId = message.getCallDialog();
         
-        // get UAC ID (must be present, check done #SipServerHandler)
-        String uacId = message.getUserAgentClient();
-        
-        // redirect to dialog actor. Order of actorId matters: 
-        // userId -> uacId == incoming (from uac to server)
-        // uacId -> userId == outgoing (from server to uac)
-        ActorRef dialog = actorSystem.actorFor(String.format("dialog/%s_%s", userId, uacId));
+        // redirect to dialog actor. 
+        ActorRef dialog = actorSystem.actorFor(String.format("dialog/%s", callId));
         dialog.tell(message, actorSystem.serviceActorFor("sipService"));
 	}
 	
@@ -148,7 +143,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 		// 
 		// alter existing headers
 		//
-		SipUser contact = message.getUser(SipHeader.CONTACT);
+		SipUser contact = message.getSipUser(SipHeader.CONTACT);
 		message.appendHeader(SipHeader.VIA, "received", contact.getDomain());
 		message.appendHeader(SipHeader.VIA, "rport", Long.toString(contact.getPort()));
 		
@@ -178,7 +173,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 		//
 		// set required headers
 		//
-		message.setHeader(SipHeader.CALL_ID, ServerConfig.getCallId());
+		message.setHeader(SipHeader.CALL_ID, ServerConfig.getNewCallId());
 		message.setHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
 		
 		//

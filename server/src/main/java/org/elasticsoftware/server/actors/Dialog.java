@@ -13,8 +13,6 @@ import org.elasticsoftware.server.messages.SipResponseMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
-import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
-import org.springframework.security.authentication.encoding.PasswordEncoder;
 import org.springframework.util.StringUtils;
 
 /**
@@ -26,7 +24,6 @@ import org.springframework.util.StringUtils;
  */
 public class Dialog extends UntypedActor {
 	private static final Logger log = Logger.getLogger(Dialog.class);	
-	private PasswordEncoder passwordEncoder = new Md5PasswordEncoder();
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
@@ -36,27 +33,27 @@ public class Dialog extends UntypedActor {
 		State state = getState(null).getAsObject(State.class);
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage sipMessage = (SipRequestMessage) message;
-
-			// check if authenticated
-			if(checkAuthentication(sipMessage, state)) {
-				return;
-			}
 			
-			// CSeq must be updated for each request within a single dialog.
-			// A dialog involves a user, a single UAC and the server
 			ActorRef sipService = getSystem().serviceActorFor("sipService");
-			if(checkCSeq(sipService, sipMessage, state)) {
-				return;
-			}
-			
-			// CSEQ OK, pass message to user
 			switch(sipMessage.getSipMethod()) {
 			case REGISTER:
+				if(checkAuthentication(sipMessage, state)) {
+					return;
+				}
+				if(checkCSeq(sipService, sipMessage, state)) {
+					return;
+				}
 				ActorRef user = getSystem().actorFor("user/" + state.getUsername());
 				user.tell(message, getSelf());		
 				return;
 			case INVITE:
-				SipUser toUser = sipMessage.getUser(SipHeader.TO);
+				if(checkAuthentication(sipMessage, state)) {
+					return;
+				}
+				if(checkCSeq(sipService, sipMessage, state)) {
+					return;
+				}
+				SipUser toUser = sipMessage.getSipUser(SipHeader.TO);
 				user = getSystem().actorFor("user/" + toUser.getUsername());
 				user.tell(message, getSelf());	
 				return;
@@ -102,48 +99,25 @@ public class Dialog extends UntypedActor {
 	}
 	
 	/**
-	 * Checks authentication of user / dialog.<br>
-	 * First a check is done if message (user/dialog) was previously authenticated by
-	 * using a secret key match (based on a SIPHeader). In case of no match, the FROM
-	 * user is told to authenticate him/her self. When succesfull, the original message 
-	 * is sent back but this time with the property authenticated set to true. Now this
-	 * dialog will set the secret key so that from now on new message belonging to this
-	 * user / dialog are automatically authenticated.
+	 * Checks authentication of user / dialog.<br> The first time when user has not authenticated
+	 * himself, this message is forwarded to the FROM user and told to authenticate him/her self. 
+	 * When successful, the original message is sent back to this dialog, but this time with the 
+	 * property authenticated set to true.
 	 * 
 	 * @param sipMessage
 	 * @param state
 	 * @return
 	 */
 	private boolean checkAuthentication(SipRequestMessage sipMessage, State state) {
-		
-		// check secret key
-		String value = sipMessage.getHeader(SipHeader.CONTACT);
-		if(StringUtils.hasLength(value)) {
-			if(passwordEncoder.encodePassword(value, null).equals(state.getSecretKey())) {
-				if(log.isDebugEnabled()) {
-					log.debug(String.format("checkAuthentication. User[%s] previously authenticated",
-							state.getUsername()));
-				}
-				sipMessage.setAuthenticated(true);
-				sipMessage.appendHeader(SipHeader.TO, "tag", state.getUserTag());
-				return false;
-			}
-		}
-		
-		// reset CSEQ counters
-		state.reset(); 
-		
 		if(sipMessage.isAuthenticated()) {
 			if(log.isDebugEnabled()) {
 				log.debug(String.format("checkAuthentication. User[%s] just authenticated",
 						state.getUsername()));
 			}
-			state.setSecretKey(passwordEncoder.encodePassword(
-					sipMessage.getHeader(SipHeader.CONTACT), null));
+
 			// append TO user with UID tag
 			String tag = UUID.randomUUID().toString();
-			state.setUserTag(tag);
-			sipMessage.appendHeader(SipHeader.TO, "tag", state.getUserTag());
+			sipMessage.appendHeader(SipHeader.TO, "tag", tag);
 			return false;
 		} else {
 			if(log.isDebugEnabled()) {
@@ -169,38 +143,19 @@ public class Dialog extends UntypedActor {
 	 */
 	private boolean checkCSeq(ActorRef sipService, SipRequestMessage sipRequest, State state) {
 		// CSeq must be updated for each request within a single dialog.
-		// A dialog involves a user, a single UAC and the server
-		
-		// get current (message) count 
-		String messageType = null;
-		int messageCount = -1;
-		switch(sipRequest.getSipMethod()) {
-		case INVITE:
-			messageType = "INVITE";
-			messageCount = state.incrementAndGetInvite();
-			break;
-		case REGISTER:
-			messageType = "REGISTER";
-			messageCount = state.incrementAndGetRegister();
-			break;
-//		case OPTIONS:
-//			  CSEQ is always 102 OPTIONS
-		default:
-			log.info(String.format("checkCSeq. Unsupported method[%s]", 
-					sipRequest.getSipMethod().name()));
-			return false;
-		}
+		String method = state.getMethod();
 		
 		String cSeq = sipRequest.getHeader(SipHeader.CSEQ);
-		int cSeqCount = -1;
-		String cSeqMethod = null;
 		if(!StringUtils.hasLength(cSeq)) {
 			// the specs indicate that cseq might be empty. If so, add a new entry
 			log.warn(String.format("checkCSeq. No CSEQ set for Dialog[%s,%s]. Creating new one",
-					state.getUsername(), state.getUserAgentClient()));
-			state.reset();
-			sipRequest.addHeader(SipHeader.CSEQ, String.format("1 %s", messageType));
+					state.getCallId(), state.getUsername()));
+			sipRequest.addHeader(SipHeader.CSEQ, String.format("1 %s", method));
+			return false;
 		} else {
+			int cSeqCount = -1;
+			String cSeqMethod = null;
+
 			// CSeq: 1 REGISTER || 304 INVITE .....
 			StringTokenizer st = new StringTokenizer(cSeq, " ", false);
 			while(st.countTokens() >= 2) {
@@ -215,23 +170,23 @@ public class Dialog extends UntypedActor {
 			}
 			
 			// check method
-			if(!messageType.equalsIgnoreCase(cSeqMethod)) {
+			if(!method.equalsIgnoreCase(cSeqMethod)) {
 				log.warn(String.format("checkCSeq. CSEQ method[%s] doens't equals message type[%s]",
-						cSeqMethod, messageType));
+						cSeqMethod, method));
 				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(
-						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, messageType))), 
+						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, method))), 
 						getSelf());
 				return true;
 			}
 			
 			// check count 
-			if(messageCount != cSeqCount) {
+			int count = state.incrementAndGet();
+			if(count != cSeqCount) {
 				log.warn(String.format("checkCSeq. CSEQ count[%d] doens't equals message count[%d]",
-						cSeqCount, messageCount));
-				// TODO: do we need to reset state?
+						cSeqCount, count));
 				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage( 
 						String.format("CSEQ count[%d] doens't equals message count[%d]", 
-								cSeqCount, messageCount))), getSelf());
+								cSeqCount, count))), getSelf());
 				return true;
 			}
 		}
@@ -242,18 +197,18 @@ public class Dialog extends UntypedActor {
 	 * State belonging to Dialog
 	 */
 	public static final class State {
-		private int registerCount = 0;
-		private int inviteCount = 0;
+		private int count = 0;
 		private final String username;
-		private final String userAgentClient;
-		private String userTag;
-		private String secretKey;
-
+		private final String callId;
+		private final String method;
+		
 		@JsonCreator
 		public State(@JsonProperty("username") String username,
-				@JsonProperty("userAgentClient") String userAgentClient) {
+				@JsonProperty("callId") String callId,
+				@JsonProperty("method") String method) {
 			this.username = username;
-			this.userAgentClient = userAgentClient;
+			this.callId = callId;
+			this.method = method;
 		}
 
 		@JsonProperty("username")
@@ -261,50 +216,23 @@ public class Dialog extends UntypedActor {
 			return username;
 		}
 
-		@JsonProperty("userAgentClient")
-		public String getUserAgentClient() {
-			return userAgentClient;
+		@JsonProperty("callId")
+		public String getCallId() {
+			return callId;
 		}
 
-		@JsonProperty("registerCount")
-		public int getRegisterCount() {
-			return registerCount;
+		@JsonProperty("method")
+		public String getMethod() {
+			return method;
 		}
 		
-		@JsonProperty("userTag")
-		public String getUserTag() {
-			return userTag;
-		}
-
-		protected void setUserTag(String userTag) {
-			this.userTag = userTag;
+		@JsonProperty("count")
+		public long getCount() {
+			return count;
 		}
 		
-		@JsonProperty("secretKey")
-		public String getSecretKey() {
-			return secretKey;
-		}
-
-		protected void setSecretKey(String secretKey) {
-			this.secretKey = secretKey;
-		}
-
-		protected int incrementAndGetRegister() {
-			return ++registerCount;
-		}
-		
-		@JsonProperty("inviteCount")
-		public int getInviteCount() {
-			return inviteCount;
-		}
-
-		protected int incrementAndGetInvite() {
-			return ++inviteCount;
-		}
-
-		protected void reset() {
-			registerCount = 1;
-			inviteCount = 1;
+		protected int incrementAndGet() {
+			return ++count;
 		}
 	}
 }

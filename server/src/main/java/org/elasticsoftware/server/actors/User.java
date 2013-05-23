@@ -19,6 +19,7 @@ package org.elasticsoftware.server.actors;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
@@ -29,6 +30,7 @@ import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.server.ServerConfig;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.util.StringUtils;
@@ -40,10 +42,10 @@ import org.springframework.util.StringUtils;
  */
 public final class User extends UntypedActor {
 	private static final Logger log = Logger.getLogger(User.class);
-//	/** To be used for generating alphanumeric nonce */
-//	private static final char[] CHARACTERS = new char[] {'a','b','c','d','e','f','g','h',
-//		'i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2',
-//		'3','4','5','6','7','8','9','0'};
+	private static final boolean STRICT_UAC = true;
+	/** To be used for generating alphanumeric nonce */
+	private static final char[] CHARACTERS = new char[] {'a','b','c','d','e','f','g','h',
+		'i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
 
 	@Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
@@ -60,8 +62,21 @@ public final class User extends UntypedActor {
 					log.debug(String.format("onUndeliverable. UAC[%s] does not exist", 
 							receiver.getActorId()));
 				}
-				sipService.tell(m.toSipResponseMessage(SipResponseStatus.GONE.setOptionalMessage(
+
+				if(STRICT_UAC) {
+					sipService.tell(m.toSipResponseMessage(SipResponseStatus.GONE.setOptionalMessage(
 						String.format("UAC[%s] not found", receiver.getActorId()))), getSelf());
+				} else {
+					// create UAC and resent message
+					StringTokenizer st = new StringTokenizer(receiver.getActorId(), "/_", false);
+					if(st.countTokens() == 4) {
+						st.nextToken(); // skip "uac"
+						UserAgentClient.State state = new UserAgentClient.State(st.nextToken(), 
+								st.nextToken(), Integer.parseInt(st.nextToken()));
+						ActorRef ref = getSystem().actorOf(receiver.getActorId(), UserAgentClient.class, state);
+						ref.tell(message, getSelf());
+					}						
+				}
 			}
 		}
 	}
@@ -77,21 +92,28 @@ public final class User extends UntypedActor {
 		
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage request = (SipRequestMessage) message;
-
-			// authenticated?
-			if(!request.isAuthenticated()) {
-				if(log.isDebugEnabled()) {
-					log.debug(String.format("onReceive. Authenticating user[%s]", state.getUsername()));
-				}
-				if(authenticate(sipService, request, state)) {
-					// Successfully authenticated. Inform sender (dialog) and continue
+			
+			// check if request authenticated
+			if(request.isAuthenticated()) {
+				// previously authenticated. Continue
+			} else {
+				if(authenticate(sender, request, state)) {
 					request.setAuthenticated(true);
+					if(request.getSipMethod() == SipMethod.REGISTER) {
+						// OK, Update nonce so that next requests are automatically rejected. 
+						state.setNonce(generateNonce());
+					}
 					sender.tell(request, getSelf());
-				} else {
-					// not authenticated. Response already sent. Voiding
+				} else {					
+					if(request.getSipMethod() == SipMethod.REGISTER) {
+						state.setNonce(generateNonce());
+						request.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
+								+ "realm=\"%s\", nonce=\"%s\"", ServerConfig.getRealm(), state.getNonce()));
+					}
+					sipService.tell(request.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED), getSelf());
 				}
 				return;
-			} 
+			}
 
 			switch (request.getSipMethod()) {
 			case REGISTER:
@@ -112,44 +134,40 @@ public final class User extends UntypedActor {
 		if(log.isDebugEnabled()) log.debug(String.format("register. [%s]", message));
 
 		// get uac 
-		ActorRef userAgentClient = null;
-		try {
-			String uac = String.format("uac/%s", message.getUserAgentClient());
-			SipUser user = message.getUser(SipHeader.CONTACT);
-			userAgentClient = getSystem().actorOf(uac, UserAgentClient.class,
-					new UserAgentClient.State(uac, user.getDomain(), user.getPort()));
-		} catch (Exception e) {
-			log.error(e.getMessage(), e);
-			sipService.tell(message.toSipResponseMessage(SipResponseStatus.SERVER_INTERNAL_ERROR.setOptionalMessage(
-					String.format("User Agent Client[%s] not found", message.getUserAgentClient()))), getSelf());
-			return;
-		}		
-
+		SipUser user = message.getSipUser(SipHeader.CONTACT);
+		
 		// check expiration...
-		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
-		if(expires != null) {
-			if(expires.longValue() == 0) {
-				// remove current binding with UAC set in message
-				state.removeUserAgentClient(userAgentClient.getActorId());
-			} else {
-				if(log.isDebugEnabled()) {
-					log.debug(String.format("register. Registering UAC[%s] for User[%s]",
-							userAgentClient.getActorId(), state.getUsername()));
-				}
-				message.appendHeader(SipHeader.CONTACT, "expires", Long.toString(expires));
-
-				// update binding (with new expiration)
-				state.addUserAgentClient(userAgentClient.getActorId(), 
-						System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires));
-				
-				// schedule timeout...
-				getSystem().getScheduler().scheduleOnce(getSelf(), 
-						message, getSelf(), expires, TimeUnit.SECONDS);
+		long expires = message.getExpires();
+		if(expires == 0) {
+			// remove current binding with UAC set in message (if exist)
+			state.removeUserAgentClient(user);
+		} else {
+			if(log.isDebugEnabled()) {
+				log.debug(String.format("register. Registering UAC[%s:%d] for User[%s]",
+						user.getDomain(), user.getPort(), user.getUsername()));
 			}
+			//message.appendHeader(SipHeader.CONTACT, "expires", Long.toString(expires));
+	
+			if(STRICT_UAC) {
+				try {
+					UserAgentClient.State uacState = new UserAgentClient.State(user.getUsername(), 
+							user.getDomain(), user.getPort());
+					getSystem().actorOf(state.key(user), UserAgentClient.class, uacState);
+				} catch (Exception e) {
+					log.error(e.getMessage(), e);
+				}
+			}
+			
+			// update binding (with new expiration)
+			state.addUserAgentClient(user, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires));
+			
+			// schedule timeout for destruction...
+			getSystem().getScheduler().scheduleOnce(getSelf(), 
+					message, getSelf(), expires, TimeUnit.SECONDS);
 		}
 
-		// send register message to device.
-		userAgentClient.tell(message, getSelf());
+		// send OK back to client
+		sipService.tell(message.toSipResponseMessage(SipResponseStatus.OK), getSelf());
 	}
 	
 	protected void invite(ActorRef sipService, SipRequestMessage message, State state) {
@@ -166,7 +184,6 @@ public final class User extends UntypedActor {
 			if(uacEntry.getValue() < now) {
 				log.info(String.format("invite. User[%s] -> UAC[%s, %s] expired",
 						state.getUsername(), uacEntry.getKey(), new Date(uacEntry.getValue())));
-				state.removeUserAgentClient(uacEntry.getKey());
 			} else {
 				if(log.isDebugEnabled()) {
 					log.debug(String.format("invite. User[%s], ringing UAC[%s]",
@@ -192,77 +209,70 @@ public final class User extends UntypedActor {
 		}
 	}
 	
-	/**
-	 * Authenticates this user (actor)
-	 * 
-	 * @param sender
-	 * @param message
-	 * @param state
-	 * @return
-	 */
-	private final boolean authenticate(ActorRef sipService, SipRequestMessage message, State state) {
+	private final boolean authenticate(ActorRef dialog, SipRequestMessage request, State state) {
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("onReceive. Authenticating %s[%s]", request.getMethod(), 
+					state.getUsername()));
+		}
+		
+		switch(request.getSipMethod()) {
+		case REGISTER:
+			// check if authentication is present...
+			String authorization = request.getHeader(SipHeader.AUTHORIZATION);
+			if(!StringUtils.hasLength(authorization)) {
+				if(log.isDebugEnabled()) log.debug("authenticate. No authorization set");
+				return false;
+			}
+			
+			Map<String,String> map = request.tokenize(SipHeader.AUTHORIZATION);
+			
+			// check username
+			String val = map.get("username");
+			if(!state.getUsername().equalsIgnoreCase(val)) {
+				if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided username[%s] "
+						+ "!= given username[%s]", val, state.getUsername()));
+				return false;
+			}
 
-		// check if authentication is present...
-		String authorization = message.getHeader(SipHeader.AUTHORIZATION);
-		if(!StringUtils.hasLength(authorization)) {
-			if(log.isDebugEnabled()) log.debug("authenticate. No authorization set");
-			sendUnauthorized(sipService, message, state, "No authorization header found");
-			return false;
+			// check nonce
+			val = map.get("nonce");
+			if(!state.getNonce().equalsIgnoreCase(val)) {
+				if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided nonce[%s] "
+						+ "!= given nonce[%s]", val, state.getNonce()));
+				return false;
+			}
+			
+			// check hash
+			val = map.get("response"); 
+			if(!state.getSecretHash().equals(val)) {
+				if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
+						+ "!= given hash[%s]", val, state.getSecretHash()));
+				return false;
+			}
+			return true;
+		case INVITE:
+			// check if we have a UAC registered for user
+			Long expires = state.getUserAgentClient(request.getSipUser(SipHeader.CONTACT)); 
+			if(expires == null || expires.longValue() < System.currentTimeMillis()) {
+				return false;
+			} else {
+				return true;
+			}
 		}
-		
-		Map<String,String> map = message.tokenize(SipHeader.AUTHORIZATION);
-		
-		// check username
-		String val = map.get("username");
-		if(!state.getUsername().equalsIgnoreCase(val)) {
-			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided username[%s] "
-					+ "!= given username[%s]", val, state.getUsername()));
-			sendUnauthorized(sipService, message, state, "Invalid username");
-			return false;
-		}
-
-		// check nonce
-		val = map.get("nonce");
-		if(!Long.toString(state.getNonce()).equalsIgnoreCase(val)) {
-			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided nonce[%s] "
-					+ "!= given nonce[%d]", val, state.getNonce()));
-			sendUnauthorized(sipService, message, state, "Nonce does not match");
-			return false;
-		}
-		
-		// check hash
-		val = map.get("response"); 
-		if(!state.getSecretHash().equals(val)) {
-			if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
-					+ "!= given hash[%s]", val, state.getSecretHash()));
-			sendUnauthorized(sipService, message, state, "Hash incorrect");
-			return false;
-		}
-		
-		return true;
+		return false;
 	}
 	
-	/**
-	 * Sends unauthorized response back to sender. Also accordingly set nonce and 
-	 * WWW_AUTHENTICATE header
-	 * 
-	 * @param sender
-	 * @param message
-	 * @param state
-	 * @param description
-	 */
-	private void sendUnauthorized(ActorRef sipService, SipRequestMessage message, State state, String description) {
-		// Generate nonce and set WWW-AUTHENTICATE header
-		long nonce = (10000000 + ((long) (Math.random() * 90000000.0))); 
-		//long nonce = state.getNonce() + 1;
-		if(log.isDebugEnabled()) log.debug(String.format("Generated nonce[%d, %,8d]", nonce, nonce));
-		state.setNonce(nonce);
-		message.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
-				+ "realm=\"%s\", nonce=\"%d\"", ServerConfig.getRealm(), nonce));
-		
-		// send message back
-		sipService.tell(message.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(description)), 
-				getSelf());
+	private String generateNonce() {
+		// a value between 10M and 100M 
+		long nonce = (10000000 + ((long) (Math.random() * 90000000.0)));
+		// add 5 random characters at random places...
+		StringBuffer sb = new StringBuffer(Long.toString(nonce));
+		for(int i = 0; i < 5; i++) {
+			char c = CHARACTERS[(int) ((double) (CHARACTERS.length - 1) * Math.random())];
+			int idx = (int) (Math.random() * (double) (sb.length() - 1));
+			sb.insert(idx, c);
+		}
+		return sb.toString();
 	}
 
 	/**
@@ -274,7 +284,7 @@ public final class User extends UntypedActor {
 		private final String secretHash;
 		/** UID of User Agent Client (key) and expires (seconds) as value */
 		private Map<String, Long> userAgentClients = new HashMap<String, Long>();
-		private long nonce = 1;
+		private String nonce;
 		private String tag;
 
 		@JsonCreator
@@ -307,7 +317,7 @@ public final class User extends UntypedActor {
 		}
 
 		@JsonProperty("nonce")
-		public long getNonce() {
+		public String getNonce() {
 			return nonce;
 		}
 		
@@ -316,12 +326,8 @@ public final class User extends UntypedActor {
 			return tag;
 		}
 
-		//
-		//
-		//
-
-		public boolean removeUserAgentClient(String uac) {
-			return userAgentClients.remove(uac) != null;
+		public boolean removeUserAgentClient(SipUser user) {
+			return userAgentClients.remove(key(user)) != null;
 		}
 
 		/**
@@ -330,13 +336,22 @@ public final class User extends UntypedActor {
 		 * @param uac
 		 * @param expiration
 		 */
-		public void addUserAgentClient(String uac, long expirationDate) {
-			removeUserAgentClient(uac);
-			userAgentClients.put(uac, expirationDate);
+		public void addUserAgentClient(SipUser user, long expirationDate) {
+			removeUserAgentClient(user);
+			userAgentClients.put(key(user), expirationDate);
+		}
+		
+		public Long getUserAgentClient(SipUser user) {
+			return userAgentClients.get(key(user));
 		}
 
-		protected void setNonce(long nonce) {
+		protected void setNonce(String nonce) {
 			this.nonce = nonce;
+		}
+		
+		protected String key(SipUser user) {
+			return String.format("uac/%s_%s_%d", user.getUsername(), user.getDomain(), 
+					user.getPort());
 		}
 	}
 }

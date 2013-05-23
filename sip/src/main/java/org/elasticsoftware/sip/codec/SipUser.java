@@ -12,13 +12,14 @@ public class SipUser {
 	private String displayName;
 	private String username;
 	private String domain;
+	private String uri;
 	private int port;
 
 	public SipUser(String value) {
 		int idx = value.indexOf("<");
     	if(idx != -1) {
     		displayName = value.substring(0, idx).replace('\"', ' ').trim();
-    		value = value.substring(idx+1, value.indexOf('>'));
+    		value = uri = value.substring(idx+1, value.indexOf('>'));
     		// value => sip:124@sip.outerteams.com:5060
         }
 
@@ -63,6 +64,10 @@ public class SipUser {
 	
 	public int getPort() {
 		return port;
+	}
+	
+	public String getUri() {
+		return uri;
 	}
 	
 	@Override

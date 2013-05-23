@@ -16,15 +16,18 @@
 
 package org.elasticsoftware.server;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.ActorSystem;
 import org.elasticsoftware.elasticactors.test.TestActorSystem;
 import org.elasticsoftware.server.actors.User;
+import org.elasticsoftware.server.actors.UserAgentClient;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
@@ -33,6 +36,7 @@ import org.testng.annotations.BeforeTest;
  * @author Leonard Wolters
  */
 public abstract class AbstractSipTest {
+	protected static final long SLEEP = 400;
     private TestActorSystem testActorSystem;
 	protected ActorSystem actorSystem;
 	protected SipClient sipServer;
@@ -53,14 +57,8 @@ public abstract class AbstractSipTest {
 		sipServer = new SipClient("localhost", 5060);
 		localSipServer = new SipClient(9090);
 		
-		// create two users
-		User.State state = new User.State("leonard@elasticsoftware.org", "lwolters", 
-				md5Encoder.encodePassword("test", null));
-		ActorRef ref = actorSystem.actorOf("user/lwolters", User.class, state);
-		
-		state = new User.State("joost@elasticsoftware.org", "jwijgerd", 
-				md5Encoder.encodePassword("test", null));
-		ref = actorSystem.actorOf("user/jwijgerd", User.class, state);
+		addUser("lwolters");
+		addUser("jwijgerd");
 		
 		// wait some time for actors to be created
 		Thread.sleep(300);
@@ -100,5 +98,27 @@ public abstract class AbstractSipTest {
 	
 	protected SipClient getSipClient() {
 		return new SipClient("localhost", 5060);
+	}
+	
+	protected void addUser(String userId) throws Exception {
+		addUser(userId, null);
+	}
+	protected void addUser(String userId, SipUser user) throws Exception {
+		User.State state = new User.State(userId + "@elasticsoftware.org", userId, 
+				md5Encoder.encodePassword("test", null));
+		if(user != null) {
+			state.addUserAgentClient(user, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10));
+		}
+		actorSystem.actorOf("user/" + userId, User.class, state);
+	}
+	protected SipUser createSipUser(String username, String domain, int port) {
+		return new SipUser(String.format("\"Unknown\"<sip:%s@%s:%d>", 
+				username, domain, port));
+	}
+	protected void addUserAgentClient(SipUser user) throws Exception {
+		UserAgentClient.State state = new UserAgentClient.State(user.getUsername(), 
+				user.getDomain(), user.getPort());
+		actorSystem.actorOf(String.format("uac/%s_%s_%d", user.getUsername(), user.getDomain(), 
+				user.getPort()), UserAgentClient.class, state);		
 	}
 }

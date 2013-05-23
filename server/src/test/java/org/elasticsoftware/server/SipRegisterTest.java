@@ -220,8 +220,8 @@ public class SipRegisterTest extends AbstractSipTest {
 		// get nonce!
 		String message = sipServer.getMessage();
 		int idx = message.indexOf("nonce=") + 7;
-		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
-		setAuthorization(req, "lwolters", Long.toString(nonce), "");
+		String nonce = message.substring(idx, message.indexOf('\"', idx));
+		setAuthorization(req, "lwolters", nonce, "");
 		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -243,8 +243,8 @@ public class SipRegisterTest extends AbstractSipTest {
 		// get nonce!
 		String message = sipServer.getMessage();
 		int idx = message.indexOf("nonce=") + 7;
-		long nonce = Long.parseLong(message.substring(idx, message.indexOf('\"', idx)));
-		setAuthorization(req, "lwolters", Long.toString(nonce), md5Encoder.encodePassword("test", null));
+		String nonce = message.substring(idx, message.indexOf('\"', idx));
+		setAuthorization(req, "lwolters", nonce, md5Encoder.encodePassword("test", null));
 		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);

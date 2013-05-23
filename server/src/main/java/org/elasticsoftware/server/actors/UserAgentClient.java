@@ -16,11 +16,11 @@
 
 package org.elasticsoftware.server.actors;
 
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
@@ -28,10 +28,8 @@ import org.elasticsoftware.server.ServerConfig;
 import org.elasticsoftware.server.messages.SipRequestMessage;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
-import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.elasticsoftware.sip.codec.SipVersion;
-import org.springframework.util.StringUtils;
 
 /**
  * User Agent Client (UAC)<br>
@@ -53,9 +51,6 @@ public final class UserAgentClient extends UntypedActor {
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage m = (SipRequestMessage) message;
 			switch(m.getSipMethod()) {
-			case REGISTER:
-				register(sipService, m, state);
-				return;
 			case INVITE:
 				invite(sipService, m, state);
 				return;
@@ -66,57 +61,30 @@ public final class UserAgentClient extends UntypedActor {
 			}
 		}
 	}
-
-	protected void register(ActorRef sipService, SipRequestMessage message, State state) {
-
-		// set expiration. (seconds)
-		Long expires = message.getHeaderAsLong(SipHeader.EXPIRES);
-		if(expires != null) {
-			state.setExpires(expires);
-		}
-
-		// schedule timeout...
-		if(expires != null) {
-			getSystem().getScheduler().scheduleOnce(getSelf(), 
-				message, getSelf(), expires, TimeUnit.SECONDS);
-		}
-		
-		// check for contact header
-		String contact = message.getHeader(SipHeader.CONTACT);
-		if(!StringUtils.hasLength(contact)) {
-			log.warn(String.format("doRegister. No contact header found"));
-			sipService.tell(message.toSipResponseMessage(SipResponseStatus.BAD_REQUEST.setOptionalMessage(
-					"No CONTACT header found")), getSelf());
-		}
-		
-		message.addHeader(SipHeader.DATE, new Date(state.getExpiration()).toString());
-		sipService.tell(message.toSipResponseMessage(SipResponseStatus.OK), getSelf());
-	}
 	
 	protected void invite(ActorRef sipService, SipRequestMessage message, State state) {
+		state.setDeviceState(DeviceState.RINGING);
+		
 		// ok, construct a new request message (invite) and sent it to 
 		// the sip client of user...
-		
 		SipVersion version = SipVersion.SIP_2_0;
 		
 		// uri is complete CONTACT header without trailing '<' and ending '>'
-		String uri = message.getHeader(SipHeader.CONTACT);
-		if(uri.startsWith("<")) uri = uri.substring(1);
-		if(uri.endsWith(">")) uri = uri.substring(0, uri.length() - 1);
+		SipUser user = message.getSipUser(SipHeader.CONTACT);
 		
 		// create sip invite request message
-		SipRequestMessage sipInvite = new SipRequestMessage(SipMethod.INVITE.name(), uri, 
+		SipRequestMessage sipInvite = new SipRequestMessage(SipMethod.INVITE.name(), user.getUri(), 
 				version.toString(), null, null, false);
+		sipInvite.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
 		sipInvite.addHeader(SipHeader.CONTACT, String.format("<sip:%s@%s:%d;transport=%s;rinstance=6f8dc969b62d1466>",
-				ServerConfig.getUsername(), ServerConfig.getIPAddress(), ServerConfig.getSipPort(), 
+				user.getUsername(), ServerConfig.getIPAddress(), ServerConfig.getSipPort(), 
 				ServerConfig.getProtocol()));
-		sipInvite.addHeader(SipHeader.CSEQ, "");
-		sipInvite.addHeader(SipHeader.FROM, String.format("\"%s\"<sip:%s@%s:%d>;tag=6d473a67",
-				ServerConfig.getUsername(), ServerConfig.getUsername(), ServerConfig.getIPAddress(), 
-				ServerConfig.getSipPort()));
-		SipUser user = message.getUser(SipHeader.TO);
-		sipInvite.addHeader(SipHeader.TO, String.format("\"%s\"<sip:%s@%s:%d>;tag=6d473a67", 
-				user.getDisplayName(), user.getUsername(), state.getIPAddress(), state.getPort()));
+		sipInvite.addHeader(SipHeader.CSEQ, "1 INVITE");
+		sipInvite.addHeader(SipHeader.FROM, message.getHeader(SipHeader.FROM));
+		//sipInvite.addHeader(SipHeader.TO, message.getHeader(SipHeader.TO));
+		user = message.getSipUser(SipHeader.TO);
+		sipInvite.addHeader(SipHeader.TO, String.format("<sip:%s@%s:%d;transport=%s;rinstance=6f8dc969b62d1466>",
+				user.getUsername(), state.getIPAddress(), state.getPort(), ServerConfig.getProtocol()));
 		
 		// send SIP Request to UAC
 		sipService.tell(sipInvite, getSelf());
@@ -126,36 +94,25 @@ public final class UserAgentClient extends UntypedActor {
 	 * State belonging to User Agent Client
 	 */
 	public static final class State {
-		private final String uid;
-		private long expires = 0;
-		private long expiration = 0;
-		private String ipAddress;
-		private int port;
+		private final String username;
+		private final String ipAddress;
+		private final int port;
+		private long deviceState = DeviceState.FREE.id;
 
 		@JsonCreator
-		public State(@JsonProperty("uid") String uid, 
+		public State(@JsonProperty("username") String username, 
 				@JsonProperty("ipAddress") String ipAddress, 
 				@JsonProperty("port") int port) {
-			this.uid = uid;
+			this.username = username;
 			this.ipAddress = ipAddress;
 			this.port = port;
 		}
 
-		@JsonProperty("uid")
-		public String getUid() {
-			return uid;
+		@JsonProperty("username")
+		public String getUsername() {
+			return username;
 		}
 
-		@JsonProperty("expires")
-		public long getExpires() {
-			return expires;
-		}
-		
-		@JsonProperty("expiration")
-		public long getExpiration() {
-			return expiration;
-		}
-		
 		@JsonProperty("ipAddress")
 		public String getIPAddress() {
 			return ipAddress;
@@ -165,10 +122,41 @@ public final class UserAgentClient extends UntypedActor {
 		public int getPort() {
 			return port;
 		}
+
+		@JsonProperty("deviceState")
+		protected long getDeviceStateId() {
+			return deviceState;
+		}
 		
-		protected void setExpires(long expires) {
-			this.expires = expires;
-			this.expiration = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires);
+		@JsonIgnore
+		public DeviceState getDeviceState() {
+			return DeviceState.lookup(deviceState);
+		}
+		
+		public void setDeviceState(DeviceState deviceState) {
+			this.deviceState = deviceState.getId();
+		}
+	}
+	
+	public static enum DeviceState {
+		FREE(1),
+		RINGING(2),
+		BUSY(3);
+		
+		private long id;
+		private DeviceState(long id) {
+			this.id = id;
+		}
+		public long getId() {
+			return id;
+		}
+		public static DeviceState lookup(long id) {
+			for(DeviceState ds : values()) {
+				if(ds.getId() == id) {
+					return ds;
+				}
+			}
+			return null;
 		}
 	}
 }

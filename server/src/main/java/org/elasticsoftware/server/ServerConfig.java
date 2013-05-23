@@ -44,13 +44,14 @@ public class ServerConfig {
 		return "Unknown";
 	}
 	
-	public static String getCallId() {
+	public static String getNewCallId() {
 		//  1a79c789402742c5725be8055aa36cb6@217.195.124.187:5060
 		return String.format("%s@%s", UUID.randomUUID().toString(), getServerName());
 	}
 	
 	public static String getIPAddress() {
-		return "127.0.0.1";
+		//return "127.0.0.1";
+		return "sip.outerteams.com";
 	}
 	
 	public static int getSipPort() {

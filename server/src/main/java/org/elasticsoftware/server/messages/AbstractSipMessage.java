@@ -133,7 +133,7 @@ public abstract class AbstractSipMessage {
      * @return
      */
     @JsonIgnore
-    public SipUser getUser(SipHeader header) {
+    public SipUser getSipUser(SipHeader header) {
     	if(header == null) {
     		header = SipHeader.TO;
     	}
@@ -145,8 +145,14 @@ public abstract class AbstractSipMessage {
     }
     
     @JsonIgnore
-    public String getUserAgentClient() {
+    public String getCallDialog() {
         return getHeader(SipHeader.CALL_ID);
+    }
+    
+    @JsonIgnore
+    public long getExpires() {
+    	Long value = getHeaderAsLong(SipHeader.EXPIRES);
+    	return value == null ? 0 : value;
     }
 	
 	/**
