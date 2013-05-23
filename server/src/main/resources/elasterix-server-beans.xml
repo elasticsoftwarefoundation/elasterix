@@ -33,6 +33,9 @@
 					Elastic Actor Framework related beans
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+    <bean id="sipService" class="org.elasticsoftware.elasterix.server.sip.SipService">
+    	<property name="sipMessageSender" ref="sipMessageSender"/>
+    </bean>
     
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 					SIP Server
@@ -52,10 +55,6 @@
     <bean id="sipServerHandler" class="org.elasticsoftware.sip.SipServerHandler">
         <property name="messageHandler" ref="sipService"/>
         <property name="sipChannelFactory" ref="sipChannelFactory"/>
-    </bean>
-
-    <bean id="sipService" class="org.elasticsoftware.server.sip.SipService">
-    	<property name="sipMessageSender" ref="sipMessageSender"/>
     </bean>
     
     <bean id="sipMessageSender" class="org.elasticsoftware.sip.SipMessageSenderImpl">
