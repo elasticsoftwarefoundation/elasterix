@@ -50,7 +50,8 @@ public abstract class AbstractSipTest {
 		BasicConfigurator.configure();
 
 		Logger.getRootLogger().setLevel(Level.WARN);
-		Logger.getLogger("org.elasticsoftware").setLevel(Level.DEBUG);
+		Logger.getLogger("org.elasticsoftware.elasterix").setLevel(Level.DEBUG);
+		Logger.getLogger("org.elasticsoftware.sip").setLevel(Level.INFO);
 
         testActorSystem = TestActorSystem.create();
 		actorSystem = testActorSystem.create(new ElasterixServer());
@@ -62,7 +63,7 @@ public abstract class AbstractSipTest {
 		addUser("jwijgerd");
 		
 		// wait some time for actors to be created
-		Thread.sleep(300);
+		Thread.sleep(SLEEP);
 	}
 	
 	@AfterTest

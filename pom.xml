@@ -35,6 +35,7 @@
  		<jackson.version>1.9.12</jackson.version>
         <netty.version>3.6.6.Final</netty.version>
         <log4j.version>1.2.17</log4j.version>
+        <slf4j.version>1.7.5</slf4j.version>
         <spring.version>3.2.3.RELEASE</spring.version>
         <spring.security.version>3.1.4.RELEASE</spring.security.version>
         <slf4j.version>1.6.1</slf4j.version>
@@ -75,6 +76,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>${slf4j.version}</version>
+		</dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>

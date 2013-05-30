@@ -100,4 +100,9 @@ public class SipRequestMessage extends AbstractSipMessage {
     	// TODO fix content
     	return request;
     }
+
+	@Override
+	public String toShortString() {
+		return getUri();
+	}
 }

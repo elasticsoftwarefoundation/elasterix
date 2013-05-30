@@ -39,8 +39,12 @@ public class SipMessageDecoder extends AbstractSipMessageDecoder {
 //	private static final Pattern URI_PATTERN = 
 //			Pattern.compile("^sip:[_a-z0-9-]+(\\.[_a-z0-9-]+)*@[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})$", 
 //			Pattern.CASE_INSENSITIVE);  
+//	/** Pattern based on . extension like 'sip:sip.outerteams.com:5060' and with optional username for domain*/
+//	private static final Pattern URI_PATTERN = 
+//			Pattern.compile("^sip:([_a-z0-9-]+(\\.[_a-z0-9-]+)*@)*[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})+(:[0-9]+)*$", 
+//			Pattern.CASE_INSENSITIVE);
 	private static final Pattern URI_PATTERN = 
-			Pattern.compile("^sip:([_a-z0-9-]+(\\.[_a-z0-9-]+)*@)*[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})+(:[0-9]+)*$", 
+			Pattern.compile("^sip:([_a-z0-9-]+(\\.[_a-z0-9-]+)*@)*[a-z0-9-]+(\\.[a-z0-9-]+)*(:[0-9]+)*$", 
 			Pattern.CASE_INSENSITIVE);
 
 	public SipMessageDecoder() {

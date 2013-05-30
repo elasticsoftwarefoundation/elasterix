@@ -201,4 +201,6 @@ public abstract class AbstractSipMessage {
 		}
 		return map;
 	}
+	
+	public abstract String toShortString();
 }

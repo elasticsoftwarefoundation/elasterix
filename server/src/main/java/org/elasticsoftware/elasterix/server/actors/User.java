@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasterix.server.ServerConfig;
+import org.elasticsoftware.elasterix.server.messages.ApiHttpMessage;
 import org.elasticsoftware.elasterix.server.messages.SipRequestMessage;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
@@ -33,6 +34,7 @@ import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.util.StringUtils;
 
 /**
@@ -127,7 +129,10 @@ public final class User extends UntypedActor {
 						message.getClass().getSimpleName()));
 				unhandled(message);
 			}
-		} 
+		} else if (message instanceof ApiHttpMessage) {
+			ApiHttpMessage apiMessage = (ApiHttpMessage) message;
+			sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
+		}
 	}
 
 	protected void register(ActorRef sipService, SipRequestMessage message, State state) {

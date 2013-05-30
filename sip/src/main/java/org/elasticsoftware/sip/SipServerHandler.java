@@ -31,16 +31,15 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	private SipMessageHandler messageHandler;
 	private SipChannelFactory sipChannelFactory;
 	private boolean strictParsing = true;
+	private String logLevelMessages = "INFO";
 
     @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
     	SipMessage message = (SipMessage) e.getMessage();
-		if(log.isDebugEnabled()) {
-			log.debug(String.format("messageReceived\n%s", message));
-		}
-		
-		// update LRU cache (if set)
+    	logMessage("Received", message);
+
+    	// update LRU cache (if set)
 		if(sipChannelFactory != null) {
 			// we need to check if the key used for caching this channel is 
 			// present. If no key is found, bounce message directly back
@@ -121,6 +120,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			// Add 'Content-Length' header only for a keep-alive connection.
 			message.setHeader(SipHeader.CONTENT_LENGTH, message.getContent().readableBytes());
 		}
+		
+    	logMessage("Sending", message);
 
 		// Write the response.
 		ChannelFuture future = e.getChannel().write(message);
@@ -128,6 +129,14 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		// Close the non-keep-alive connection after the write operation is done.
 		if (!keepAlive) {
 			future.addListener(ChannelFutureListener.CLOSE);
+		}
+	}
+	
+	private void logMessage(String prefix, SipMessage message) {
+		if("DEBUG".equalsIgnoreCase(logLevelMessages) && log.isDebugEnabled()) {
+			log.debug(String.format("%s\n%s", prefix, message));
+		} else if("INFO".equalsIgnoreCase(logLevelMessages) && log.isInfoEnabled()) {
+			log.info(String.format("%s\n%s", prefix, message));
 		}
 	}
 
@@ -154,4 +163,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     public void setSipChannelFactory(SipChannelFactory sipChannelFactory) {
         this.sipChannelFactory = sipChannelFactory;
     }
+
+	public void setLogLevelMessages(String logLevelMessages) {
+		this.logLevelMessages = logLevelMessages;
+	}
 }

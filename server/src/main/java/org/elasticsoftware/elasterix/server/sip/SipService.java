@@ -59,14 +59,15 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 
     @Override
     public void onReceive(ActorRef actorRef, Object message) throws Exception {
-		if(log.isDebugEnabled() && message instanceof AbstractSipMessage) {
-			log.debug(String.format("onReceive. Message[%s]", message));
-		}
 
     	if(message instanceof SipRequestMessage) {
-    		sendRequest((SipRequestMessage) message);
+    		SipRequestMessage m = (SipRequestMessage) message;
+			if(log.isDebugEnabled()) log.debug(String.format("onReceive. SipRequest[%s]", m.toShortString()));
+    		sendRequest(m);
     	} else if(message instanceof SipResponseMessage) {
-    		sendResponse((SipResponseMessage) message);
+    		SipResponseMessage m = (SipResponseMessage) message;
+			if(log.isDebugEnabled()) log.debug(String.format("onReceive. SipResponse[%s]", m.toShortString()));
+    		sendResponse(m);
     	} else {
     		log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
@@ -99,13 +100,15 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 
     @Override
 	public void onRequest(SipRequest request) {
-		if(log.isDebugEnabled()) log.debug(String.format("onRequest\n%s", request));
-        tellDialog(new SipRequestMessage(request));
+    	SipRequestMessage m = new SipRequestMessage(request);
+		if(log.isDebugEnabled()) log.debug(String.format("onRequest: %s", m.toShortString()));
+        tellDialog(m);
 	}
     
     @Override
 	public void onResponse(SipResponse response) {
-		if(log.isDebugEnabled()) log.debug(String.format("onResponse\n%s", response));
+    	SipResponseMessage m = new SipResponseMessage(response);
+		if(log.isDebugEnabled()) log.debug(String.format("onResponse: %s", m.toShortString()));
 	}
 	
 	private void tellDialog(AbstractSipMessage message) {

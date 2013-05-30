@@ -36,6 +36,8 @@
     <bean id="sipService" class="org.elasticsoftware.elasterix.server.sip.SipService">
     	<property name="sipMessageSender" ref="sipMessageSender"/>
     </bean>
+
+	<bean id="userController" class="org.elasticsoftware.elasterix.server.web.UserController"/>
     
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 					SIP Server

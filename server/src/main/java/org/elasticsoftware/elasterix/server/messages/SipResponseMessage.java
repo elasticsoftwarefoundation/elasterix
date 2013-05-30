@@ -83,4 +83,9 @@ public class SipResponseMessage extends AbstractSipMessage {
     	// TODO: fix content
     	return response;
     }
+    
+    @Override
+	public String toShortString() {
+		return getResponseMessage();
+	}
 }
