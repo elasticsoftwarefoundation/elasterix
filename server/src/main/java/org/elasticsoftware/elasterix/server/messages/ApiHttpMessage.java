@@ -81,6 +81,11 @@ public class ApiHttpMessage {
 	public JsonNode getContent() {
 		return getContent(JsonNode.class);
 	} 
+	
+	@JsonIgnore
+	public String getMethod() {
+		return httpRequest.getMethod();
+	} 
 
 	@JsonIgnore
 	public <T> T getContent(Class<T> clazz) {
@@ -101,6 +106,24 @@ public class ApiHttpMessage {
 		}
 		return (T) null;
 	}
+	
+	@JsonIgnore
+	public boolean hasContent() {
+		if(httpRequest.getContent() == null || httpRequest.getContent().length == 0) {
+			return false;
+		}
+		return true;
+	}
+
+	@JsonIgnore
+	public boolean isPostMethod() {
+		return "post".equalsIgnoreCase(getMethod());
+	}
+	
+	@JsonIgnore
+	public boolean hasJsonContentType() {
+		return "application/json".equalsIgnoreCase(httpRequest.getContentType());
+	}
 
 	public static ApiHttpMessage parse(HttpRequest request) {
 
@@ -119,14 +142,20 @@ public class ApiHttpMessage {
 		return new ApiHttpMessage(request, tokens[1], tokens[2], tokens[3], action);
 	}
 
+	public HttpResponse toHttpResponse(HttpResponseStatus status) {
+		return toHttpResponse(status, status.getReasonPhrase(), null);
+	}
 	public HttpResponse toHttpResponse(HttpResponseStatus status, Object jsonObject) {
+		return toHttpResponse(status, status.getReasonPhrase(), jsonObject);
+	}
+	private HttpResponse toHttpResponse(HttpResponseStatus status, String content, Object jsonObject) {
 		
 		// headers
 		Map<String,List<String>> headers = new HashMap<String,List<String>>();
 		headers.put(HttpHeaders.Names.CONTENT_TYPE, Arrays.asList("application/json"));
 
 		// response
-		byte[] response = status.getReasonPhrase().getBytes(Charset.forName("UTF-8"));
+		byte[] response = content.getBytes(Charset.forName("UTF-8"));
 		if(jsonObject != null) {
 			try {
 				response = objectMapper.writeValueAsBytes(jsonObject);

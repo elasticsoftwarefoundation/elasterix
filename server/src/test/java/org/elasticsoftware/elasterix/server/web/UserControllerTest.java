@@ -2,6 +2,8 @@ package org.elasticsoftware.elasterix.server.web;
 
 import static org.testng.Assert.assertEquals;
 
+import org.elasticsoftware.elasterix.server.ApiConfig;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.testng.annotations.Test;
 
 import com.biasedbit.efflux.logging.Logger;
@@ -20,8 +22,7 @@ public class UserControllerTest extends AbstractControllerTest {
 		String url = "users/lwolters/create";
 		ListenableFuture<Response> responseFuture = httpClient.prepareGet(baseUrl + url).execute();
 		Response response = responseFuture.get();
-		// 406 = not acceptable
-		assertEquals(406, response.getStatusCode());
+		assertEquals(response.getStatusCode(), HttpResponseStatus.NO_CONTENT.getCode());
 	}
 	
 	@Test(enabled = true)
@@ -30,8 +31,7 @@ public class UserControllerTest extends AbstractControllerTest {
 		String data = "";
 		ListenableFuture<Response> responseFuture = httpClient.preparePost(baseUrl + url).setBody(data).execute();
 		Response response = responseFuture.get();
-		// 204 = no content
-		assertEquals(204, response.getStatusCode());
+		assertEquals(response.getStatusCode(), HttpResponseStatus.NO_CONTENT.getCode());
 	}
 	
 	@Test(enabled = true)
@@ -42,8 +42,7 @@ public class UserControllerTest extends AbstractControllerTest {
 				.setHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
 				.setBody(data).execute();
 		Response response = responseFuture.get();
-		// 204 = no content
-		assertEquals(204, response.getStatusCode());
+		assertEquals(response.getStatusCode(), HttpResponseStatus.NOT_ACCEPTABLE.getCode());
 	}
 	
 	@Test(enabled = true)
@@ -54,18 +53,44 @@ public class UserControllerTest extends AbstractControllerTest {
 				.setHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
 				.setBody(data).execute();
 		Response response = responseFuture.get();
-		assertEquals(200, response.getStatusCode());
-		assertEquals(response.getContentType(), CONTENT_TYPE_JSON);
+		assertEquals(response.getStatusCode(), HttpResponseStatus.OK.getCode());
+		assertEquals(CONTENT_TYPE_JSON, response.getContentType());
 		log.info(response.getResponseBody());
 	}
 
-	@Test(enabled = false)
-	public void testGetUserNotExisting() throws Exception {
+	@Test(enabled = true)
+	public void testCreateUserPostDataStateNoCreateAction() throws Exception {
 		String url = "users/lwolters";
+		String data = "{\"username\" : \"lwolters\"}";
+		ListenableFuture<Response> responseFuture = httpClient.preparePost(baseUrl + url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
+				.setBody(data).execute();
+		Response response = responseFuture.get();
+		assertEquals(response.getStatusCode(), HttpResponseStatus.OK.getCode());
+		assertEquals(CONTENT_TYPE_JSON, response.getContentType());
+		log.info(response.getResponseBody());
+	}
+	
+	@Test(enabled = true)
+	public void testCreateUserPostDataStateNoCreateActionFail() throws Exception {
+		String url = "users/lwolters";
+		String data = "{\"username\" : \"lwolters\"}";
+		ApiConfig.createActorByDefault = false;
+		ListenableFuture<Response> responseFuture = httpClient.preparePost(baseUrl + url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
+				.setBody(data).execute();
+		Response response = responseFuture.get();
+		ApiConfig.createActorByDefault = true;
+		assertEquals(response.getStatusCode(), HttpResponseStatus.NOT_FOUND.getCode());
+		log.info(response.getResponseBody());
+	}
+
+	@Test(enabled = true)
+	public void testGetUserNotExisting() throws Exception {
+		String url = "users/lwoltersXYZ";
 		ListenableFuture<Response> responseFuture = httpClient.prepareGet(baseUrl + url).execute();
 		Response response = responseFuture.get();
-		assertEquals(200, response.getStatusCode());
-		assertEquals(response.getContentType(), CONTENT_TYPE_JSON);
+		assertEquals(response.getStatusCode(), HttpResponseStatus.NOT_FOUND.getCode());
 		log.info(response.getResponseBody("UTF-8"));
 	}
 }

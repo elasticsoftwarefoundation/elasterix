@@ -131,7 +131,29 @@ public final class User extends UntypedActor {
 			}
 		} else if (message instanceof ApiHttpMessage) {
 			ApiHttpMessage apiMessage = (ApiHttpMessage) message;
-			sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
+			if("get".equalsIgnoreCase(apiMessage.getMethod())) {
+				// retrieve user state
+				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
+			} else if("post".equalsIgnoreCase(apiMessage.getMethod())) {
+				// update and post state afterwards...
+				User.State update = apiMessage.getContent(User.State.class);
+				if(update == null) {
+					sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.NO_CONTENT), getSelf());
+					return;
+				}
+				
+				// update current state...
+				if(StringUtils.hasLength(update.getFirstName())) {
+					state.firstName = update.getFirstName();
+				}
+				if(StringUtils.hasLength(update.getLastName())) {
+					state.lastName = update.getLastName();
+				}
+				if(StringUtils.hasLength(update.getSecretHash())) {
+					state.secretHash = update.getSecretHash();
+				}
+				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
+			}
 		}
 	}
 
@@ -286,11 +308,13 @@ public final class User extends UntypedActor {
 	public static final class State {
 		private final String email;
 		private final String username;
-		private final String secretHash;
+		private String secretHash;
 		/** UID of User Agent Client (key) and expires (seconds) as value */
 		private Map<String, Long> userAgentClients = new HashMap<String, Long>();
 		private String nonce;
 		private String tag;
+		private String firstName;
+		private String lastName;
 
 		@JsonCreator
 		public State(@JsonProperty("email") String email,
@@ -329,6 +353,16 @@ public final class User extends UntypedActor {
 		@JsonProperty("tag")
 		public String getTag() {
 			return tag;
+		}
+		
+		@JsonProperty("firstName")
+		public String getFirstName() {
+			return firstName;
+		}
+		
+		@JsonProperty("lastName")
+		public String getLastName() {
+			return lastName;
 		}
 
 		public boolean removeUserAgentClient(SipUser user) {
