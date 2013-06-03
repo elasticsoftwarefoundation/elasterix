@@ -130,9 +130,6 @@ public class ApiHttpMessage {
 		String url = request.getUrl();
 		if(url.startsWith("/")) url = url.substring(1);
 		String[] tokens = url.split("/");
-		if(log.isDebugEnabled()) {
-			log.debug("Tokens: " + StringUtils.arrayToCommaDelimitedString(tokens));
-		}
 		if(tokens.length < 4) {
 			log.warn(String.format("Invalid url path[%s]. Not of type '/api/*/users/....'", url));
 			return null;

@@ -64,7 +64,7 @@ public class Dialog extends UntypedActor {
 			default:
 			}
 		} else if (message instanceof SipResponseMessage) {
-			
+			// unsupported
 		} else {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));

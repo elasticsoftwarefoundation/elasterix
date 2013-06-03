@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.elasticsoftware.elasterix.server.ElasterixServer;
 import org.elasticsoftware.elasterix.server.actors.User;
 import org.elasticsoftware.elasterix.server.actors.UserAgentClient;
 import org.elasticsoftware.elasticactors.ActorSystem;
@@ -106,8 +105,7 @@ public abstract class AbstractSipTest {
 		addUser(userId, null);
 	}
 	protected void addUser(String userId, SipUser user) throws Exception {
-		User.State state = new User.State(userId + "@elasticsoftware.org", userId, 
-				md5Encoder.encodePassword("test", null));
+		User.State state = new User.State(userId + "@elasticsoftware.org", userId, "test");
 		if(user != null) {
 			state.addUserAgentClient(user, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10));
 		}

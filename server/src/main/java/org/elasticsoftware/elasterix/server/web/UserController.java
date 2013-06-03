@@ -58,10 +58,6 @@ public class UserController extends TypedActor<HttpRequest> {
 
 	@Override
 	public void onReceive(ActorRef httpService, HttpRequest message) throws Exception {
-		if(log.isDebugEnabled()) {
-			log.info("onReceive");
-		}
-		
 		ApiHttpMessage apiMessage = ApiHttpMessage.parse(message);
 		if(apiMessage == null) {
 			log.warn(String.format("Invalid url path[%s]", message.getUrl()));
@@ -75,6 +71,9 @@ public class UserController extends TypedActor<HttpRequest> {
 					apiMessage.getDomain()));
 			sendHttpResponse(httpService, HttpResponseStatus.BAD_REQUEST, null);
 			return;
+		}
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("%s %s", apiMessage.getActorId(), apiMessage.getMethod()));
 		}
 		
 		// create / update user ?
@@ -93,7 +92,7 @@ public class UserController extends TypedActor<HttpRequest> {
 		
 		// user not created? 
 		if(user == null) {
-			user = getSystem().actorFor(String.format("users/%s", apiMessage.getActorId()));
+			user = getSystem().actorFor(String.format("user/%s", apiMessage.getActorId()));
 		}
 		// ok, dispatch message to user, but use httpService as sender, since the onUndelivered 
 		// doesn't have a handle to the temporarily httpResponseActor
@@ -132,7 +131,8 @@ public class UserController extends TypedActor<HttpRequest> {
 			return null;
 		}
 		try {
-			return getSystem().actorOf(message.getActorId(), User.class, state);
+			return getSystem().actorOf(String.format("user/%s", message.getActorId()), 
+					User.class, state);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			if(sendResponse) {

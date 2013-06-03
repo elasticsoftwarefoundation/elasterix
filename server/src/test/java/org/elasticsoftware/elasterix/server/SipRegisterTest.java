@@ -67,7 +67,7 @@ public class SipRegisterTest extends AbstractSipTest {
 		SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
-		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
+		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", "-1"));
 		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -83,7 +83,7 @@ public class SipRegisterTest extends AbstractSipTest {
 		req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
 		req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:lwolters@sip.localhost.com:5060>");
 		req.addHeader(SipHeader.CONTACT, "<sip:124@62.163.143.30:60236;transport=UDP;rinstance=e6768ab86fdcf0b4>");
-		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", null));
+		setAuthorization(req, "lwolters", "-1", md5Encoder.encodePassword("test", "-1"));
 		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);
@@ -244,7 +244,7 @@ public class SipRegisterTest extends AbstractSipTest {
 		String message = sipServer.getMessage();
 		int idx = message.indexOf("nonce=") + 7;
 		String nonce = message.substring(idx, message.indexOf('\"', idx));
-		setAuthorization(req, "lwolters", nonce, md5Encoder.encodePassword("test", null));
+		setAuthorization(req, "lwolters", nonce, md5Encoder.encodePassword("test", nonce));
 		sipServer.sendMessage(req);
 		// sleep sometime in order for message to be sent back.
 		Thread.sleep(300);

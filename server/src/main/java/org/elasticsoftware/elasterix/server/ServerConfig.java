@@ -65,4 +65,8 @@ public class ServerConfig {
 	public static String getProtocol() {
 		return "UDP";
 	}
+	
+	public static boolean isHashBasedOnNonce() {
+		return true;
+	}
 }

@@ -35,6 +35,7 @@ import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.springframework.util.StringUtils;
 
 /**
@@ -48,6 +49,7 @@ public final class User extends UntypedActor {
 	/** To be used for generating alphanumeric nonce */
 	private static final char[] CHARACTERS = new char[] {'a','b','c','d','e','f','g','h',
 		'i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
+	private Md5PasswordEncoder encoder = new Md5PasswordEncoder();
 
 	@Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
@@ -86,7 +88,8 @@ public final class User extends UntypedActor {
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
 		if(log.isDebugEnabled()) {
-			log.debug(String.format("onReceive. Message[%s]", message));
+			log.debug(String.format("onReceive. Message[%s]", 
+					(message == null ? "null" : message.getClass().getName())));
 		}
 
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
@@ -149,8 +152,8 @@ public final class User extends UntypedActor {
 				if(StringUtils.hasLength(update.getLastName())) {
 					state.lastName = update.getLastName();
 				}
-				if(StringUtils.hasLength(update.getSecretHash())) {
-					state.secretHash = update.getSecretHash();
+				if(StringUtils.hasLength(update.getPassword())) {
+					state.password = update.getPassword();
 				}
 				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
 			}
@@ -271,9 +274,12 @@ public final class User extends UntypedActor {
 			
 			// check hash
 			val = map.get("response"); 
-			if(!state.getSecretHash().equals(val)) {
+			String secretHash = ServerConfig.isHashBasedOnNonce() ? 
+					encoder.encodePassword(state.password, state.nonce) 
+					: encoder.encodePassword(state.password, null);
+			if(!secretHash.equals(val)) {
 				if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
-						+ "!= given hash[%s]", val, state.getSecretHash()));
+						+ "!= given hash[%s]", val, secretHash));
 				return false;
 			}
 			return true;
@@ -308,21 +314,21 @@ public final class User extends UntypedActor {
 	public static final class State {
 		private final String email;
 		private final String username;
-		private String secretHash;
 		/** UID of User Agent Client (key) and expires (seconds) as value */
 		private Map<String, Long> userAgentClients = new HashMap<String, Long>();
 		private String nonce;
 		private String tag;
 		private String firstName;
 		private String lastName;
+		private String password;
 
 		@JsonCreator
 		public State(@JsonProperty("email") String email,
 				@JsonProperty("username") String username,
-				@JsonProperty("secretHash") String secretHash) {
+				@JsonProperty("password") String password) {
 			this.email = email;
 			this.username = username;
-			this.secretHash = secretHash;
+			this.password = password;
 		}
 
 		@JsonProperty("email")
@@ -335,9 +341,9 @@ public final class User extends UntypedActor {
 			return username;
 		}
 
-		@JsonProperty("secretHash")
-		public String getSecretHash() {
-			return secretHash;
+		@JsonProperty("password")
+		public String getPassword() {
+			return password;
 		}
 
 		@JsonProperty("userAgentClients")

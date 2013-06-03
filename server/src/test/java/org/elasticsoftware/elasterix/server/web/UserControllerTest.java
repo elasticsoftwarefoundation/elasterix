@@ -73,8 +73,8 @@ public class UserControllerTest extends AbstractControllerTest {
 	
 	@Test(enabled = true)
 	public void testCreateUserPostDataStateNoCreateActionFail() throws Exception {
-		String url = "users/lwolters";
-		String data = "{\"username\" : \"lwolters\"}";
+		String url = "users/lwoltersXXZZ";
+		String data = "{\"username\" : \"lwoltersXXZZ\"}";
 		ApiConfig.createActorByDefault = false;
 		ListenableFuture<Response> responseFuture = httpClient.preparePost(baseUrl + url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
