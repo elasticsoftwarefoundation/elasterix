@@ -89,11 +89,12 @@ public class UserController extends TypedActor<HttpRequest> {
 			// create user (optionally)
 			user = createActor(httpService, apiMessage, false);
 		}
-		
+
 		// user not created? 
 		if(user == null) {
 			user = getSystem().actorFor(String.format("user/%s", apiMessage.getActorId()));
 		}
+		log.info("Telling user: " + user.getActorId());
 		// ok, dispatch message to user, but use httpService as sender, since the onUndelivered 
 		// doesn't have a handle to the temporarily httpResponseActor
 		user.tell(apiMessage, httpService);
