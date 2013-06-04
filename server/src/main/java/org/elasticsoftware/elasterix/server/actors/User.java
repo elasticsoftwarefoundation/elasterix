@@ -34,6 +34,7 @@ import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
+import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.springframework.util.StringUtils;
@@ -134,10 +135,10 @@ public final class User extends UntypedActor {
 			}
 		} else if (message instanceof ApiHttpMessage) {
 			ApiHttpMessage apiMessage = (ApiHttpMessage) message;
-			if("get".equalsIgnoreCase(apiMessage.getMethod())) {
-				// retrieve user state
+			HttpMethod method = apiMessage.getMethod();
+			if(HttpMethod.GET == method) {
 				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
-			} else if("post".equalsIgnoreCase(apiMessage.getMethod())) {
+			} else if(HttpMethod.PUT == method || HttpMethod.POST == method) {
 				// update and post state afterwards...
 				User.State update = apiMessage.getContent(User.State.class);
 				if(update == null) {

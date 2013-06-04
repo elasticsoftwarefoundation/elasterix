@@ -15,8 +15,8 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.elasticsoftware.elasticactors.http.messages.HttpRequest;
 import org.elasticsoftware.elasticactors.http.messages.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-import org.springframework.util.StringUtils;
 
 import com.biasedbit.efflux.logging.Logger;
 
@@ -83,8 +83,8 @@ public class ApiHttpMessage {
 	} 
 	
 	@JsonIgnore
-	public String getMethod() {
-		return httpRequest.getMethod();
+	public HttpMethod getMethod() {
+		return HttpMethod.valueOf(httpRequest.getMethod());
 	} 
 
 	@JsonIgnore
@@ -113,11 +113,6 @@ public class ApiHttpMessage {
 			return false;
 		}
 		return true;
-	}
-
-	@JsonIgnore
-	public boolean isPostMethod() {
-		return "post".equalsIgnoreCase(getMethod());
 	}
 	
 	@JsonIgnore

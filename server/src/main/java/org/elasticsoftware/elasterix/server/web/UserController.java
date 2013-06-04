@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsoftware.elasterix.server.ApiConfig;
 import org.elasticsoftware.elasterix.server.actors.User;
 import org.elasticsoftware.elasterix.server.messages.ApiHttpMessage;
 import org.elasticsoftware.elasticactors.ActorRef;
@@ -16,6 +15,7 @@ import org.elasticsoftware.elasticactors.http.messages.HttpRequest;
 import org.elasticsoftware.elasticactors.http.messages.HttpResponse;
 import org.elasticsoftware.elasticactors.http.messages.RegisterRouteMessage;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.util.StringUtils;
 
@@ -78,57 +78,40 @@ public class UserController extends TypedActor<HttpRequest> {
 		
 		// create / update user ?
 		ActorRef user = null;
-		if("create".equalsIgnoreCase(apiMessage.getAction())) {
-			// create user (obligatory)
-			user = createActor(httpService, apiMessage, true);
+		if(HttpMethod.POST == apiMessage.getMethod()) {
+			user = createActor(httpService, apiMessage);
 			if(user == null) {
 				// user not created, whilst it should. Response have been sent
 				return;
 			}
-		} else if(ApiConfig.createActorByDefault()) {
-			// create user (optionally)
-			user = createActor(httpService, apiMessage, false);
-		}
-
-		// user not created? 
-		if(user == null) {
+		} else {
 			user = getSystem().actorFor(String.format("user/%s", apiMessage.getActorId()));
 		}
-		log.info("Telling user: " + user.getActorId());
 		// ok, dispatch message to user, but use httpService as sender, since the onUndelivered 
 		// doesn't have a handle to the temporarily httpResponseActor
 		user.tell(apiMessage, httpService);
 	}
 	
-	private ActorRef createActor(ActorRef httpService, ApiHttpMessage message,
-			boolean sendResponse) {		
+	private ActorRef createActor(ActorRef httpService, ApiHttpMessage message) {		
 		
 		if(!message.hasContent()) {
-			if(sendResponse) {		
-				sendHttpResponse(httpService, HttpResponseStatus.NO_CONTENT, null);
-			}
+			sendHttpResponse(httpService, HttpResponseStatus.NO_CONTENT, null);
 			return null;
 		}
-		if(!message.isPostMethod()) {
-			if(sendResponse) {
-				sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
-					"Post method required");
-			}
+		if(message.getMethod() != HttpMethod.POST) {
+			sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
+				"Post method required");
 			return null;
 		}
 		if(!message.hasJsonContentType()) {
-			if(sendResponse) {
-				sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
-					"No JSon content type");
-			}
+			sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
+				"No JSon content type");
 			return null;
 		}
 		User.State state = message.getContent(User.State.class);
 		if(state == null) {
-			if(sendResponse){
-				sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
-					"JSon content not of type User.State");
-			}
+			sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
+				"JSon content not of type User.State");
 			return null;
 		}
 		try {
@@ -136,10 +119,8 @@ public class UserController extends TypedActor<HttpRequest> {
 					User.class, state);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
-			if(sendResponse) {
-				sendHttpResponse(httpService, HttpResponseStatus.INTERNAL_SERVER_ERROR, 
-						e.getMessage());
-			}
+			sendHttpResponse(httpService, HttpResponseStatus.INTERNAL_SERVER_ERROR, 
+					e.getMessage());
 		}
 		return null;
 	}
