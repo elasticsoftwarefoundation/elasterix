@@ -16,6 +16,9 @@
 
 package org.elasticsoftware.elasterix.server;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.BasicConfigurator;
@@ -29,6 +32,7 @@ import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 
@@ -41,7 +45,7 @@ public abstract class AbstractSipTest {
 	protected ActorSystem actorSystem;
 	protected SipClient sipServer;
 	protected SipClient localSipServer;
-	protected Md5PasswordEncoder md5Encoder = new Md5PasswordEncoder();
+	protected Md5PasswordEncoder encoder = new Md5PasswordEncoder();
 	
 	@BeforeTest
 	public void init() throws Exception {
@@ -89,12 +93,50 @@ public abstract class AbstractSipTest {
 		return true;
 	}
 	
-	protected void setAuthorization(SipRequest message, String userName, String nonce,
-			String hash) {
+	protected void setAuthorization(SipRequest message, String username, String nonce, String password) {
+
+		String realm = ServerConfig.getRealm();
+		String uri = "sip:sip.localhost.com:5060";
+		
+		// create hash 
+		String ha1 = String.format("%s:%s:%s", username, realm, password);
+		String ha2 = String.format("%s:%s", "REGISTER", uri);
+		String hash = encoder.encodePassword(String.format("%s:%s:%s", 
+				encoder.encodePassword(ha1, null), nonce, 
+				encoder.encodePassword(ha2, null)), null);
+		
 		// Authorization: Digest username="124",realm="combird",nonce="24855234",
 		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
-		message.addHeader(SipHeader.AUTHORIZATION, String.format("Digest username=\"%s\",realm=\"elasticsoftware\""
-				+ ",nonce=\"%s\",uri=\"%s\",response=\"%s\",algorithm=MD5", userName, nonce, "", hash));
+		message.setHeader(SipHeader.AUTHORIZATION, String.format("Digest username=\"%s\",realm=\"%s\""
+				+ ",nonce=\"%s\",uri=\"%s\",response=\"%s\",algorithm=MD5", username, 
+				realm, nonce, uri, hash));
+	}
+	protected void setAuthorization(SipRequest message, String password) {
+		Map<String, String> map = tokenize(message.getHeaderValue(SipHeader.AUTHORIZATION));
+		setAuthorization(message, map.get("username"), map.get("nonce"), password);
+	}
+	private Map<String, String> tokenize(String value) {
+		Map<String, String> map = new HashMap<String, String>();
+		
+		// sanity check
+		if(StringUtils.isEmpty(value)) {
+			return map;
+		}
+		
+		// Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
+		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
+		StringTokenizer st = new StringTokenizer(value, " ,", false);
+		while(st.hasMoreTokens()) {
+			String token = st.nextToken();
+			int idx = token.indexOf("=");
+			if(idx != -1) {
+				map.put(token.substring(0, idx).toLowerCase(), 
+						token.substring(idx+1).replace('\"', ' ').trim());
+			} else {
+				map.put(token.toLowerCase(), token);
+			}
+		}
+		return map;
 	}
 	
 	protected SipClient getSipClient() {

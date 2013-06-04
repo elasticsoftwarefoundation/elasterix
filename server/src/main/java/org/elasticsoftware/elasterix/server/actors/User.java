@@ -51,7 +51,7 @@ public final class User extends UntypedActor {
 	private static final char[] CHARACTERS = new char[] {'a','b','c','d','e','f','g','h',
 		'i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
 	private Md5PasswordEncoder encoder = new Md5PasswordEncoder();
-
+	
 	@Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
 		if(log.isDebugEnabled()) {
@@ -85,6 +85,26 @@ public final class User extends UntypedActor {
 			}
 		}
 	}
+	
+	/**
+	 * See http://en.wikipedia.org/wiki/Digest_access_authentication
+	 * 
+	 * @param state
+	 * @param props
+	 * @return
+	 */
+	protected String generateHash(User.State state, Map<String, String> props) {
+		// please see 
+		// http://en.wikipedia.org/wiki/Digest_access_authentication
+		// http://hashcat.net/forum/thread-1455.html
+		String ha1 = String.format("%s:%s:%s", props.get("username"), props.get("realm"), 
+				state.password);
+		String ha2 = String.format("%s:%s", "REGISTER", props.get("uri"));
+		//log.debug(String.format("HA1(%s) -> %s", ha1, encoder.encodePassword(ha1, null)));
+		//log.debug(String.format("HA2(%s) -> %s", ha2, encoder.encodePassword(ha2, null)));
+		return encoder.encodePassword(String.format("%s:%s:%s", encoder.encodePassword(ha1, null), 
+				props.get("nonce"), encoder.encodePassword(ha2, null)), null);
+	}
 
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
@@ -113,8 +133,9 @@ public final class User extends UntypedActor {
 				} else {					
 					if(request.getSipMethod() == SipMethod.REGISTER) {
 						state.setNonce(generateNonce());
-						request.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=MD5, "
-								+ "realm=\"%s\", nonce=\"%s\"", ServerConfig.getRealm(), state.getNonce()));
+						request.addHeader(SipHeader.WWW_AUTHENTICATE, String.format("Digest algorithm=%s, "
+								+ "realm=\"%s\", nonce=\"%s\"", ServerConfig.getDigestAlgorithm(), 
+								ServerConfig.getRealm(), state.getNonce()));
 					}
 					sipService.tell(request.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED), getSelf());
 				}
@@ -156,6 +177,10 @@ public final class User extends UntypedActor {
 				if(StringUtils.hasLength(update.getPassword())) {
 					state.password = update.getPassword();
 				}
+				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
+			} else if (HttpMethod.DELETE == method) {
+				// TODO: we can either remove user here or at UserController#onReceive
+				getSystem().stop(getSelf());
 				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
 			}
 		}
@@ -275,9 +300,7 @@ public final class User extends UntypedActor {
 			
 			// check hash
 			val = map.get("response"); 
-			String secretHash = ServerConfig.isHashBasedOnNonce() ? 
-					encoder.encodePassword(state.password, state.nonce) 
-					: encoder.encodePassword(state.password, null);
+			String secretHash = generateHash(state, map);
 			if(!secretHash.equals(val)) {
 				if(log.isDebugEnabled()) log.debug(String.format("authenticate. Provided hash[%s] "
 						+ "!= given hash[%s]", val, secretHash));

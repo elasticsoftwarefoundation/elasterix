@@ -125,13 +125,14 @@ public class ApiHttpMessage {
 		String url = request.getUrl();
 		if(url.startsWith("/")) url = url.substring(1);
 		String[] tokens = url.split("/");
-		if(tokens.length < 4) {
-			log.warn(String.format("Invalid url path[%s]. Not of type '/api/*/users/....'", url));
+		if(tokens.length < 3) {
+			log.warn(String.format("Invalid url path[%s]. Not of type '/api/*/users/'", url));
 			return null;
 		}
 
+		String uid = (tokens.length > 3 ? tokens[3] : null);
 		String action = (tokens.length > 4 ? tokens[4] : null);
-		return new ApiHttpMessage(request, tokens[1], tokens[2], tokens[3], action);
+		return new ApiHttpMessage(request, tokens[1], tokens[2], uid, action);
 	}
 
 	public HttpResponse toHttpResponse(HttpResponseStatus status) {

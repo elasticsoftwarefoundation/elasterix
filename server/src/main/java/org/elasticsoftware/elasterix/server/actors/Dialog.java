@@ -124,6 +124,11 @@ public class Dialog extends UntypedActor {
 				log.debug(String.format("checkAuthentication. Telling User[%s] to authenticate",
 						state.getUsername()));
 			}
+			
+			// increase count here, since the authentication of user might fail, and a response
+			// is directly sent back to user
+			state.incrementCount();
+		
 			ActorRef user = getSystem().actorFor("user/" + state.getUsername());
 			user.tell(sipMessage, getSelf());	
 			return true;
@@ -143,14 +148,13 @@ public class Dialog extends UntypedActor {
 	 */
 	private boolean checkCSeq(ActorRef sipService, SipRequestMessage sipRequest, State state) {
 		// CSeq must be updated for each request within a single dialog.
-		String method = state.getMethod();
 		
 		String cSeq = sipRequest.getHeader(SipHeader.CSEQ);
 		if(!StringUtils.hasLength(cSeq)) {
 			// the specs indicate that cseq might be empty. If so, add a new entry
 			log.warn(String.format("checkCSeq. No CSEQ set for Dialog[%s,%s]. Creating new one",
 					state.getCallId(), state.getUsername()));
-			sipRequest.addHeader(SipHeader.CSEQ, String.format("1 %s", method));
+			sipRequest.addHeader(SipHeader.CSEQ, String.format("%d %s", state.getCount(), state.getMethod()));
 			return false;
 		} else {
 			int cSeqCount = -1;
@@ -170,23 +174,22 @@ public class Dialog extends UntypedActor {
 			}
 			
 			// check method
-			if(!method.equalsIgnoreCase(cSeqMethod)) {
+			if(!state.getMethod().equalsIgnoreCase(cSeqMethod)) {
 				log.warn(String.format("checkCSeq. CSEQ method[%s] doens't equals message type[%s]",
-						cSeqMethod, method));
+						cSeqMethod, state.getMethod()));
 				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(
-						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, method))), 
-						getSelf());
+						String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod, 
+						state.getMethod()))), getSelf());
 				return true;
 			}
 			
 			// check count 
-			int count = state.incrementAndGet();
-			if(count != cSeqCount) {
+			if(state.getCount() != cSeqCount) {
 				log.warn(String.format("checkCSeq. CSEQ count[%d] doens't equals message count[%d]",
-						cSeqCount, count));
+						cSeqCount, state.getCount()));
 				sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage( 
 						String.format("CSEQ count[%d] doens't equals message count[%d]", 
-								cSeqCount, count))), getSelf());
+								cSeqCount, state.getCount()))), getSelf());
 				return true;
 			}
 		}
@@ -231,8 +234,8 @@ public class Dialog extends UntypedActor {
 			return count;
 		}
 		
-		protected int incrementAndGet() {
-			return ++count;
+		protected void incrementCount() {
+			count++;
 		}
 	}
 }

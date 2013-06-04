@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsoftware.elasterix.server.ApiConfig;
 import org.elasticsoftware.elasterix.server.actors.User;
 import org.elasticsoftware.elasterix.server.messages.ApiHttpMessage;
 import org.elasticsoftware.elasticactors.ActorRef;
@@ -87,9 +88,20 @@ public class UserController extends TypedActor<HttpRequest> {
 		} else {
 			user = getSystem().actorFor(String.format("user/%s", apiMessage.getActorId()));
 		}
-		// ok, dispatch message to user, but use httpService as sender, since the onUndelivered 
-		// doesn't have a handle to the temporarily httpResponseActor
-		user.tell(apiMessage, httpService);
+		
+		if(HttpMethod.DELETE == apiMessage.getMethod()) {
+			if(ApiConfig.checkForExistenceBeforeDelete()) {
+				user.tell(apiMessage, httpService);
+			} else {
+				// remove user directly (without checking if it exist)
+				getSystem().stop(user);
+				sendHttpResponse(httpService, HttpResponseStatus.OK, null);
+			}
+		} else {
+			// ok, dispatch message to user, but use httpService as sender, since the onUndelivered 
+			// doesn't have a handle to the temporarily httpResponseActor
+			user.tell(apiMessage, httpService);
+		}
 	}
 	
 	private ActorRef createActor(ActorRef httpService, ApiHttpMessage message) {		
@@ -114,8 +126,20 @@ public class UserController extends TypedActor<HttpRequest> {
 				"JSon content not of type User.State");
 			return null;
 		}
+		
+		// uid
+		String uid = state.getUsername();
+		if(!StringUtils.hasLength(uid)) {
+			sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE, 
+					"No username found in User.State");
+			return null;
+		}
+		if(StringUtils.hasLength(message.getActorId()) && !uid.equals(message.getActorId())) {
+			log.warn(String.format("Username of state[%s] does not equal the UID found in url[%s]. "
+					+ "Using [%s]", uid, message.getActorId(), uid));
+		}
 		try {
-			return getSystem().actorOf(String.format("user/%s", message.getActorId()), 
+			return getSystem().actorOf(String.format("user/%s", uid), 
 					User.class, state);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);

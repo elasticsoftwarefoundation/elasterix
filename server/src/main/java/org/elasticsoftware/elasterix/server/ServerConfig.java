@@ -45,7 +45,7 @@ public class ServerConfig {
 	}
 	
 	public static String getNewCallId() {
-		//  1a79c789402742c5725be8055aa36cb6@217.195.124.187:5060
+		// 1a79c789402742c5725be8055aa36cb6@217.195.124.187:5060
 		return String.format("%s@%s", UUID.randomUUID().toString(), getServerName());
 	}
 	
@@ -66,7 +66,8 @@ public class ServerConfig {
 		return "UDP";
 	}
 	
-	public static boolean isHashBasedOnNonce() {
-		return true;
+	public static String getDigestAlgorithm() {
+		//return "SHA-256";
+		return "MD5";
 	}
 }
