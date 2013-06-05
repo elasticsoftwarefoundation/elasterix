@@ -2,6 +2,8 @@ package org.elasticsoftware.sip.codec;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.log4j.Logger;
+
 /**
  * Enumeration for all available SIP Headers
  * 
@@ -26,6 +28,7 @@ public enum SipHeader {
 	CSEQ("CSeq"),
 	DATE("Date"), // added by Leonard (optional)
 	ERROR_INFO("Error-Info"),
+	EVENT("Event"), // added by leonard (optional, sent by sip subscribe message)
 	EXPIRES("Expires"), // i.e. seconds
 	FROM("From"),
 	IN_REPLY_TO("In-Reply-To"),
@@ -51,7 +54,7 @@ public enum SipHeader {
 	VIA("Via"),
 	WARNING("Warning"),
 	WWW_AUTHENTICATE("WWW-Authenticate");
-
+	private static final Logger log = Logger.getLogger(SipHeader.class);
 	private final static ConcurrentHashMap<String, SipHeader> cache =
 			new ConcurrentHashMap<String, SipHeader>();
 	private final String name;	
@@ -74,6 +77,7 @@ public enum SipHeader {
 				return s;
 			}
 		}
+		log.warn(String.format("SipHeader[%s] not found", name));
 		return null;
 	}
 }

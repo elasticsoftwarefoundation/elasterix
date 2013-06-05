@@ -3,7 +3,9 @@ package org.elasticsoftware.sip.codec;
 import org.codehaus.jackson.annotate.JsonCreator;
 
 /**
- * The request method of SIP 
+ * The request method of SIP<br>
+ * <br>
+ * For a full list, please see http://en.wikipedia.org/wiki/List_of_SIP_request_methods
  * 
  * @author Leonard Wolters
  */
@@ -14,7 +16,17 @@ public enum SipMethod {
     CANCEL("CANCEL"),
     INVITE("INVITE"),
     OPTIONS("OPTIONS"), 
-    REGISTER("REGISTER");
+    REGISTER("REGISTER"),
+    // optional
+    // http://en.wikipedia.org/wiki/List_of_SIP_request_methods
+    SUBSCRIBE("SUBSCRIBE"),
+    NOTIFY("NOTIFY"),
+    REFER("REFER"),
+    INFO("INFO"),
+    MESSAGE("MESSAGE"),
+    PRACK("PRACK"),
+    UPDATE("UPDATE"),
+    PUBLISH("PUBLISH");
 
     private String methodName;
 

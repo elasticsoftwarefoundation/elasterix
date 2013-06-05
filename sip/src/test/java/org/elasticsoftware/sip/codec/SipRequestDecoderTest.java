@@ -126,6 +126,28 @@ public class SipRequestDecoderTest extends AbstractSipTest {
 		Assert.assertNotNull(message);
 		Assert.assertNull(message.getResponseStatus());
 	}
+
+	@Test
+	public void testInitialLineValidWithoutUsernameWithPortAndTransport() throws Exception {
+		ChannelBuffer buf = ChannelBuffers.copiedBuffer("SUBSCRIBE sip:1234@localhost:5060;transport=UDP SIP/2.0", CharsetUtil.UTF_8);
+		SipMessageDecoder decoder = new SipMessageDecoder();
+		DecoderEmbedder<SipMessage> embedder = new DecoderEmbedder<SipMessage>(decoder);
+		embedder.offer(buf);
+		SipMessage message = embedder.poll();
+		Assert.assertNotNull(message);
+		Assert.assertNull(message.getResponseStatus());
+	}
+	
+	@Test
+	public void testInitialLineInvalidWithoutUsernameWithPortAndTransport() throws Exception {
+		ChannelBuffer buf = ChannelBuffers.copiedBuffer("SUBSCRIBE sip:1234@localhost:5060;transport= SIP/2.0", CharsetUtil.UTF_8);
+		SipMessageDecoder decoder = new SipMessageDecoder();
+		DecoderEmbedder<SipMessage> embedder = new DecoderEmbedder<SipMessage>(decoder);
+		embedder.offer(buf);
+		SipMessage message = embedder.poll();
+		Assert.assertNotNull(message);
+		Assert.assertTrue(SipResponseStatus.BAD_REQUEST == message.getResponseStatus());
+	}
 	
 	@Test
 	public void testInitialLineAsterisk() throws Exception {

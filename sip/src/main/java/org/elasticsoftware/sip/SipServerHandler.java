@@ -83,7 +83,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 			default:
 				log.error(String.format("Unrecognized method[%s]", 
 						request.getMethod().name()));
-				writeResponse(request, e, SipResponseStatus.NOT_IMPLEMENTED);
+				request.setResponseStatus(SipResponseStatus.NOT_IMPLEMENTED);
+				writeResponse(request.toSipResponse(), e);
 				return;
 			}
 			messageHandler.onRequest(request);
@@ -107,7 +108,7 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     	return true;
     }
 
-	private void writeResponse(SipMessage message, MessageEvent e, SipResponseStatus status) {
+	private void writeResponse(SipResponse message, MessageEvent e) {
 		// Decide whether to close the connection or not.		
 		//boolean keepAlive = SipHeaders.isKeepAlive(request);
 		boolean keepAlive = true;
