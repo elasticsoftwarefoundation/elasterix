@@ -4,6 +4,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.log4j.Logger;
 import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMessage;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponse;
 import org.jboss.netty.channel.Channel;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SipMessageSenderImpl implements SipMessageSender {
 	private static final Logger log = Logger.getLogger(SipMessageSenderImpl.class);
+	private static final Logger sipLog = Logger.getLogger("sip");	
 	
 	/** Channel Factory is required for obtaining channels used for sending messages*/
 	private SipChannelFactory sipChannelFactory;
@@ -33,7 +35,9 @@ public class SipMessageSenderImpl implements SipMessageSender {
 
 	@Override
 	public void sendRequest(SipRequest request, SipMessageCallback callback) {
-		log.info(String.format("Sending Request\n%s", request));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("Sending Request\n%s", request));
+		}
 		
 		Channel c = sipChannelFactory.getChannel(request.getSipUser(SipHeader.TO));
 		if(c == null) {
@@ -41,6 +45,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 			return;
 		}
 		if(c.isConnected() && c.isOpen()) {
+			logMessage("SENDING", request);
 			c.write(request);
 		} else {
 			log.warn(String.format("sendRequest. Channel not connected or closed"));
@@ -49,7 +54,9 @@ public class SipMessageSenderImpl implements SipMessageSender {
 
 	@Override
 	public void sendResponse(SipResponse response, SipMessageCallback callback) {
-		log.info(String.format("Sending Response\n%s", response));
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("Sending Response\n%s", response));
+		}
 		
 		Channel c = sipChannelFactory.getChannel(response.getSipUser(SipHeader.CONTACT));
 		if(c == null) {
@@ -57,6 +64,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 			return;
 		}
 		if(c.isConnected() && c.isOpen()) {
+			logMessage("SENDING", response);
 			c.write(response);
 		} else {
 			log.warn(String.format("sendResponse. Channel not connected or closed"));
@@ -66,5 +74,14 @@ public class SipMessageSenderImpl implements SipMessageSender {
 	@Required
     public void setSipChannelFactory(SipChannelFactory sipChannelFactory) {
         this.sipChannelFactory = sipChannelFactory;
+    }
+	
+	private void logMessage(String prefix, SipMessage message) {
+    	if(sipLog.isDebugEnabled()) {
+    		sipLog.debug(String.format("%s\n%s", prefix, message));
+    	}
+		if(log.isDebugEnabled()) {
+    		log.debug(String.format("%s\n%s", prefix, message));
+		}
     }
 }

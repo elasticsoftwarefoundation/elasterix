@@ -77,7 +77,9 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
     
     @Override
 	public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
-		log.info(String.format("onUndeliverable. Message[%s]", message));
+    	if(log.isDebugEnabled()) {
+    		log.debug(String.format("onUndeliverable. Message[%s]", message));
+    	}
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage m = (SipRequestMessage) message;
 

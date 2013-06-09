@@ -7,8 +7,6 @@ import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponse;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
@@ -27,17 +25,17 @@ import org.springframework.util.StringUtils;
  */
 public class SipServerHandler extends SimpleChannelUpstreamHandler {
 	private static final Logger log = Logger.getLogger(SipServerHandler.class);	
-
+	private static final Logger sipLog = Logger.getLogger("sip");	
+	
 	private SipMessageHandler messageHandler;
 	private SipChannelFactory sipChannelFactory;
 	private boolean strictParsing = true;
-	private String logLevelMessages = "INFO";
 
     @Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) 
 	throws Exception {
     	SipMessage message = (SipMessage) e.getMessage();
-    	logMessage("Received", message);
+		logMessage("RECEIVED", message);
 
     	// update LRU cache (if set)
 		if(sipChannelFactory != null) {
@@ -58,35 +56,18 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 		if(message instanceof SipRequest) {
 			SipRequest request = (SipRequest) message;
 			
-			switch(request.getMethod()) {
-			case ACK:
-//				messageHandler.onAck(request);
-				break;
-			case BYE:
-//				messageHandler.onBye(request);
-				break;
-			case CANCEL:
-//				messageHandler.onCancel(request);
-				break;
-			case INVITE:
-				if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.FROM, SipHeader.TO)) return;
-//				messageHandler.onInvite(request);
-				break;
-			case OPTIONS:
-//				messageHandler.onInvite(request);
-				break;
-			case REGISTER:
-				if(strictParsing && !checkForHeaders(request, ctx.getChannel(), SipHeader.CALL_ID, 
-						SipHeader.CONTACT, SipHeader.FROM, SipHeader.VIA)) return;
-//				messageHandler.onRegister(request);
-				break;
-			default:
-				log.error(String.format("Unrecognized method[%s]", 
-						request.getMethod().name()));
-				request.setResponseStatus(SipResponseStatus.NOT_IMPLEMENTED);
-				writeResponse(request.toSipResponse(), e);
-				return;
+			if(strictParsing) {
+				switch(request.getMethod()) {
+				case INVITE:
+					if(!checkForHeaders(request, ctx.getChannel(), SipHeader.FROM, SipHeader.TO)) return;
+					break;
+				case REGISTER:
+					if(!checkForHeaders(request, ctx.getChannel(), SipHeader.CALL_ID, 
+							SipHeader.CONTACT, SipHeader.FROM, SipHeader.VIA)) return;
+					break;
+				}
 			}
+			
 			messageHandler.onRequest(request);
 		} else if (message instanceof SipResponse) {
 			SipResponse response = (SipResponse) message;
@@ -101,45 +82,47 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
 				log.warn(String.format("No %s header found in SIP message. Bouncing it",
 						header.getName()));
 				request.setResponseStatus(SipResponseStatus.BAD_REQUEST);
+				logMessage("SENDING", request);
 				channel.write(request.toSipResponse());
 				return false;
 			}
     	}
     	return true;
     }
-
-	private void writeResponse(SipResponse message, MessageEvent e) {
-		// Decide whether to close the connection or not.		
-		//boolean keepAlive = SipHeaders.isKeepAlive(request);
-		boolean keepAlive = true;
-
-		// Build the response object.
-		//response.setContent(ChannelBuffers.copiedBuffer(buf.toString(), CharsetUtil.UTF_8));
-		message.setHeader(SipHeader.CONTENT_TYPE, "text/plain; charset=UTF-8");
-
-		if (keepAlive) {
-			// Add 'Content-Length' header only for a keep-alive connection.
-			message.setHeader(SipHeader.CONTENT_LENGTH, message.getContent().readableBytes());
+    
+    private void logMessage(String prefix, SipMessage message) {
+    	if(sipLog.isDebugEnabled()) {
+    		sipLog.debug(String.format("%s\n%s", prefix, message));
+    	}
+		if(log.isDebugEnabled()) {
+    		log.debug(String.format("%s\n%s", prefix, message));
 		}
-		
-    	logMessage("Sending", message);
+    }
 
-		// Write the response.
-		ChannelFuture future = e.getChannel().write(message);
-
-		// Close the non-keep-alive connection after the write operation is done.
-		if (!keepAlive) {
-			future.addListener(ChannelFutureListener.CLOSE);
-		}
-	}
-	
-	private void logMessage(String prefix, SipMessage message) {
-		if("DEBUG".equalsIgnoreCase(logLevelMessages) && log.isDebugEnabled()) {
-			log.debug(String.format("%s\n%s", prefix, message));
-		} else if("INFO".equalsIgnoreCase(logLevelMessages) && log.isInfoEnabled()) {
-			log.info(String.format("%s\n%s", prefix, message));
-		}
-	}
+//	private void writeResponse(SipResponse message, MessageEvent e) {
+//		// Decide whether to close the connection or not.		
+//		//boolean keepAlive = SipHeaders.isKeepAlive(request);
+//		boolean keepAlive = true;
+//
+//		// Build the response object.
+//		//response.setContent(ChannelBuffers.copiedBuffer(buf.toString(), CharsetUtil.UTF_8));
+//		message.setHeader(SipHeader.CONTENT_TYPE, "text/plain; charset=UTF-8");
+//
+//		if (keepAlive) {
+//			// Add 'Content-Length' header only for a keep-alive connection.
+//			message.setHeader(SipHeader.CONTENT_LENGTH, message.getContent().readableBytes());
+//		}
+//		
+//    	logMessage("Sending", message);
+//
+//		// Write the response.
+//		ChannelFuture future = e.getChannel().write(message);
+//
+//		// Close the non-keep-alive connection after the write operation is done.
+//		if (!keepAlive) {
+//			future.addListener(ChannelFutureListener.CLOSE);
+//		}
+//	}
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
@@ -164,8 +147,4 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     public void setSipChannelFactory(SipChannelFactory sipChannelFactory) {
         this.sipChannelFactory = sipChannelFactory;
     }
-
-	public void setLogLevelMessages(String logLevelMessages) {
-		this.logLevelMessages = logLevelMessages;
-	}
 }

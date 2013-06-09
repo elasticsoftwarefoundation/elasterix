@@ -103,6 +103,6 @@ public class SipRequestMessage extends AbstractSipMessage {
 
 	@Override
 	public String toShortString() {
-		return getUri();
+		return String.format("%s %s %s", getMethod(), getUri(), getVersion());
 	}
 }

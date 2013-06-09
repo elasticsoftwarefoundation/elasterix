@@ -57,11 +57,9 @@ public class Dialog extends UntypedActor {
 				user = getSystem().actorFor("user/" + toUser.getUsername());
 				user.tell(message, getSelf());	
 				return;
-			case BYE:
-			case ACK:
-			case CANCEL:
-			case OPTIONS:
 			default:
+				sipService.tell(sipMessage.toSipResponseMessage(SipResponseStatus.NOT_IMPLEMENTED), 
+						getSelf());
 			}
 		} else if (message instanceof SipResponseMessage) {
 			// unsupported
@@ -69,7 +67,6 @@ public class Dialog extends UntypedActor {
 			log.warn(String.format("onReceive. Unsupported message[%s]", 
 					message.getClass().getSimpleName()));
 			unhandled(message);
-			return;
 		}
 	}
 

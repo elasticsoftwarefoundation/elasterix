@@ -1,5 +1,6 @@
 package org.elasticsoftware.sip.codec;
 
+import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
@@ -13,6 +14,7 @@ import org.testng.annotations.Test;
  * @author Leonard Wolters
  */
 public class SipRequestDecoderTest extends AbstractSipTest {
+	private static final Logger log = Logger.getLogger(SipRequestDecoderTest.class);
 	
 	@Test
 	public void testInitialLineNoCarriageReturn() throws Exception {
@@ -48,17 +50,6 @@ public class SipRequestDecoderTest extends AbstractSipTest {
 		SipMessage message = embedder.poll();
 		Assert.assertNotNull(message);
 		Assert.assertTrue(SipResponseStatus.METHOD_NOT_ALLOWED == message.getResponseStatus());
-	}
-	
-	@Test
-	public void testInitialLineInvalidUri() throws Exception {
-		ChannelBuffer buf = ChannelBuffers.copiedBuffer("INVITE bla SIP/2.0", CharsetUtil.UTF_8);
-		SipMessageDecoder decoder = new SipMessageDecoder();
-		DecoderEmbedder<SipMessage> embedder = new DecoderEmbedder<SipMessage>(decoder);
-		embedder.offer(buf);
-		SipMessage message = embedder.poll();
-		Assert.assertNotNull(message);
-		Assert.assertTrue(SipResponseStatus.BAD_REQUEST == message.getResponseStatus());
 	}
 	
 	@Test
