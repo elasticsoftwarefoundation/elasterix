@@ -16,7 +16,7 @@
 
 package org.elasticsoftware.rtp.participant;
 
-import org.elasticsoftware.rtp.logging.Logger;
+import org.apache.log4j.Logger;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
 import org.elasticsoftware.rtp.packet.SdesChunkItem;
@@ -106,7 +106,7 @@ public class DefaultParticipantDatabase implements ParticipantDatabase {
                 try {
                     operation.doWithParticipant(receiver);
                 } catch (Exception e) {
-                    LOG.error("Failed to perform operation {} on receiver {}.", e, operation, receiver);
+                    LOG.error(String.format("Failed to perform operation %s on receiver %s.", operation, receiver),e);
                 }
             }
         } finally {
@@ -122,7 +122,7 @@ public class DefaultParticipantDatabase implements ParticipantDatabase {
                 try {
                     operation.doWithParticipant(member);
                 } catch (Exception e) {
-                    LOG.error("Failed to perform operation {} on member {}.", e, operation, member);
+                    LOG.error(String.format("Failed to perform operation %s on member %s.", operation, member), e);
                 }
             }
         } finally {
@@ -290,8 +290,8 @@ public class DefaultParticipantDatabase implements ParticipantDatabase {
                 int timeout = this.timeoutAfterByeAndNoPacketsReceived * 1000;
                 if (participant.receivedBye() && TimeUtils
                         .hasExpired(now, participant.getLastReceptionInstant(), timeout)) {
-                    LOG.trace("Removed {} from session with id '{}' after reception of BYE and {}s of inactivity.",
-                              participant, this.id, this.timeoutAfterByeAndNoPacketsReceived);
+                    LOG.trace(String.format("Removed %s from session with id '%s' after reception of BYE and %ds of inactivity.",
+                              participant, this.id, this.timeoutAfterByeAndNoPacketsReceived));
                     iterator.remove();
                     if (participant.isReceiver()) {
                         this.receivers.remove(participant);

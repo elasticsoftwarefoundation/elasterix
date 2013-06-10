@@ -16,9 +16,7 @@
 
 package org.elasticsoftware.rtp.network;
 
-import org.elasticsoftware.rtp.logging.Logger;
-import org.elasticsoftware.rtp.packet.CompoundControlPacket;
-import org.elasticsoftware.rtp.packet.ControlPacket;
+import org.apache.log4j.Logger;
 import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 import org.elasticsoftware.rtp.packet.ControlPacket;
 import org.jboss.netty.buffer.ChannelBuffer;

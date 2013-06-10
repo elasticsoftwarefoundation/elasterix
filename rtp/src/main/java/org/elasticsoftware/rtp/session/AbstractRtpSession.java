@@ -16,7 +16,7 @@
 
 package org.elasticsoftware.rtp.session;
 
-import org.elasticsoftware.rtp.logging.Logger;
+import org.apache.log4j.Logger;
 import org.elasticsoftware.rtp.network.ControlHandler;
 import org.elasticsoftware.rtp.network.ControlPacketDecoder;
 import org.elasticsoftware.rtp.network.ControlPacketEncoder;
@@ -39,7 +39,6 @@ import org.elasticsoftware.rtp.participant.ParticipantDatabase;
 import org.elasticsoftware.rtp.participant.ParticipantOperation;
 import org.elasticsoftware.rtp.participant.RtpParticipant;
 import org.elasticsoftware.rtp.participant.RtpParticipantInfo;
-import org.elasticsoftware.rtp.logging.Logger;
 import org.elasticsoftware.rtp.network.*;
 import org.elasticsoftware.rtp.packet.*;
 import org.elasticsoftware.rtp.participant.ParticipantDatabase;
@@ -282,7 +281,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
             return false;
         }
 
-        LOG.debug("Data & Control channels bound for RtpSession with id {}.", this.id);
+        LOG.debug(String.format("Data & Control channels bound for RtpSession with id %s.", this.id));
         // Send first RTCP packet.
         this.joinSession(this.localParticipant.getSsrc());
         this.running.set(true);
@@ -467,8 +466,8 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
                 this.joinSession(newSsrc);
             }
 
-            LOG.warn("SSRC collision with remote end detected on session with id {}; updating SSRC from {} to {}.",
-                     this.id, oldSsrc, newSsrc);
+            LOG.warn(String.format("SSRC collision with remote end detected on session with id %s; updating SSRC from %d to %d.",
+                     this.id, oldSsrc, newSsrc));
             for (RtpSessionEventListener listener : this.eventListeners) {
                 listener.resolvedSsrcConflict(this, oldSsrc, newSsrc);
             }
@@ -484,8 +483,8 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
 
         // Should the packet be discarded due to out of order SN?
         if ((participant.getLastSequenceNumber() >= packet.getSequenceNumber()) && this.discardOutOfOrder) {
-            LOG.trace("Discarded out of order packet from {} in session with id {} (last SN was {}, packet SN was {}).",
-                      participant, this.id, participant.getLastSequenceNumber(), packet.getSequenceNumber());
+            LOG.trace(String.format("Discarded out of order packet from %s in session with id %s (last SN was %d, packet SN was %d).",
+                      participant, this.id, participant.getLastSequenceNumber(), packet.getSequenceNumber()));
             return;
         }
 
@@ -619,8 +618,8 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
                 }
             }
         }
-        LOG.trace("Received BYE for participants with SSRCs {} in session with id '{}' (reason: '{}').",
-                  packet.getSsrcList(), this.id, packet. getReasonForLeaving());
+        LOG.trace(String.format("Received BYE for participants with SSRCs %s in session with id '%s' (reason: '%s').",
+                  packet.getSsrcList(), this.id, packet.getReasonForLeaving()));
     }
 
     protected abstract ParticipantDatabase createDatabase();
@@ -635,7 +634,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
                 try {
                     writeToData(packet, participant.getDataDestination());
                 } catch (Exception e) {
-                    LOG.error("Failed to send RTP packet to participants in session with id {}.", id);
+                    LOG.error(String.format("Failed to send RTP packet to participants in session with id %s.", id));
                 }
             }
 
@@ -654,7 +653,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
         try {
             this.writeToControl(packet, participant.getControlDestination());
         } catch (Exception e) {
-            LOG.error("Failed to send RTCP packet to {} in session with id {}.", participant, this.id);
+            LOG.error(String.format("Failed to send RTCP packet to %s in session with id %s.", participant, this.id));
         }
     }
 
@@ -666,7 +665,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
         try {
             this.writeToControl(packet, participant.getControlDestination());
         } catch (Exception e) {
-            LOG.error("Failed to send RTCP compound packet to {} in session with id {}.", participant, this.id);
+            LOG.error(String.format("Failed to send RTCP compound packet to %s in session with id %s.", participant, this.id));
         }
     }
 
@@ -680,7 +679,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
                 try {
                     writeToControl(packet, participant.getControlDestination());
                 } catch (Exception e) {
-                    LOG.error("Failed to send RTCP packet to participants in session with id {}.", id);
+                    LOG.error(String.format("Failed to send RTCP packet to participants in session with id %s.", id));
                 }
             }
 
@@ -701,7 +700,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
                 try {
                     writeToControl(packet, participant.getControlDestination());
                 } catch (Exception e) {
-                    LOG.error("Failed to send RTCP compound packet to participants in session with id {}.", id);
+                    LOG.error(String.format("Failed to send RTCP compound packet to participants in session with id %s.", id));
                 }
             }
 
@@ -843,7 +842,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
 
         this.dataBootstrap.releaseExternalResources();
         this.controlBootstrap.releaseExternalResources();
-        LOG.debug("RtpSession with id {} terminated.", this.id);
+        LOG.debug(String.format("RtpSession with id %s terminated.", this.id));
 
         for (RtpSessionEventListener listener : this.eventListeners) {
             listener.sessionTerminated(this, cause);

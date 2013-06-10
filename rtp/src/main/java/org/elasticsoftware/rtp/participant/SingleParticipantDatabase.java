@@ -16,10 +16,9 @@
 
 package org.elasticsoftware.rtp.participant;
 
-import org.elasticsoftware.rtp.logging.Logger;
+import org.apache.log4j.Logger;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
-import org.elasticsoftware.rtp.logging.Logger;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
 
@@ -74,7 +73,7 @@ public class SingleParticipantDatabase implements ParticipantDatabase {
         try {
             operation.doWithParticipant(this.participant);
         } catch (Exception e) {
-            LOG.error("Failed to perform operation {} on remote participant {}.", e, operation, this.participant);
+            LOG.error(String.format("Failed to perform operation %s on remote participant %s.", operation, this.participant), e);
         }
     }
 
@@ -83,7 +82,7 @@ public class SingleParticipantDatabase implements ParticipantDatabase {
         try {
             operation.doWithParticipant(this.participant);
         } catch (Exception e) {
-            LOG.error("Failed to perform operation {} on remote participant {}.", e, operation, this.participant);
+            LOG.error(String.format("Failed to perform operation %s on remote participant %s.", operation, this.participant), e);
         }
     }
 

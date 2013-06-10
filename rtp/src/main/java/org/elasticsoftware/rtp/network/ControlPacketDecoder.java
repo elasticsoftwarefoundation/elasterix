@@ -16,10 +16,9 @@
 
 package org.elasticsoftware.rtp.network;
 
-import org.elasticsoftware.rtp.logging.Logger;
+import org.apache.log4j.Logger;
 import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 import org.elasticsoftware.rtp.packet.ControlPacket;
-import org.elasticsoftware.rtp.logging.Logger;
 import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 import org.elasticsoftware.rtp.packet.ControlPacket;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -58,8 +57,7 @@ public class ControlPacketDecoder implements ChannelUpstreamHandler {
 
         ChannelBuffer buffer = (ChannelBuffer) e.getMessage();
         if ((buffer.readableBytes() % 4) != 0) {
-            LOG.debug("Invalid RTCP packet received: total length should be multiple of 4 but is {}",
-                      buffer.readableBytes());
+            LOG.debug(String.format("Invalid RTCP packet received: total length should be multiple of 4 but is %d",buffer.readableBytes()));
             return;
         }
 

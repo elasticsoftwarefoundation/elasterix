@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.elasticsoftware.elasterix.server.ApiConfig;
 import org.elasticsoftware.elasterix.server.actors.User;
 import org.elasticsoftware.elasterix.server.messages.ApiHttpMessage;
@@ -20,7 +21,6 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.util.StringUtils;
 
-import org.elasticsoftware.rtp.logging.Logger;
 
 /**
  * User Controller<br>

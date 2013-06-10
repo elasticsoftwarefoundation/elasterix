@@ -162,7 +162,7 @@ public class SingleParticipantSession extends AbstractRtpSession {
             this.writeToData(packet, destination);
             this.sentOrReceivedPackets.set(true);
         } catch (Exception e) {
-            LOG.error("Failed to send {} to {} in session with id {}.", this.id, this.receiver.getInfo());
+            LOG.error(String.format("Failed to send %s to %s in session with id %s.", this.id, this.receiver.getInfo()));
         }
     }
 
@@ -181,8 +181,8 @@ public class SingleParticipantSession extends AbstractRtpSession {
             this.writeToControl(packet, destination);
             this.sentOrReceivedPackets.set(true);
         } catch (Exception e) {
-            LOG.error("Failed to send RTCP packet to {} in session with id {}.",
-                      this.receiver.getInfo(), this.id);
+            LOG.error(String.format("Failed to send RTCP packet to %s in session with id %s.",
+                      this.receiver.getInfo(), this.id));
         }
     }
 
@@ -192,8 +192,8 @@ public class SingleParticipantSession extends AbstractRtpSession {
             this.writeToControl(packet, this.receiver.getControlDestination());
             this.sentOrReceivedPackets.set(true);
         } catch (Exception e) {
-            LOG.error("Failed to send compound RTCP packet to {} in session with id {}.",
-                      this.receiver.getInfo(), this.id);
+            LOG.error(String.format("Failed to send compound RTCP packet to %s in session with id %s.",
+                      this.receiver.getInfo(), this.id));
         }
     }
 
@@ -204,10 +204,10 @@ public class SingleParticipantSession extends AbstractRtpSession {
         if (!this.receivedPackets.getAndSet(true)) {
             // If this is the first packet then setup the SSRC for this participant (we didn't know it yet).
             this.receiver.getInfo().setSsrc(packet.getSsrc());
-            LOG.trace("First packet received from remote source, updated SSRC to {}.", packet.getSsrc());
+            LOG.trace(String.format("First packet received from remote source, updated SSRC to %d.", packet.getSsrc()));
         } else if (this.ignoreFromUnknownSsrc && (packet.getSsrc() != this.receiver.getInfo().getSsrc())) {
-            LOG.trace("Discarded packet from unexpected SSRC: {} (expected was {}).",
-                      packet.getSsrc(), this.receiver.getInfo().getSsrc());
+            LOG.trace(String.format("Discarded packet from unexpected SSRC: %d (expected was %d).",
+                      packet.getSsrc(), this.receiver.getInfo().getSsrc()));
             return;
         }
 

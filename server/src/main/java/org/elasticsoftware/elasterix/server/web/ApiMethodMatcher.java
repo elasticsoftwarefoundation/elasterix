@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.log4j.Logger;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 
-import org.elasticsoftware.rtp.logging.Logger;
 
 /**
  * Ant based style <code>ApiMethod</code> matcher capable of matching registered
