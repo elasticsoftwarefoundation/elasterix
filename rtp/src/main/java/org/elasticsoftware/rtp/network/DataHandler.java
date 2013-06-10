@@ -58,7 +58,7 @@ public class DataHandler extends SimpleChannelUpstreamHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
         // Just log and proceed...
-        LOG.error(String.format("Caught exception on channel %s.",e.getChannel()), e.getCause());
+        LOG.error(String.format("Caught exception on channel %s.", e.getChannel()), e.getCause());
     }
 
     // public methods -------------------------------------------------------------------------------------------------

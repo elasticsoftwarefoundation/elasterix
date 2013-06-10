@@ -1,7 +1,7 @@
 {
-  "email" : "lwolters@elasticsoftware.org",
-  "username" : "lwolters",
-  "firstName" : "Leonard",
-  "lastName" : "Wolters",
-  "password" : "test"
+    "email": "lwolters@elasticsoftware.org",
+    "username": "lwolters",
+    "firstName": "Leonard",
+    "lastName": "Wolters",
+    "password": "test"
 }

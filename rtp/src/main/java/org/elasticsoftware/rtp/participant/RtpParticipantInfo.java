@@ -19,7 +19,6 @@ package org.elasticsoftware.rtp.participant;
 import org.elasticsoftware.rtp.packet.SdesChunk;
 import org.elasticsoftware.rtp.packet.SdesChunkItem;
 import org.elasticsoftware.rtp.packet.SdesChunkPrivItem;
-import org.elasticsoftware.rtp.packet.SdesChunkPrivItem;
 
 import java.util.Random;
 
@@ -134,7 +133,7 @@ public class RtpParticipantInfo {
                 case PRIV:
                     String prefix = ((SdesChunkPrivItem) item).getPrefix();
                     if (this.willCauseModification(this.privPrefix, prefix) ||
-                        this.willCauseModification(this.priv, item.getValue())) {
+                            this.willCauseModification(this.priv, item.getValue())) {
                         this.setPriv(prefix, item.getValue());
                         modified = true;
                     }

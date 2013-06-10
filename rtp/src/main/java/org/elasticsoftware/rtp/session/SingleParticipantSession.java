@@ -22,15 +22,12 @@ import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.participant.ParticipantDatabase;
 import org.elasticsoftware.rtp.participant.RtpParticipant;
 import org.elasticsoftware.rtp.participant.SingleParticipantDatabase;
-import org.elasticsoftware.rtp.packet.CompoundControlPacket;
-import org.elasticsoftware.rtp.packet.ControlPacket;
-import org.elasticsoftware.rtp.packet.DataPacket;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 import org.jboss.netty.util.HashedWheelTimer;
 
 import java.net.SocketAddress;
-import java.util.Collections;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,7 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p/>
  * If more than one source is used to send data for this session it will often get "confused" and keep redirecting
  * packets to the last source from which it received.
- * <p>
+ * <p/>
  * This is <strong>NOT</strong> a fully RFC 3550 compliant implementation, but rather a special purpose one for very
  * specific scenarios.
  *
@@ -85,11 +82,11 @@ public class SingleParticipantSession extends AbstractRtpSession {
                                     RtpParticipant remoteParticipant, HashedWheelTimer timer) {
         this(id, payloadType, localParticipant, remoteParticipant, timer, null);
     }
-    
+
     public SingleParticipantSession(String id, int payloadType, RtpParticipant localParticipant,
-    								RtpParticipant remoteParticipant, HashedWheelTimer timer,
-    								OrderedMemoryAwareThreadPoolExecutor executor) {
-    	this(id, Collections.singleton(payloadType), localParticipant, remoteParticipant, timer, executor);
+                                    RtpParticipant remoteParticipant, HashedWheelTimer timer,
+                                    OrderedMemoryAwareThreadPoolExecutor executor) {
+        this(id, Collections.singleton(payloadType), localParticipant, remoteParticipant, timer, executor);
     }
 
     public SingleParticipantSession(String id, Collection<Integer> payloadTypes, RtpParticipant localParticipant,
@@ -182,7 +179,7 @@ public class SingleParticipantSession extends AbstractRtpSession {
             this.sentOrReceivedPackets.set(true);
         } catch (Exception e) {
             LOG.error(String.format("Failed to send RTCP packet to %s in session with id %s.",
-                      this.receiver.getInfo(), this.id));
+                    this.receiver.getInfo(), this.id));
         }
     }
 
@@ -193,7 +190,7 @@ public class SingleParticipantSession extends AbstractRtpSession {
             this.sentOrReceivedPackets.set(true);
         } catch (Exception e) {
             LOG.error(String.format("Failed to send compound RTCP packet to %s in session with id %s.",
-                      this.receiver.getInfo(), this.id));
+                    this.receiver.getInfo(), this.id));
         }
     }
 
@@ -207,7 +204,7 @@ public class SingleParticipantSession extends AbstractRtpSession {
             LOG.trace(String.format("First packet received from remote source, updated SSRC to %d.", packet.getSsrc()));
         } else if (this.ignoreFromUnknownSsrc && (packet.getSsrc() != this.receiver.getInfo().getSsrc())) {
             LOG.trace(String.format("Discarded packet from unexpected SSRC: %d (expected was %d).",
-                      packet.getSsrc(), this.receiver.getInfo().getSsrc()));
+                    packet.getSsrc(), this.receiver.getInfo().getSsrc()));
             return;
         }
 

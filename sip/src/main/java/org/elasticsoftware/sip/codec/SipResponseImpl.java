@@ -4,25 +4,25 @@ import org.jboss.netty.util.internal.StringUtil;
 
 /**
  * The default {@link SipResponse} implementation.
- * 
+ *
  * @author Leonard Wolters
  */
 public class SipResponseImpl extends SipMessageImpl implements SipResponse {
-	
+
     /**
      * Creates a new instance.
      *
-     * @param version the Sip version of this response
-     * @param responseStatus  the status of this response
+     * @param version        the Sip version of this response
+     * @param responseStatus the status of this response
      */
     public SipResponseImpl(SipVersion version, SipResponseStatus responseStatus) {
         super(version, responseStatus);
     }
-    
+
     protected SipResponseImpl(SipMessage message) {
-    	super(message);
+        super(message);
     }
-    
+
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();

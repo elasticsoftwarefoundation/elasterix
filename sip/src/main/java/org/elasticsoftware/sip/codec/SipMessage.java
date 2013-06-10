@@ -1,21 +1,21 @@
 package org.elasticsoftware.sip.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-
 /**
  * An SIP message which provides common properties for {@link SipRequest} and
  * {@link SipResponse}.
- * @see SipHeaders
- * <br>
- * Keep in mind that SIP is *not* an extension of HTTP, see
- * http://tools.ietf.org/html/rfc3261#section-7
  *
  * @author Leonard Wolters
+ * @see SipHeaders
+ *      <br>
+ *      Keep in mind that SIP is *not* an extension of HTTP, see
+ *      http://tools.ietf.org/html/rfc3261#section-7
  */
 public interface SipMessage {
 
@@ -76,7 +76,7 @@ public interface SipMessage {
      * Adds a new header with the specified value.
      */
     void addHeader(SipHeader header, Object... value);
-    
+
     /**
      * Sets a new header with the specified value. Existing header(s) will
      * be removed.
@@ -92,29 +92,32 @@ public interface SipMessage {
      * Removes all headers from this message.
      */
     void clearHeaders();
-    
+
     /**
      * Sets the response status for this message
+     *
      * @param responseStatus
      */
     void setResponseStatus(SipResponseStatus responseStatus);
-    
+
     /**
      * Returns the response status of this message
+     *
      * @return
      */
     SipResponseStatus getResponseStatus();
-    
+
     /**
      * Returns the content length of this message
+     *
      * @param defaultValue
      * @return
      */
     long getContentLength(long defaultValue);
-    
+
     /**
      * Returns a SIP user belonging to given header
-     * 
+     *
      * @param header
      * @return
      */

@@ -19,7 +19,6 @@ package org.elasticsoftware.rtp.participant;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
 import org.elasticsoftware.rtp.util.TimeUtils;
-import org.elasticsoftware.rtp.packet.DataPacket;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -251,8 +250,8 @@ public class RtpParticipant {
 
         RtpParticipant that = (RtpParticipant) o;
         return this.controlDestination.equals(that.controlDestination) &&
-               this.dataDestination.equals(that.dataDestination) &&
-               this.info.getCname().equals(that.info.getCname());
+                this.dataDestination.equals(that.dataDestination) &&
+                this.info.getCname().equals(that.info.getCname());
     }
 
     @Override

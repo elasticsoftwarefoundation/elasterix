@@ -3,8 +3,8 @@ package org.elasticsoftware.sip.codec;
 /**
  * An SIP request.
  *
- * @see SipResponse
  * @author Leonard Wolters
+ * @see SipResponse
  */
 public interface SipRequest extends SipMessage {
 
@@ -17,10 +17,10 @@ public interface SipRequest extends SipMessage {
      * Returns the URI (or path) of this request.
      */
     String getUri();
-    
+
     /**
      * Convert to sip response..
-     * 
+     *
      * @return
      */
     SipResponse toSipResponse();

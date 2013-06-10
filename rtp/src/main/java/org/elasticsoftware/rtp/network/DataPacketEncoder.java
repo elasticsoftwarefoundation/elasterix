@@ -17,7 +17,6 @@
 package org.elasticsoftware.rtp.network;
 
 import org.elasticsoftware.rtp.packet.DataPacket;
-import org.elasticsoftware.rtp.packet.DataPacket;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandler;

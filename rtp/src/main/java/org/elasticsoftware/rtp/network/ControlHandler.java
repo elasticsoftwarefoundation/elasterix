@@ -17,8 +17,8 @@
 package org.elasticsoftware.rtp.network;
 
 //import org.elasticsoftware.rtp.logging.Logger;
+
 import org.apache.log4j.Logger;
-import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ExceptionEvent;
@@ -60,9 +60,9 @@ public class ControlHandler extends SimpleChannelUpstreamHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
         // Just log and proceed...
-        LOG.error(String.format("Caught exception on channel %s.", e.getChannel()),e.getCause());
+        LOG.error(String.format("Caught exception on channel %s.", e.getChannel()), e.getCause());
     }
-    
+
     // public methods -------------------------------------------------------------------------------------------------
 
     public int getPacketsReceived() {

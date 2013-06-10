@@ -19,8 +19,6 @@ package org.elasticsoftware.rtp.participant;
 import org.apache.log4j.Logger;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
-import org.elasticsoftware.rtp.packet.DataPacket;
-import org.elasticsoftware.rtp.packet.SdesChunk;
 
 import java.net.SocketAddress;
 import java.util.Arrays;

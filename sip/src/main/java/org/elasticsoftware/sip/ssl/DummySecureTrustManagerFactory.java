@@ -53,7 +53,7 @@ public class DummySecureTrustManagerFactory extends TrustManagerFactorySpi {
     };
 
     public static TrustManager[] getTrustManagers() {
-        return new TrustManager[] { DUMMY_TRUST_MANAGER };
+        return new TrustManager[]{DUMMY_TRUST_MANAGER};
     }
 
     @Override

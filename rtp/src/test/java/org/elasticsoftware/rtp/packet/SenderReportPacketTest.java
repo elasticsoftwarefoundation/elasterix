@@ -16,9 +16,6 @@
 
 package org.elasticsoftware.rtp.packet;
 
-import org.elasticsoftware.rtp.packet.ControlPacket;
-import org.elasticsoftware.rtp.packet.ReceptionReport;
-import org.elasticsoftware.rtp.packet.SenderReportPacket;
 import org.elasticsoftware.rtp.util.ByteUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -35,7 +32,7 @@ public class SenderReportPacketTest {
     public void testDecode() throws Exception {
         // wireshark capture, from X-lite
         byte[] packetBytes = ByteUtils.convertHexStringToByteArray("80c800064f52eb38d01f84417f3b6459a91e7bd9000000020" +
-                                                                   "0000002");
+                "0000002");
 
 
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(packetBytes);
@@ -59,7 +56,7 @@ public class SenderReportPacketTest {
     public void testDecode2() throws Exception {
         // wireshark capture, from jlibrtp
         byte[] packetBytes = ByteUtils.convertHexStringToByteArray("80c80006e6aa996ed01f84481be76c8b001bb2b40000020b0" +
-                                                                   "0015f64");
+                "0015f64");
 
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(packetBytes);
         ControlPacket controlPacket = ControlPacket.decode(buffer);

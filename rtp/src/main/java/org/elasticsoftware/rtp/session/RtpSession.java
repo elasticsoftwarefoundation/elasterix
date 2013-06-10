@@ -22,15 +22,9 @@ import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 import org.elasticsoftware.rtp.packet.ControlPacket;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.participant.RtpParticipant;
-import org.elasticsoftware.rtp.network.ControlPacketReceiver;
-import org.elasticsoftware.rtp.network.DataPacketReceiver;
-import org.elasticsoftware.rtp.packet.CompoundControlPacket;
-import org.elasticsoftware.rtp.packet.ControlPacket;
-import org.elasticsoftware.rtp.packet.DataPacket;
-import org.elasticsoftware.rtp.participant.RtpParticipant;
 
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author <a href="http://bruno.biasedbit.com/">Bruno de Carvalho</a>

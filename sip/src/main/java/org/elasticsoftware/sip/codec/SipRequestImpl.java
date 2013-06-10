@@ -4,7 +4,7 @@ import org.jboss.netty.util.internal.StringUtil;
 
 /**
  * The default {@link SipRequest} implementation.
- * 
+ *
  * @author Leonard Wolters
  */
 public class SipRequestImpl extends SipMessageImpl implements SipRequest {
@@ -14,9 +14,9 @@ public class SipRequestImpl extends SipMessageImpl implements SipRequest {
     /**
      * Creates a new instance.
      *
-     * @param version     the SIP version of the request
-     * @param method      the SIP method of the request
-     * @param uri         the URI or path of the request
+     * @param version the SIP version of the request
+     * @param method  the SIP method of the request
+     * @param uri     the URI or path of the request
      */
     public SipRequestImpl(SipVersion version, SipMethod method, String uri) {
         super(version, null);
@@ -47,7 +47,7 @@ public class SipRequestImpl extends SipMessageImpl implements SipRequest {
         }
         this.uri = uri;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
@@ -60,8 +60,8 @@ public class SipRequestImpl extends SipMessageImpl implements SipRequest {
         return buf.toString();
     }
 
-	@Override
-	public SipResponse toSipResponse() {
-		return new SipResponseImpl(this);
-	}
+    @Override
+    public SipResponse toSipResponse() {
+        return new SipResponseImpl(this);
+    }
 }

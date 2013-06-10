@@ -16,92 +16,87 @@
 
 package org.elasticsoftware.elasterix.server.messages;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
-
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.util.StringUtils;
 
+import java.util.*;
+
 /**
  * @author Leonard Wolters
  */
-public abstract class AbstractSipMessage {	
-	private String version;
-    private final LinkedHashMap<String,List<String>> headers = new LinkedHashMap<String,List<String>>();
+public abstract class AbstractSipMessage {
+    private String version;
+    private final LinkedHashMap<String, List<String>> headers = new LinkedHashMap<String, List<String>>();
     protected final byte[] content;
-    
+
     protected AbstractSipMessage(String version, Map<String, List<String>> headers, byte[] content) {
-    	this.version = version;
-    	if(headers != null) {
-    		this.headers.putAll(headers);
-    	}
+        this.version = version;
+        if (headers != null) {
+            this.headers.putAll(headers);
+        }
         this.content = content;
     }
-    
+
     protected AbstractSipMessage(String version, List<Map.Entry<String, String>> headers, byte[] content) {
-    	this.version = version;
-    	if(headers != null) {
-	        for(Map.Entry<String, String> entry : headers) {
-	        	List<String> values = new ArrayList<String>();
-	        	values.add(entry.getValue());
-	        	this.headers.put(entry.getKey(), values);
-	        }
-    	}
+        this.version = version;
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers) {
+                List<String> values = new ArrayList<String>();
+                values.add(entry.getValue());
+                this.headers.put(entry.getKey(), values);
+            }
+        }
         this.content = content;
     }
-    
+
     public final String getHeader(SipHeader header) {
         List<String> headerValues = headers.get(header.getName());
         return headerValues == null || headerValues.isEmpty() ? null : headerValues.get(0);
     }
-    
+
     public final Long getHeaderAsLong(SipHeader header) {
         List<String> headerValues = headers.get(header.getName());
         try {
-        	return headerValues == null || headerValues.isEmpty() ? null : Long.parseLong(headerValues.get(0));
+            return headerValues == null || headerValues.isEmpty() ? null : Long.parseLong(headerValues.get(0));
         } catch (NumberFormatException e) {
-        	return null;
+            return null;
         }
     }
-    
+
     public void addHeader(SipHeader header, String value) {
-    	List<String> values = headers.get(header.getName());
-    	if(values == null) {
-    		values = new ArrayList<String>();
-    		headers.put(header.getName(), values);
-    	}
-    	values.add(value);
+        List<String> values = headers.get(header.getName());
+        if (values == null) {
+            values = new ArrayList<String>();
+            headers.put(header.getName(), values);
+        }
+        values.add(value);
     }
-    
+
     public void setHeader(SipHeader header, String value) {
-    	headers.remove(header.getName());
-    	addHeader(header, value);
+        headers.remove(header.getName());
+        addHeader(header, value);
     }
-    
+
     public void setHeader(SipHeader header, Object value) {
-    	headers.remove(header.getName());
-    	addHeader(header, value.toString());
+        headers.remove(header.getName());
+        addHeader(header, value.toString());
     }
-    
+
     public boolean appendHeader(SipHeader header, String key, String value) {
-    	String val = getHeader(header);
-    	if(StringUtils.hasLength(val)) {
-    		// TODO check for duplicate?
-    		setHeader(header, String.format("%s;%s=%s", val, key, value));
-    		return true;
-    	}
-    	return false;
+        String val = getHeader(header);
+        if (StringUtils.hasLength(val)) {
+            // TODO check for duplicate?
+            setHeader(header, String.format("%s;%s=%s", val, key, value));
+            return true;
+        }
+        return false;
     }
-    
+
     public boolean removeHeader(SipHeader header) {
-    	return headers.remove(header.getName()) != null;
+        return headers.remove(header.getName()) != null;
     }
 
     @JsonIgnore
@@ -113,94 +108,94 @@ public abstract class AbstractSipMessage {
     public byte[] getContent() {
         return content;
     }
-    
+
     @JsonProperty("version")
     public String getVersion() {
-    	return version;
+        return version;
     }
-    
+
     @JsonProperty("headers")
     public Map<String, List<String>> getHeaders() {
         return headers;
     }
-    
+
     /**
      * Parses a traditional sip user element belonging to given header, e.g. <br>
      * "Hans de Borst"<sip:124@sip.outerteams.com:5060>;tag=ce337d00<br>
      * If no header is passed, SipHeader.TO will be used
-     * 
+     *
      * @param header
      * @return
      */
     @JsonIgnore
     public SipUser getSipUser(SipHeader header) {
-    	if(header == null) {
-    		header = SipHeader.TO;
-    	}
-    	String user = getHeader(header);
-    	if(!StringUtils.hasLength(user)) {
-    		return null;
-    	}
-    	return new SipUser(user);
+        if (header == null) {
+            header = SipHeader.TO;
+        }
+        String user = getHeader(header);
+        if (!StringUtils.hasLength(user)) {
+            return null;
+        }
+        return new SipUser(user);
     }
-    
+
     @JsonIgnore
     public String getCallDialog() {
         return getHeader(SipHeader.CALL_ID);
     }
-    
+
     @JsonIgnore
     public long getExpires() {
-    	Long value = getHeaderAsLong(SipHeader.EXPIRES);
-    	return value == null ? 0 : value;
+        Long value = getHeaderAsLong(SipHeader.EXPIRES);
+        return value == null ? 0 : value;
     }
-	
-	/**
-	 * Tokenizes value belonging to given header, e.g.
-	 * Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
-	 * uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
-	 * <br>
-	 * <br>
-	 * will be tokenized into:
-	 * <ol>
-	 *  <li>digest      -> digest</li>
-	 *  <li>username    -> 124</li>
-	 *  <li>realm       -> elasticsoftware</li>
-	 *  <li>nonce       -> 24855234</li>
-	 *  <li>uri         -> sip:sip.outerteams.com:5060</li>
-	 *  <li>response    -> 749c35e9fe30d6ba46cc801bdfe535a0</li>
-	 *  <li>algorithm   -> MD5</li>
-	 * </ol>
-	 * <br>
-	 * <b>This method does **not** handle spaces and comma correctly in attribute values</b>
-	 * 
-	 * @param value
-	 * @return
-	 */
-	public Map<String, String> tokenize(SipHeader header) {
-		Map<String, String> map = new HashMap<String, String>();
-		
-		// sanity check
-		String value = getHeader(header);
-		if(StringUtils.isEmpty(value)) {
-			return map;
-		}
-		
-		// Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
-		// uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
-		StringTokenizer st = new StringTokenizer(value, " ,", false);
-		while(st.hasMoreTokens()) {
-			String token = st.nextToken();
-			int idx = token.indexOf("=");
-			if(idx != -1) {
-				map.put(token.substring(0, idx).toLowerCase(), 
-						token.substring(idx+1).replace('\"', ' ').trim());
-			} else {
-				map.put(token.toLowerCase(), token);
-			}
-		}
-		return map;
-	}
-	
-	public abstract String toShortString();
+
+    /**
+     * Tokenizes value belonging to given header, e.g.
+     * Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
+     * uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
+     * <br>
+     * <br>
+     * will be tokenized into:
+     * <ol>
+     * <li>digest      -> digest</li>
+     * <li>username    -> 124</li>
+     * <li>realm       -> elasticsoftware</li>
+     * <li>nonce       -> 24855234</li>
+     * <li>uri         -> sip:sip.outerteams.com:5060</li>
+     * <li>response    -> 749c35e9fe30d6ba46cc801bdfe535a0</li>
+     * <li>algorithm   -> MD5</li>
+     * </ol>
+     * <br>
+     * <b>This method does **not** handle spaces and comma correctly in attribute values</b>
+     *
+     * @param value
+     * @return
+     */
+    public Map<String, String> tokenize(SipHeader header) {
+        Map<String, String> map = new HashMap<String, String>();
+
+        // sanity check
+        String value = getHeader(header);
+        if (StringUtils.isEmpty(value)) {
+            return map;
+        }
+
+        // Authorization: Digest username="124",realm="elasticsoftware",nonce="24855234",
+        // uri="sip:sip.outerteams.com:5060",response="749c35e9fe30d6ba46cc801bdfe535a0",algorithm=MD5
+        StringTokenizer st = new StringTokenizer(value, " ,", false);
+        while (st.hasMoreTokens()) {
+            String token = st.nextToken();
+            int idx = token.indexOf("=");
+            if (idx != -1) {
+                map.put(token.substring(0, idx).toLowerCase(),
+                        token.substring(idx + 1).replace('\"', ' ').trim());
+            } else {
+                map.put(token.toLowerCase(), token);
+            }
+        }
+        return map;
+    }
+
+    public abstract String toShortString();
 }

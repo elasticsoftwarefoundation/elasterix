@@ -20,7 +20,7 @@
                            http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
 	                       http://www.springframework.org/schema/util
 	                       http://www.springframework.org/schema/util/spring-util-3.2.xsd">
-	                       	                  
+
     <!--
     <context:component-scan base-package="org.elasticsoftwareftware.sip" annotation-config="true"/>
     <context:spring-configured/>
@@ -29,29 +29,29 @@
     <aop:aspectj-autoproxy/>
     -->
 
-	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-					Elastic Actor Framework related beans
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    Elastic Actor Framework related beans
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
     <bean id="sipService" class="org.elasticsoftware.elasterix.server.sip.SipService">
-    	<property name="sipMessageSender" ref="sipMessageSender"/>
+        <property name="sipMessageSender" ref="sipMessageSender"/>
     </bean>
 
-	<bean id="userController" class="org.elasticsoftware.elasterix.server.web.UserController"/>
-    
+    <bean id="userController" class="org.elasticsoftware.elasterix.server.web.UserController"/>
+
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 					SIP Server
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-	<bean id="sipChannelFactory" class="org.elasticsoftware.sip.SipChannelFactoryImpl" destroy-method="destroy">
-		<property name="initialCacheSize" value="5000"/>
-		<property name="sipServerHandler" ref="sipServerHandler"/>
-	</bean>
+    <bean id="sipChannelFactory" class="org.elasticsoftware.sip.SipChannelFactoryImpl" destroy-method="destroy">
+        <property name="initialCacheSize" value="5000"/>
+        <property name="sipServerHandler" ref="sipServerHandler"/>
+    </bean>
 
     <bean id="sipServer" class="org.elasticsoftware.sip.SipServer" init-method="start" destroy-method="stop">
-    	<property name="serverChannelFactory" ref="nioServerSocketChannelFactory"/>
+        <property name="serverChannelFactory" ref="nioServerSocketChannelFactory"/>
         <property name="datagramChannelFactory" ref="nioDatagramChannelFactory"/>
-    	<property name="port" value="5060"/>
+        <property name="port" value="5060"/>
         <property name="sipServerHandler" ref="sipServerHandler"/>
     </bean>
 
@@ -59,20 +59,20 @@
         <property name="messageHandler" ref="sipService"/>
         <property name="sipChannelFactory" ref="sipChannelFactory"/>
     </bean>
-    
-    <bean id="sipMessageSender" class="org.elasticsoftware.sip.SipMessageSenderImpl">
-    	<property name="sipChannelFactory" ref="sipChannelFactory"/> 	
-    </bean>
-    
- 	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-					Netty related beans
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-	<bean id="nioServerSocketChannelFactory" class="org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory">
-		<constructor-arg index="0" ref="bossExecutor"/>
-		<constructor-arg index="1" ref="workerExecutor"/>
-		<constructor-arg index="2" type="int" ref="localMaxThread"/>
-	</bean>
+    <bean id="sipMessageSender" class="org.elasticsoftware.sip.SipMessageSenderImpl">
+        <property name="sipChannelFactory" ref="sipChannelFactory"/>
+    </bean>
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                   Netty related beans
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <bean id="nioServerSocketChannelFactory" class="org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory">
+        <constructor-arg index="0" ref="bossExecutor"/>
+        <constructor-arg index="1" ref="workerExecutor"/>
+        <constructor-arg index="2" type="int" ref="localMaxThread"/>
+    </bean>
 
     <bean id="nioDatagramChannelFactory" class="org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory">
         <constructor-arg index="0" ref="workerExecutor"/>
@@ -82,29 +82,29 @@
         </constructor-arg>
     </bean>
 
-	<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-					Runtime related beans
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    Runtime related beans
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <bean id="runTime" class="java.lang.Runtime" factory-method="getRuntime"/>
 
-	<bean id="localMaxThread" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetObject">
-			<ref bean="runTime"/>
-		</property>
-		<property name="targetMethod">
-			<value>availableProcessors</value>
-		</property>
-	</bean>
+    <bean id="localMaxThread" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject">
+            <ref bean="runTime"/>
+        </property>
+        <property name="targetMethod">
+            <value>availableProcessors</value>
+        </property>
+    </bean>
 
-	<bean id="bossExecutor" class="java.util.concurrent.Executors" factory-method="newCachedThreadPool">
-		<constructor-arg index="0">
-			<bean class="java.util.concurrent.Executors" factory-method="defaultThreadFactory"/>
-		</constructor-arg>
-	</bean>
+    <bean id="bossExecutor" class="java.util.concurrent.Executors" factory-method="newCachedThreadPool">
+        <constructor-arg index="0">
+            <bean class="java.util.concurrent.Executors" factory-method="defaultThreadFactory"/>
+        </constructor-arg>
+    </bean>
 
-	<bean id="workerExecutor" class="java.util.concurrent.Executors" factory-method="newCachedThreadPool">
-		<constructor-arg index="0">
-			<bean class="java.util.concurrent.Executors" factory-method="defaultThreadFactory"/>
-		</constructor-arg>
-	</bean>   
+    <bean id="workerExecutor" class="java.util.concurrent.Executors" factory-method="newCachedThreadPool">
+        <constructor-arg index="0">
+            <bean class="java.util.concurrent.Executors" factory-method="defaultThreadFactory"/>
+        </constructor-arg>
+    </bean>
 </beans>

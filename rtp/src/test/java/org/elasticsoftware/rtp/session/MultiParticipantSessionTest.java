@@ -19,19 +19,15 @@ package org.elasticsoftware.rtp.session;
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.participant.RtpParticipant;
 import org.elasticsoftware.rtp.participant.RtpParticipantInfo;
-import org.elasticsoftware.rtp.session.MultiParticipantSession;
-import org.elasticsoftware.rtp.session.RtpSession;
-import org.elasticsoftware.rtp.session.RtpSessionDataListener;
-import org.elasticsoftware.rtp.session.RtpSessionEventListener;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.Test;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 /**
  * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>

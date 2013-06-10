@@ -16,12 +16,11 @@
 
 package org.elasticsoftware.rtp.packet;
 
-import org.elasticsoftware.rtp.packet.SdesChunk;
-import org.elasticsoftware.rtp.packet.SdesChunkItems;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 /**
  * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>

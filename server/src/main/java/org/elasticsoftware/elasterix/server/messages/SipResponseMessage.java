@@ -16,76 +16,72 @@
 
 package org.elasticsoftware.elasterix.server.messages;
 
-import java.util.List;
-import java.util.Map;
-
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.elasticsoftware.sip.codec.SipHeader;
-import org.elasticsoftware.sip.codec.SipResponse;
-import org.elasticsoftware.sip.codec.SipResponseImpl;
-import org.elasticsoftware.sip.codec.SipResponseStatus;
-import org.elasticsoftware.sip.codec.SipVersion;
+import org.elasticsoftware.sip.codec.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Leonard Wolters
  */
 public class SipResponseMessage extends AbstractSipMessage {
-	private int response;
-	private String responseMessage;
-   
+    private int response;
+    private String responseMessage;
+
     public SipResponseMessage(SipResponse response) {
         super(response.getVersion().toString(), response.getHeaders(),
                 null);
         setSipResponseStatus(response.getResponseStatus());
     }
-    
+
     @JsonCreator
     public SipResponseMessage(@JsonProperty("version") String version,
-    				   @JsonProperty("response") int response,
-                       @JsonProperty("headers") Map<String, List<String>> headers,
-                       @JsonProperty("content") byte[] content,
-    				   @JsonProperty("responseMessage") String responseMessage) {
+                              @JsonProperty("response") int response,
+                              @JsonProperty("headers") Map<String, List<String>> headers,
+                              @JsonProperty("content") byte[] content,
+                              @JsonProperty("responseMessage") String responseMessage) {
         super(version, headers, content);
         this.response = response;
         this.responseMessage = responseMessage;
     }
-    
+
     @Override
-	public String toString() {
-		return String.format("SipResponseMessage[%d, %s]", getResponse(), getResponseMessage());
-	}
-    
-    public SipResponseMessage setSipResponseStatus(SipResponseStatus responseStatus) {
-    	this.response = responseStatus.getCode();
-    	this.responseMessage = responseStatus.getOptionalMessage();
-    	return this;
+    public String toString() {
+        return String.format("SipResponseMessage[%d, %s]", getResponse(), getResponseMessage());
     }
-    
+
+    public SipResponseMessage setSipResponseStatus(SipResponseStatus responseStatus) {
+        this.response = responseStatus.getCode();
+        this.responseMessage = responseStatus.getOptionalMessage();
+        return this;
+    }
+
     @JsonProperty("responseMessage")
     public String getResponseMessage() {
         return responseMessage;
     }
-    
+
     @JsonProperty("response")
     public int getResponse() {
-    	return response;
+        return response;
     }
-    
+
     public SipResponse toSipResponse() {
-    	SipResponseStatus status = SipResponseStatus.lookup(response);
-    	status.setOptionalMessage(responseMessage);
-    	SipVersion version = SipVersion.lookup(getVersion(), true);
-    	SipResponse response = new SipResponseImpl(version, status);
-    	for(Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {
-    		response.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
-    	}
-    	// TODO: fix content
-    	return response;
+        SipResponseStatus status = SipResponseStatus.lookup(response);
+        status.setOptionalMessage(responseMessage);
+        SipVersion version = SipVersion.lookup(getVersion(), true);
+        SipResponse response = new SipResponseImpl(version, status);
+        for (Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {
+            response.addHeader(SipHeader.lookup(entry.getKey()), entry.getValue().toArray());
+        }
+        // TODO: fix content
+        return response;
     }
-    
+
     @Override
-	public String toShortString() {
-		return getResponseMessage();
-	}
+    public String toShortString() {
+        return getResponseMessage();
+    }
 }

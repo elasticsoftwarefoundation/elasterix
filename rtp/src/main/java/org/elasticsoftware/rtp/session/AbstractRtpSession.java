@@ -17,28 +17,6 @@
 package org.elasticsoftware.rtp.session;
 
 import org.apache.log4j.Logger;
-import org.elasticsoftware.rtp.network.ControlHandler;
-import org.elasticsoftware.rtp.network.ControlPacketDecoder;
-import org.elasticsoftware.rtp.network.ControlPacketEncoder;
-import org.elasticsoftware.rtp.network.DataHandler;
-import org.elasticsoftware.rtp.network.DataPacketDecoder;
-import org.elasticsoftware.rtp.network.DataPacketEncoder;
-import org.elasticsoftware.rtp.packet.AbstractReportPacket;
-import org.elasticsoftware.rtp.packet.AppDataPacket;
-import org.elasticsoftware.rtp.packet.ByePacket;
-import org.elasticsoftware.rtp.packet.CompoundControlPacket;
-import org.elasticsoftware.rtp.packet.ControlPacket;
-import org.elasticsoftware.rtp.packet.DataPacket;
-import org.elasticsoftware.rtp.packet.ReceiverReportPacket;
-import org.elasticsoftware.rtp.packet.ReceptionReport;
-import org.elasticsoftware.rtp.packet.SdesChunk;
-import org.elasticsoftware.rtp.packet.SdesChunkItems;
-import org.elasticsoftware.rtp.packet.SenderReportPacket;
-import org.elasticsoftware.rtp.packet.SourceDescriptionPacket;
-import org.elasticsoftware.rtp.participant.ParticipantDatabase;
-import org.elasticsoftware.rtp.participant.ParticipantOperation;
-import org.elasticsoftware.rtp.participant.RtpParticipant;
-import org.elasticsoftware.rtp.participant.RtpParticipantInfo;
 import org.elasticsoftware.rtp.network.*;
 import org.elasticsoftware.rtp.packet.*;
 import org.elasticsoftware.rtp.participant.ParticipantDatabase;
@@ -61,18 +39,14 @@ import org.jboss.netty.util.Timeout;
 import org.jboss.netty.util.TimerTask;
 
 import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.Collections;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collection;
+
 /**
  * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>
  */
@@ -148,19 +122,19 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
                               OrderedMemoryAwareThreadPoolExecutor executor) {
         this(id, payloadType, local, null, executor);
     }
-    
+
     public AbstractRtpSession(String id, int payloadType, RtpParticipant local, HashedWheelTimer timer,
-    		OrderedMemoryAwareThreadPoolExecutor executor) {
-    	this(id, Collections.singleton(payloadType), local, timer, executor);
-    }
-    
-    public AbstractRtpSession(String id, Collection<Integer> payloadTypes , RtpParticipant local, HashedWheelTimer timer,
                               OrderedMemoryAwareThreadPoolExecutor executor) {
-    	for (int payloadType : payloadTypes) {
-    		if ((payloadType < 0) || (payloadType > 127)) {
-    			throw new IllegalArgumentException("PayloadTypes must be in range [0;127]");
-    		}   		
-    	}
+        this(id, Collections.singleton(payloadType), local, timer, executor);
+    }
+
+    public AbstractRtpSession(String id, Collection<Integer> payloadTypes, RtpParticipant local, HashedWheelTimer timer,
+                              OrderedMemoryAwareThreadPoolExecutor executor) {
+        for (int payloadType : payloadTypes) {
+            if ((payloadType < 0) || (payloadType > 127)) {
+                throw new IllegalArgumentException("PayloadTypes must be in range [0;127]");
+            }
+        }
 
         if (!local.isReceiver()) {
             throw new IllegalArgumentException("Local participant must have its data & control addresses set");
@@ -229,7 +203,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
         this.dataBootstrap.setOption("sendBufferSize", this.sendBufferSize);
         this.dataBootstrap.setOption("receiveBufferSize", this.receiveBufferSize);
         this.dataBootstrap.setOption("receiveBufferSizePredictorFactory",
-                                     new FixedReceiveBufferSizePredictorFactory(this.receiveBufferSize));
+                new FixedReceiveBufferSizePredictorFactory(this.receiveBufferSize));
         this.dataBootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() throws Exception {
                 ChannelPipeline pipeline = Channels.pipeline();
@@ -246,7 +220,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
         this.controlBootstrap.setOption("sendBufferSize", this.sendBufferSize);
         this.controlBootstrap.setOption("receiveBufferSize", this.receiveBufferSize);
         this.controlBootstrap.setOption("receiveBufferSizePredictorFactory",
-                                        new FixedReceiveBufferSizePredictorFactory(this.receiveBufferSize));
+                new FixedReceiveBufferSizePredictorFactory(this.receiveBufferSize));
         this.controlBootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() throws Exception {
                 ChannelPipeline pipeline = Channels.pipeline();
@@ -336,9 +310,9 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
             return false;
         }
         if (!this.payloadTypes.contains(packet.getPayloadType()) && this.payloadTypes.size() == 1) {
-        	packet.setPayloadType(this.payloadTypes.iterator().next());
+            packet.setPayloadType(this.payloadTypes.iterator().next());
         }
-        		
+
         packet.setSsrc(this.localParticipant.getSsrc());
         packet.setSequenceNumber(this.sequence.incrementAndGet());
         this.internalSendData(packet);
@@ -380,7 +354,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
     @Override
     public boolean addReceiver(RtpParticipant remoteParticipant) {
         return (remoteParticipant.getSsrc() != this.localParticipant.getSsrc()) &&
-               this.participantDatabase.addReceiver(remoteParticipant);
+                this.participantDatabase.addReceiver(remoteParticipant);
     }
 
     @Override
@@ -467,7 +441,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
             }
 
             LOG.warn(String.format("SSRC collision with remote end detected on session with id %s; updating SSRC from %d to %d.",
-                     this.id, oldSsrc, newSsrc));
+                    this.id, oldSsrc, newSsrc));
             for (RtpSessionEventListener listener : this.eventListeners) {
                 listener.resolvedSsrcConflict(this, oldSsrc, newSsrc);
             }
@@ -484,7 +458,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
         // Should the packet be discarded due to out of order SN?
         if ((participant.getLastSequenceNumber() >= packet.getSequenceNumber()) && this.discardOutOfOrder) {
             LOG.trace(String.format("Discarded out of order packet from %s in session with id %s (last SN was %d, packet SN was %d).",
-                      participant, this.id, participant.getLastSequenceNumber(), packet.getSequenceNumber()));
+                    participant, this.id, participant.getLastSequenceNumber(), packet.getSequenceNumber()));
             return;
         }
 
@@ -619,7 +593,7 @@ public abstract class AbstractRtpSession implements RtpSession, TimerTask {
             }
         }
         LOG.trace(String.format("Received BYE for participants with SSRCs %s in session with id '%s' (reason: '%s').",
-                  packet.getSsrcList(), this.id, packet.getReasonForLeaving()));
+                packet.getSsrcList(), this.id, packet.getReasonForLeaving()));
     }
 
     protected abstract ParticipantDatabase createDatabase();

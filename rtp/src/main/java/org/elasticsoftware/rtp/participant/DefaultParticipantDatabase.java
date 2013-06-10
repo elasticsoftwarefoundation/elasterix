@@ -21,18 +21,9 @@ import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
 import org.elasticsoftware.rtp.packet.SdesChunkItem;
 import org.elasticsoftware.rtp.util.TimeUtils;
-import org.elasticsoftware.rtp.packet.DataPacket;
-import org.elasticsoftware.rtp.packet.SdesChunk;
-import org.elasticsoftware.rtp.packet.SdesChunkItem;
-import org.elasticsoftware.rtp.util.TimeUtils;
 
 import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -106,7 +97,7 @@ public class DefaultParticipantDatabase implements ParticipantDatabase {
                 try {
                     operation.doWithParticipant(receiver);
                 } catch (Exception e) {
-                    LOG.error(String.format("Failed to perform operation %s on receiver %s.", operation, receiver),e);
+                    LOG.error(String.format("Failed to perform operation %s on receiver %s.", operation, receiver), e);
                 }
             }
         } finally {
@@ -143,7 +134,7 @@ public class DefaultParticipantDatabase implements ParticipantDatabase {
             for (RtpParticipant member : this.members.values()) {
                 boolean sameDestinationAddresses =
                         member.getDataDestination().equals(remoteParticipant.getDataDestination()) &&
-                        member.getControlDestination().equals(remoteParticipant.getControlDestination());
+                                member.getControlDestination().equals(remoteParticipant.getControlDestination());
                 boolean sameCname = member.getInfo().getCname().equals(remoteParticipant.getInfo().getCname());
                 if (sameDestinationAddresses || sameCname) {
                     // Instead of adding the newly provided participant, reuse the member
@@ -291,7 +282,7 @@ public class DefaultParticipantDatabase implements ParticipantDatabase {
                 if (participant.receivedBye() && TimeUtils
                         .hasExpired(now, participant.getLastReceptionInstant(), timeout)) {
                     LOG.trace(String.format("Removed %s from session with id '%s' after reception of BYE and %ds of inactivity.",
-                              participant, this.id, this.timeoutAfterByeAndNoPacketsReceived));
+                            participant, this.id, this.timeoutAfterByeAndNoPacketsReceived));
                     iterator.remove();
                     if (participant.isReceiver()) {
                         this.receivers.remove(participant);

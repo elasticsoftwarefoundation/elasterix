@@ -26,44 +26,44 @@ import org.springframework.context.ApplicationContext;
 /**
  * Elasterix Implementation of the Elastic Actor Framework
  * <br>
- * 
+ *
  * @author Joost van de Wijgerd
  * @author Leonard Wolters
  */
 @DependsOn(dependencies = {"Http"})
 public class ElasterixServer extends SpringBasedActorSystem {
-	private static final Logger log = Logger.getLogger(ElasterixServer.class);
+    private static final Logger log = Logger.getLogger(ElasterixServer.class);
 
-	private final String name;
-	private final int numberOfShards;
+    private final String name;
+    private final int numberOfShards;
 
-	/**
-	 * Default constructor
-	 */
-	public ElasterixServer() {
-		this("ElasterixServer", 2);
-	}
+    /**
+     * Default constructor
+     */
+    public ElasterixServer() {
+        this("ElasterixServer", 2);
+    }
 
-	public ElasterixServer(String name, int numberOfShards) {
-		super("elasterix-server-beans.xml");
-		this.name = name;
-		this.numberOfShards = numberOfShards;
-	}
+    public ElasterixServer(String name, int numberOfShards) {
+        super("elasterix-server-beans.xml");
+        this.name = name;
+        this.numberOfShards = numberOfShards;
+    }
 
-	@Override
-	public String getName() {
-		return name;
-	}
+    @Override
+    public String getName() {
+        return name;
+    }
 
-	@Override
-	public int getNumberOfShards() {
-		return numberOfShards;
-	}
+    @Override
+    public int getNumberOfShards() {
+        return numberOfShards;
+    }
 
-	@Override
-	protected void doInitialize(ApplicationContext applicationContext, ActorSystem actorSystem) {
-		//@todo: this is a hack, we need to do this through postActivate
-		SipService sipService = applicationContext.getBean(SipService.class);
-		sipService.setActorSystem(actorSystem);
-	}
+    @Override
+    protected void doInitialize(ApplicationContext applicationContext, ActorSystem actorSystem) {
+        //@todo: this is a hack, we need to do this through postActivate
+        SipService sipService = applicationContext.getBean(SipService.class);
+        sipService.setActorSystem(actorSystem);
+    }
 }

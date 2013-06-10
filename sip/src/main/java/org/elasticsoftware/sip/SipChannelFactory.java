@@ -23,16 +23,16 @@ import org.jboss.netty.channel.Channel;
  * @author Leonard Wolters
  */
 public interface SipChannelFactory {
-	
-	/**
-	 * @param message
-	 * @param channel
-	 */
-	void setChannel(SipUser user, Channel channel);
-	
-	/**
-	 * @param message
-	 * @return
-	 */
-	Channel getChannel(SipUser user);
+
+    /**
+     * @param message
+     * @param channel
+     */
+    void setChannel(SipUser user, Channel channel);
+
+    /**
+     * @param message
+     * @return
+     */
+    Channel getChannel(SipUser user);
 }

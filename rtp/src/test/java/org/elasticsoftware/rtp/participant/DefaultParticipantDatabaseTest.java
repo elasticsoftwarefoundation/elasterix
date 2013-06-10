@@ -18,18 +18,13 @@ package org.elasticsoftware.rtp.participant;
 
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.packet.SdesChunk;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.elasticsoftware.rtp.participant.DefaultParticipantDatabase;
-import org.elasticsoftware.rtp.participant.ParticipantEventListener;
-import org.elasticsoftware.rtp.participant.ParticipantOperation;
-import org.elasticsoftware.rtp.participant.RtpParticipant;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
 

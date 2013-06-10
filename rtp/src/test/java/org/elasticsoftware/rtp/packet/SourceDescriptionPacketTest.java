@@ -16,13 +16,13 @@
 
 package org.elasticsoftware.rtp.packet;
 
-import org.elasticsoftware.rtp.packet.*;
 import org.elasticsoftware.rtp.util.ByteUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 /**
  * @author <a:mailto="bruno.carvalho@wit-software.com" />Bruno de Carvalho</a>
@@ -56,8 +56,8 @@ public class SourceDescriptionPacketTest {
     public void testDecode2() throws Exception {
         // packet capture with wireshark, from jlibrtp
         String hexString = "81ca001ee6aa996e013d383232433634303536464438344539414231324438333442463836303931354140756" +
-                           "e697175652e7a333644423331373042303744344333302e6f7267083110782d7274702d73657373696f6e2d69" +
-                           "6436353941323834434144384234443631383641324643304336383039363137300000";
+                "e697175652e7a333644423331373042303744344333302e6f7267083110782d7274702d73657373696f6e2d69" +
+                "6436353941323834434144384234443631383641324643304336383039363137300000";
         byte[] bytes = ByteUtils.convertHexStringToByteArray(hexString);
 
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(bytes);
@@ -73,10 +73,10 @@ public class SourceDescriptionPacketTest {
         assertEquals(2, sdesPacket.getChunks().get(0).getItems().size());
         assertEquals(SdesChunkItem.Type.CNAME, sdesPacket.getChunks().get(0).getItems().get(0).getType());
         assertEquals("822C64056FD84E9AB12D834BF860915A@unique.z36DB3170B07D4C30.org",
-                     sdesPacket.getChunks().get(0).getItems().get(0).getValue());
+                sdesPacket.getChunks().get(0).getItems().get(0).getValue());
         assertEquals(SdesChunkItem.Type.PRIV, sdesPacket.getChunks().get(0).getItems().get(1).getType());
         assertEquals("x-rtp-session-id",
-                     ((SdesChunkPrivItem) sdesPacket.getChunks().get(0).getItems().get(1)).getPrefix());
+                ((SdesChunkPrivItem) sdesPacket.getChunks().get(0).getItems().get(1)).getPrefix());
         assertEquals("659A284CAD8B4D6186A2FC0C68096170", sdesPacket.getChunks().get(0).getItems().get(1).getValue());
 
         assertEquals(0, buffer.readableBytes());

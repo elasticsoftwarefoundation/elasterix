@@ -18,8 +18,6 @@ package org.elasticsoftware.rtp.session;
 
 import org.elasticsoftware.rtp.packet.DataPacket;
 import org.elasticsoftware.rtp.participant.RtpParticipantInfo;
-import org.elasticsoftware.rtp.packet.DataPacket;
-import org.elasticsoftware.rtp.participant.RtpParticipantInfo;
 
 /**
  * @author <a href="http://bruno.biasedbit.com/">Bruno de Carvalho</a>

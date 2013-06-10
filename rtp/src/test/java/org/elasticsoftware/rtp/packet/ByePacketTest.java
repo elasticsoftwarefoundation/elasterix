@@ -16,14 +16,13 @@
 
 package org.elasticsoftware.rtp.packet;
 
-import org.elasticsoftware.rtp.packet.ByePacket;
-import org.elasticsoftware.rtp.packet.ControlPacket;
 import org.elasticsoftware.rtp.util.ByteUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 
 /**
@@ -34,7 +33,7 @@ public class ByePacketTest {
     @Test
     public void testDecode() throws Exception {
         // wireshark capture, X-lite
-        byte [] packetBytes = ByteUtils.convertHexStringToByteArray("81cb0001e6aa996e");
+        byte[] packetBytes = ByteUtils.convertHexStringToByteArray("81cb0001e6aa996e");
 
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(packetBytes);
         ControlPacket controlPacket = ControlPacket.decode(buffer);
@@ -54,7 +53,7 @@ public class ByePacketTest {
     public void testDecode2() throws Exception {
         // wireshark capture, jlibrtp
         byte[] packetBytes = ByteUtils.convertHexStringToByteArray("81cb000a4f52eb38156a6c69627274702073617973206279" +
-                                                                   "6520627965210000000000000000000000000000");
+                "6520627965210000000000000000000000000000");
 
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(packetBytes);
         ControlPacket controlPacket = ControlPacket.decode(buffer);

@@ -7,10 +7,10 @@ import org.elasticsoftware.sip.SipMessageCallback;
  * @author Leonard Wolters
  */
 public class SipMessageCallbackImpl implements SipMessageCallback {
-	private static final Logger log = Logger.getLogger(SipMessageCallbackImpl.class);
+    private static final Logger log = Logger.getLogger(SipMessageCallbackImpl.class);
 
-	@Override
-	public void callback(int statusCode) {
-		log.info(String.format("Callback [%d]", statusCode));
-	}
+    @Override
+    public void callback(int statusCode) {
+        log.info(String.format("Callback [%d]", statusCode));
+    }
 }

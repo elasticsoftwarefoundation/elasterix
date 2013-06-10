@@ -18,8 +18,6 @@ package org.elasticsoftware.rtp.session;
 
 import org.elasticsoftware.rtp.packet.AppDataPacket;
 import org.elasticsoftware.rtp.packet.CompoundControlPacket;
-import org.elasticsoftware.rtp.packet.AppDataPacket;
-import org.elasticsoftware.rtp.packet.CompoundControlPacket;
 
 /**
  * @author <a href="http://bruno.biasedbit.com/">Bruno de Carvalho</a>
