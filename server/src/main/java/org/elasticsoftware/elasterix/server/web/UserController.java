@@ -20,7 +20,7 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.util.StringUtils;
 
-import com.biasedbit.efflux.logging.Logger;
+import org.elasticsoftware.rtp.logging.Logger;
 
 /**
  * User Controller<br>

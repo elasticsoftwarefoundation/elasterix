@@ -6,7 +6,7 @@ import org.elasticsoftware.elasterix.server.ApiConfig;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.testng.annotations.Test;
 
-import com.biasedbit.efflux.logging.Logger;
+import org.elasticsoftware.rtp.logging.Logger;
 import com.google.common.net.HttpHeaders;
 import com.ning.http.client.ListenableFuture;
 import com.ning.http.client.Response;

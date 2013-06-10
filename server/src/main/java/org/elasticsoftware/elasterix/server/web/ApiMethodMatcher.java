@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 
-import com.biasedbit.efflux.logging.Logger;
+import org.elasticsoftware.rtp.logging.Logger;
 
 /**
  * Ant based style <code>ApiMethod</code> matcher capable of matching registered
