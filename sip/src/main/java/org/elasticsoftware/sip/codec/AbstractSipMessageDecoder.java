@@ -3,6 +3,8 @@ package org.elasticsoftware.sip.codec;
 import static org.jboss.netty.handler.codec.http.HttpConstants.CR;
 import static org.jboss.netty.handler.codec.http.HttpConstants.LF;
 
+import java.nio.charset.Charset;
+
 import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -224,7 +226,6 @@ public abstract class AbstractSipMessageDecoder extends ReplayingDecoder<Abstrac
 		} else {
 			content.writeBytes(buffer, (int) contentLength);
 		}
-		//log.info("CONTENT: " + content.toString(Charset.forName("UTF-8")));
 		return reset();
 	}
 

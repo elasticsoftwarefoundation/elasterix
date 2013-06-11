@@ -50,7 +50,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 			return;
 		}
 		if(c.isConnected() && c.isOpen()) {
-			logMessage("SENDING", request);
+			logMessage("SENDING REQUEST", request);
 			c.write(request);
 		} else {
 			log.warn(String.format("sendRequest. Channel not connected or closed"));
@@ -72,7 +72,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 			return;
 		}
 		if(c.isConnected() && c.isOpen()) {
-			logMessage("SENDING", response);
+			logMessage("SENDING RESPONSE", response);
 			c.write(response);
 		} else {
 			log.warn(String.format("sendResponse. Channel not connected or closed"));

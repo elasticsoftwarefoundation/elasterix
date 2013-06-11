@@ -49,7 +49,8 @@ public class SipSubscribeTest extends AbstractSipTest {
 
         String message = sipServer.getMessage();
         Assert.assertNotNull(message);
-        Assert.assertTrue(message.startsWith("SIP/2.0 501 Not Implemented"));
+        //Assert.assertTrue(message.startsWith("SIP/2.0 501 Not Implemented"));
+        Assert.assertTrue(message.startsWith("SIP/2.0 404 Not Found"));
     }
 }
 

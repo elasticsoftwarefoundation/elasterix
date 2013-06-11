@@ -1,5 +1,7 @@
 package org.elasticsoftware.sip.codec;
 
+import java.nio.charset.Charset;
+
 import org.jboss.netty.util.internal.StringUtil;
 
 /**
@@ -54,6 +56,11 @@ public class SipRequestImpl extends SipMessageImpl implements SipRequest {
         buf.append(String.format("%s %s %s", getMethod().name(), getUri(), getVersion().name()));
         buf.append(StringUtil.NEWLINE);
         appendHeaders(buf);
+        
+        if(getContent() != null) {
+        	buf.append(StringUtil.NEWLINE);
+			buf.append(getContent().toString(Charset.forName("UTF-8")));
+		}
 
         // Remove the last newline.
         buf.setLength(buf.length() - StringUtil.NEWLINE.length());

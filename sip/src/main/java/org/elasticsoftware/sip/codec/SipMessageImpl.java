@@ -1,6 +1,5 @@
 package org.elasticsoftware.sip.codec;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -144,24 +143,6 @@ public class SipMessageImpl implements SipMessage {
     	return new SipUser(user);
     }
 
-	@Override
-	public String toString() {
-		StringBuilder buf = new StringBuilder();
-		buf.append(getClass().getSimpleName());
-		buf.append("(version: ");
-		buf.append(getVersion().name());
-		buf.append(')');
-		buf.append(StringUtil.NEWLINE);
-		appendHeaders(buf);
-		
-		if(content != null) {
-			buf.append(content.toString(Charset.forName("UTF-8")));
-		}
-		
-		// Remove the last newline.
-		buf.setLength(buf.length() - StringUtil.NEWLINE.length());
-		return buf.toString();
-	}
 	protected void appendHeaders(StringBuilder buf) {
 		for (Map.Entry<String, List<String>> e: getHeaders().entrySet()) {
 			buf.append(e.getKey());
