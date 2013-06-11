@@ -1,11 +1,16 @@
 package org.elasticsoftware.sip.codec;
 
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.util.internal.StringUtil;
 import org.springframework.util.StringUtils;
-
-import java.util.*;
 
 /**
  * @author leonard Wolters
@@ -129,37 +134,40 @@ public class SipMessageImpl implements SipMessage {
 
     @Override
     public SipUser getSipUser(SipHeader header) {
-        if (header == null) {
-            header = SipHeader.TO;
-        }
-        String user = getHeaderValue(header);
-        if (!StringUtils.hasLength(user)) {
-            return null;
-        }
-        return new SipUser(user);
+    	if(header == null) {
+    		header = SipHeader.TO;
+    	}
+    	String user = getHeaderValue(header);
+    	if(!StringUtils.hasLength(user)) {
+    		return null;
+    	}
+    	return new SipUser(user);
     }
 
-    @Override
-    public String toString() {
-        StringBuilder buf = new StringBuilder();
-        buf.append(getClass().getSimpleName());
-        buf.append("(version: ");
-        buf.append(getVersion().name());
-        buf.append(')');
-        buf.append(StringUtil.NEWLINE);
-        appendHeaders(buf);
-
-        // Remove the last newline.
-        buf.setLength(buf.length() - StringUtil.NEWLINE.length());
-        return buf.toString();
-    }
-
-    protected void appendHeaders(StringBuilder buf) {
-        for (Map.Entry<String, List<String>> e : getHeaders().entrySet()) {
-            buf.append(e.getKey());
-            buf.append(": ");
-            buf.append(StringUtils.collectionToCommaDelimitedString(e.getValue()));
-            buf.append(StringUtil.NEWLINE);
-        }
-    }
+	@Override
+	public String toString() {
+		StringBuilder buf = new StringBuilder();
+		buf.append(getClass().getSimpleName());
+		buf.append("(version: ");
+		buf.append(getVersion().name());
+		buf.append(')');
+		buf.append(StringUtil.NEWLINE);
+		appendHeaders(buf);
+		
+		if(content != null) {
+			buf.append(content.toString(Charset.forName("UTF-8")));
+		}
+		
+		// Remove the last newline.
+		buf.setLength(buf.length() - StringUtil.NEWLINE.length());
+		return buf.toString();
+	}
+	protected void appendHeaders(StringBuilder buf) {
+		for (Map.Entry<String, List<String>> e: getHeaders().entrySet()) {
+			buf.append(e.getKey());
+			buf.append(": ");
+			buf.append(StringUtils.collectionToCommaDelimitedString(e.getValue()));
+			buf.append(StringUtil.NEWLINE);
+		}
+	}
 }

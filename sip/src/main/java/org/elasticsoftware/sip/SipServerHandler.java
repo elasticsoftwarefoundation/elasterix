@@ -1,8 +1,16 @@
 package org.elasticsoftware.sip;
 
 import org.apache.log4j.Logger;
-import org.elasticsoftware.sip.codec.*;
-import org.jboss.netty.channel.*;
+import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMessage;
+import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipResponse;
+import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.util.StringUtils;
 
@@ -83,12 +91,12 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     }
 
     private void logMessage(String prefix, SipMessage message) {
-        if (sipLog.isDebugEnabled()) {
-            sipLog.debug(String.format("%s\n%s", prefix, message));
-        }
-        if (log.isDebugEnabled()) {
-            log.debug(String.format("%s\n%s", prefix, message));
-        }
+    	if(sipLog.isDebugEnabled()) {
+    		sipLog.debug(String.format("%s\n%s\n", prefix, message));
+    	}
+		if(log.isDebugEnabled()) {
+    		log.debug(String.format("%s\n%s\n", prefix, message));
+		}
     }
 
 //	private void writeResponse(SipResponse message, MessageEvent e) {

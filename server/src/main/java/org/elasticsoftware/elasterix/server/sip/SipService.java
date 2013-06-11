@@ -124,74 +124,76 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
         ActorRef dialog = actorSystem.actorFor(String.format("dialog/%s", callId));
         dialog.tell(message, actorSystem.serviceActorFor("sipService"));
     }
-
-    //////////////////////////////////////////////////////////////////////////
-    //
-    //					Convenient
-    //
-    //////////////////////////////////////////////////////////////////////////
-
-    /**
-     * sendRequest sends forth a <b>SIP</b> request to the Contact
-     * header
-     *
-     * @param message The message to send along
-     */
-    private void sendResponse(SipResponseMessage message) {
-
-        //
-        // set required headers
-        //
-        message.setHeader(SipHeader.ALLOW, ServerConfig.getAllow());
-        message.setHeader(SipHeader.DATE, ServerConfig.getDateNow());
-        message.setHeader(SipHeader.SERVER, ServerConfig.getServerName());
-        message.setHeader(SipHeader.SUPPORTED, ServerConfig.getSupported());
-
-        //
-        // alter existing headers
-        //
-        SipUser contact = message.getSipUser(SipHeader.CONTACT);
-        message.appendHeader(SipHeader.VIA, "received", contact.getDomain());
-        message.appendHeader(SipHeader.VIA, "rport", Long.toString(contact.getPort()));
-
-        //
-        // Optionally, remove headers
-        //
-        message.removeHeader(SipHeader.MAX_FORWARDS);
-        message.removeHeader(SipHeader.USER_AGENT);
-
-        if (message.getContent() == null || message.getContent().length == 0) {
-            message.setHeader(SipHeader.CONTENT_LENGTH, 0);
-        }
-        if (log.isDebugEnabled()) {
-            log.debug(String.format("sendResponse. [%d, %s]", message.getResponse(),
-                    message.getResponseMessage()));
-        }
-        sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
-    }
-
-    /**
-     * SendResponse sends back a <b>acknowledge</b> response on incoming
-     * <code>SipRequest</code>.
-     *
-     * @param message The message to communicate back to sip client
-     */
-    private void sendRequest(SipRequestMessage message) {
-        //
-        // set required headers
-        //
-        message.setHeader(SipHeader.CALL_ID, ServerConfig.getNewCallId());
-        message.setHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
-
-        //
-        // Add header
-        //
-        message.setHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
-                message.getVersion().toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(),
-                ServerConfig.getSipPort()));
-
-        sipMessageSender.sendRequest(message.toSipRequest(), dummyCallback);
-    }
+    
+	//////////////////////////////////////////////////////////////////////////
+	//
+	//					Convenient
+	//
+	//////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * sendRequest sends forth a <b>SIP</b> request to the Contact
+	 * header
+	 * 
+	 * @param message The message to send along
+	 */
+	private void sendResponse(SipResponseMessage message) {
+		
+		//
+		// set required headers 		
+		// 
+		message.setHeader(SipHeader.ALLOW, ServerConfig.getAllow());
+		message.setHeader(SipHeader.DATE, ServerConfig.getDateNow());
+		message.setHeader(SipHeader.SERVER, ServerConfig.getServerName());
+		message.setHeader(SipHeader.SUPPORTED, ServerConfig.getSupported());
+		
+		// 
+		// alter existing headers
+		//
+		SipUser contact = message.getSipUser(SipHeader.CONTACT);
+		if(contact != null) {
+			message.appendHeader(SipHeader.VIA, "received", contact.getDomain());
+			message.appendHeader(SipHeader.VIA, "rport", Long.toString(contact.getPort()));
+		}
+		
+		//
+		// Optionally, remove headers
+		//
+		message.removeHeader(SipHeader.MAX_FORWARDS);
+		message.removeHeader(SipHeader.USER_AGENT);
+				
+		if(message.getContent() == null || message.getContent().length == 0) {
+			message.setHeader(SipHeader.CONTENT_LENGTH, 0);
+		}		
+		if(log.isDebugEnabled()) {
+			log.debug(String.format("sendResponse. [%d, %s]", message.getResponse(), 
+					message.getResponseMessage()));
+		}
+		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
+	}
+	
+	/**
+	 * SendResponse sends back a <b>acknowledge</b> response on incoming
+	 * <code>SipRequest</code>. 
+	 * 
+	 * @param message The message to communicate back to sip client
+	 */
+	private void sendRequest(SipRequestMessage message) {
+		//
+		// set required headers
+		//
+		message.setHeader(SipHeader.CALL_ID, ServerConfig.getNewCallId());
+		message.setHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
+		
+		//
+		// Add header
+		//
+		message.setHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
+				message.getVersion().toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(), 
+				ServerConfig.getSipPort()));
+		
+		sipMessageSender.sendRequest(message.toSipRequest(), dummyCallback);
+	}
 
     public void setActorSystem(ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
