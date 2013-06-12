@@ -16,7 +16,7 @@ public class ServerConfig {
     /**
      * Example:  Mon, 13 May 2013 18:16:52 GMT
      */
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE d MMM YYYY HH:mm:ss Z");
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE d MMM yyyy HH:mm:ss Z");
 
     @Value("${sip.port}")
     private static int port = 5060;
