@@ -7,6 +7,7 @@ import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMessage;
 import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipResponse;
+import org.elasticsoftware.sip.codec.SipUser;
 import org.jboss.netty.channel.Channel;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.stereotype.Component;
@@ -42,9 +43,9 @@ public class SipMessageSenderImpl implements SipMessageSender {
 		}
 		
 		// content length
-		request.setHeader(SipHeader.CONTENT_LENGTH, request.getContentLength(-1));
-		
-		Channel c = sipChannelFactory.getChannel(request.getSipUser(SipHeader.TO));
+		request.setHeader(SipHeader.CONTENT_LENGTH, request.getContentLength(0));
+
+		Channel c = sipChannelFactory.getChannel(new SipUser(request.getUri()));
 		if(c == null) {
 			log.error(String.format("sendRequest. No channel set/found."));
 			return;
@@ -64,7 +65,7 @@ public class SipMessageSenderImpl implements SipMessageSender {
 		}
 		
 		// content length
-		response.setHeader(SipHeader.CONTENT_LENGTH, response.getContentLength(-1));
+		response.setHeader(SipHeader.CONTENT_LENGTH, response.getContentLength(0));
 		
 		Channel c = sipChannelFactory.getChannel(response.getSipUser(SipHeader.CONTACT));
 		if(c == null) {

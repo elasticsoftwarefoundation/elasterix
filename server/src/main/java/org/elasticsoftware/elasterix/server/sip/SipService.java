@@ -17,7 +17,6 @@
 package org.elasticsoftware.elasterix.server.sip;
 
 import org.apache.log4j.Logger;
-import org.elasticsoftware.elasterix.server.ServerConfig;
 import org.elasticsoftware.elasterix.server.actors.Dialog;
 import org.elasticsoftware.elasterix.server.messages.AbstractSipMessage;
 import org.elasticsoftware.elasterix.server.messages.SipRequestMessage;
@@ -64,11 +63,11 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 
         if (message instanceof SipRequestMessage) {
             SipRequestMessage m = (SipRequestMessage) message;
-            if (log.isDebugEnabled()) log.debug(String.format("onReceive. SipRequest[%s]", m.toShortString()));
+            if (log.isDebugEnabled()) log.debug(String.format("onReceive. Sending request[%s]", m.toShortString()));
             sendRequest(m);
         } else if (message instanceof SipResponseMessage) {
             SipResponseMessage m = (SipResponseMessage) message;
-            if (log.isDebugEnabled()) log.debug(String.format("onReceive. SipResponse[%s]", m.toShortString()));
+            if (log.isDebugEnabled()) log.debug(String.format("onReceive. Sending response[%s]", m.toShortString()));
             sendResponse(m);
         } else {
             log.warn(String.format("onReceive. Unsupported message[%s]",
@@ -79,15 +78,15 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 
     @Override
     public void onUndeliverable(ActorRef receiver, Object message) throws Exception {
-        if (log.isDebugEnabled()) {
-            log.debug(String.format("onUndeliverable. Message[%s]", message));
-        }
         if (message instanceof SipRequestMessage) {
             SipRequestMessage m = (SipRequestMessage) message;
-
+            
             // Create new dialog actor
             SipUser user = m.getSipUser(SipHeader.FROM);
             String callId = m.getCallDialog();
+            if (log.isDebugEnabled()) {
+                log.debug(String.format("onUndeliverable. Creating new dialog[%s]", callId));
+            }
             ActorRef actor = getSystem().actorOf(String.format("dialog/%s", callId),
                     Dialog.class, new Dialog.State(user.getUsername(), callId, m.getMethod()));
             actor.tell(message, getSelf());
@@ -138,37 +137,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * @param message The message to send along
 	 */
 	private void sendResponse(SipResponseMessage message) {
-		
-		//
-		// set required headers 		
-		// 
-		message.setHeader(SipHeader.ALLOW, ServerConfig.getAllow());
-		message.setHeader(SipHeader.DATE, ServerConfig.getDateNow());
-		message.setHeader(SipHeader.SERVER, ServerConfig.getServerName());
-		message.setHeader(SipHeader.SUPPORTED, ServerConfig.getSupported());
-		
-		// 
-		// alter existing headers
-		//
-		SipUser contact = message.getSipUser(SipHeader.CONTACT);
-		if(contact != null) {
-			message.appendHeader(SipHeader.VIA, "received", contact.getDomain());
-			message.appendHeader(SipHeader.VIA, "rport", Long.toString(contact.getPort()));
-		}
-		
-		//
-		// Optionally, remove headers
-		//
-		message.removeHeader(SipHeader.MAX_FORWARDS);
-		message.removeHeader(SipHeader.USER_AGENT);
-				
-		if(message.getContent() == null || message.getContent().length == 0) {
-			message.setHeader(SipHeader.CONTENT_LENGTH, 0);
-		}		
-		if(log.isDebugEnabled()) {
-			log.debug(String.format("sendResponse. [%d, %s]", message.getResponse(), 
-					message.getResponseMessage()));
-		}
+		SipMessageHelper.checkResponse(message);
 		sipMessageSender.sendResponse(message.toSipResponse(), dummyCallback);
 	}
 	
@@ -179,19 +148,7 @@ public final class SipService extends UntypedActor implements SipMessageHandler 
 	 * @param message The message to communicate back to sip client
 	 */
 	private void sendRequest(SipRequestMessage message) {
-		//
-		// set required headers
-		//
-		message.setHeader(SipHeader.CALL_ID, ServerConfig.getNewCallId());
-		message.setHeader(SipHeader.MAX_FORWARDS, Integer.toString(ServerConfig.getMaxForwards()));
-		
-		//
-		// Add header
-		//
-		message.setHeader(SipHeader.VIA, String.format("%s/%s %s:%d;branch=z9hG4bK326c96f4",
-				message.getVersion().toString(), ServerConfig.getProtocol(), ServerConfig.getIPAddress(), 
-				ServerConfig.getSipPort()));
-		
+		SipMessageHelper.checkRequest(message);
 		sipMessageSender.sendRequest(message.toSipRequest(), dummyCallback);
 	}
 

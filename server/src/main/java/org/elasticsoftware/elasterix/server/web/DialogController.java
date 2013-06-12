@@ -1,11 +1,5 @@
 package org.elasticsoftware.elasterix.server.web;
 
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.elasticsoftware.elasterix.server.ApiConfig;
 import org.elasticsoftware.elasterix.server.actors.User;
@@ -21,38 +15,37 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * User Controller<br>
+ * Dialog Controller<br>
  * <p/>
  * Overview of registered methods (urls):<br>
  * <ul>
- * <li>.../api/2.0/users/lwolters/create</li>
- * <li>.../api/2.0/users/lwolters/get</li>
- * <li>.../api/2.0/users/lwolters/remove</li>
- * <li>.../api/2.0/users/lwolters/update</li>
+ * <li>.../api/2.0/dialog/lwolters/create</li>
  * </ul>
  *
  * @author Leonard Wolters
  */
-public class UserController extends TypedActor<HttpRequest> {
-    private static final Logger log = Logger.getLogger(UserController.class);
+public class DialogController extends TypedActor<HttpRequest> {
+    private static final Logger log = Logger.getLogger(DialogController.class);
 
     @Override
     public void postActivate(String previousVersion) throws Exception {
-        log.info("Registering user controller");
+        log.info("Registering dailog controller");
 
         // register ourselves with the http server
         ActorSystem httpSystem = getSystem().getParent().get("Http");
         if (httpSystem != null) {
             ActorRef httpServer = httpSystem.serviceActorFor("httpServer");
-            httpServer.tell(new RegisterRouteMessage("/api/*/user*/**", getSelf()), getSelf());
+            httpServer.tell(new RegisterRouteMessage("/api/*/dialog*/**", getSelf()), getSelf());
         } else {
             log.warn("Http ActorSystem not available");
         }
-
-        // register api method for this controller
-        //apiMatcher.registerMethod("update", method)
     }
 
     @Override
@@ -65,8 +58,8 @@ public class UserController extends TypedActor<HttpRequest> {
         }
 
         // double check domain
-        if (!apiMessage.getDomain().toLowerCase().startsWith("user")) {
-            log.warn(String.format("Not registered for this controller[%s != user]",
+        if (!apiMessage.getDomain().toLowerCase().startsWith("dialog")) {
+            log.warn(String.format("Not registered for this controller[%s != dialog]",
                     apiMessage.getDomain()));
             sendHttpResponse(httpService, HttpResponseStatus.BAD_REQUEST, null);
             return;
@@ -76,29 +69,29 @@ public class UserController extends TypedActor<HttpRequest> {
         }
 
         // create / update user ?
-        ActorRef user = null;
+        ActorRef dialog = null;
         if (HttpMethod.POST == apiMessage.getMethod()) {
-            user = createActor(httpService, apiMessage);
-            if (user == null) {
+        	dialog = createActor(httpService, apiMessage);
+            if (dialog == null) {
                 // user not created, whilst it should. Response have been sent
                 return;
             }
         } else {
-            user = getSystem().actorFor(String.format("user/%s", apiMessage.getActorId()));
+            dialog = getSystem().actorFor(String.format("dialog/%s", apiMessage.getActorId()));
         }
 
         if (HttpMethod.DELETE == apiMessage.getMethod()) {
             if (ApiConfig.checkForExistenceBeforeDelete()) {
-                user.tell(apiMessage, httpService);
+                dialog.tell(apiMessage, httpService);
             } else {
-                // remove user directly (without checking if it exist)
-                getSystem().stop(user);
+                // remove dialog directly (without checking if it exist)
+                getSystem().stop(dialog);
                 sendHttpResponse(httpService, HttpResponseStatus.OK, null);
             }
         } else {
             // ok, dispatch message to user, but use httpService as sender, since the onUndelivered
             // doesn't have a handle to the temporarily httpResponseActor
-            user.tell(apiMessage, httpService);
+            dialog.tell(apiMessage, httpService);
         }
     }
 

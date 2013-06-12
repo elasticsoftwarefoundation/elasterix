@@ -16,12 +16,17 @@
 
 package org.elasticsoftware.elasterix.server.messages;
 
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.elasticsoftware.sip.codec.*;
-
 import java.util.List;
 import java.util.Map;
+
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipResponse;
+import org.elasticsoftware.sip.codec.SipResponseImpl;
+import org.elasticsoftware.sip.codec.SipResponseStatus;
+import org.elasticsoftware.sip.codec.SipVersion;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Leonard Wolters
@@ -82,6 +87,9 @@ public class SipResponseMessage extends AbstractSipMessage {
 
     @Override
     public String toShortString() {
-        return getResponseMessage();
+    	SipResponseStatus status = SipResponseStatus.lookup(response);
+        return String.format("%d %s%s", getResponse(), 
+        		status != null ?  status.getReasonPhrase() : "<>", 
+        		StringUtils.hasLength(getResponseMessage()) ? " (" + getResponseMessage() + ")" : "");
     }
 }

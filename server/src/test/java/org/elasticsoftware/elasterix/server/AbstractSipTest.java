@@ -54,7 +54,7 @@ public abstract class AbstractSipTest {
 
         Logger.getRootLogger().setLevel(Level.WARN);
         Logger.getLogger("org.elasticsoftware.elasterix").setLevel(Level.DEBUG);
-        Logger.getLogger("org.elasticsoftware.sip").setLevel(Level.INFO);
+        Logger.getLogger("org.elasticsoftware.sip").setLevel(Level.DEBUG);
 
         testActorSystem = TestActorSystem.create();
         actorSystem = testActorSystem.create(new ElasterixServer());

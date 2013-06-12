@@ -18,6 +18,7 @@ package org.elasticsoftware.elasterix.server.actors;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
@@ -28,12 +29,15 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasterix.server.ServerConfig;
 import org.elasticsoftware.elasterix.server.messages.ApiHttpMessage;
 import org.elasticsoftware.elasterix.server.messages.SipRequestMessage;
+import org.elasticsoftware.elasterix.server.messages.TimeoutMessage;
+import org.elasticsoftware.elasterix.server.sip.SipMessageHelper;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.sip.codec.SipHeader;
 import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
+import org.elasticsoftware.sip.codec.SipVersion;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
@@ -47,6 +51,7 @@ import org.springframework.util.StringUtils;
 public final class User extends UntypedActor {
 	private static final Logger log = Logger.getLogger(User.class);
 	private static final boolean STRICT_UAC = true;
+	private static final boolean SEND_OPTIONS = false;
 	/** To be used for generating alphanumeric nonce */
 	private static final char[] CHARACTERS = new char[] {'a','b','c','d','e','f','g','h',
 		'i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
@@ -54,11 +59,6 @@ public final class User extends UntypedActor {
 	
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
-		if(log.isDebugEnabled()) {
-			log.debug(String.format("onReceive. Message[%s]", 
-					(message == null ? "null" : message.getClass().getName())));
-		}
-
 		ActorRef sipService = getSystem().serviceActorFor("sipService");
 		State state = getState(null).getAsObject(State.class);
 		
@@ -102,10 +102,21 @@ public final class User extends UntypedActor {
 			}
 		} else if (message instanceof ApiHttpMessage) {
 			ApiHttpMessage apiMessage = (ApiHttpMessage) message;
+
 			HttpMethod method = apiMessage.getMethod();
 			if(HttpMethod.GET == method) {
 				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
 			} else if(HttpMethod.PUT == method || HttpMethod.POST == method) {
+
+				// check action. No matter if GET or POST/UPDATE?
+				if("reset".equalsIgnoreCase(apiMessage.getAction()) 
+						|| "clear".equalsIgnoreCase(apiMessage.getAction())) {
+					log.info("Resetting: " + state.getUsername());
+					state.userAgentClients.clear();
+					sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
+					return;
+				}
+				
 				// update and post state afterwards...
 				User.State update = apiMessage.getContent(User.State.class);
 				if(update == null) {
@@ -129,6 +140,10 @@ public final class User extends UntypedActor {
 				getSystem().stop(getSelf());
 				sender.tell(apiMessage.toHttpResponse(HttpResponseStatus.OK, state), getSelf());
 			}
+		} else if (message instanceof TimeoutMessage) {
+			state.clearUserAgentClients();
+		} else {
+			unhandled(message);
 		}
 	}
 	
@@ -218,11 +233,18 @@ public final class User extends UntypedActor {
 			state.addUserAgentClient(user, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires));
 			
 			// schedule timeout for destruction...
+			TimeoutMessage timeoutMessage = new TimeoutMessage();
+			timeoutMessage.setTimeoutInMilliSeconds(TimeUnit.SECONDS.toMillis(expires));
+			timeoutMessage.setUserAgentClient(state.key(user));
 			getSystem().getScheduler().scheduleOnce(getSelf(), 
-					message, getSelf(), expires, TimeUnit.SECONDS);
+					timeoutMessage, getSelf(), expires, TimeUnit.SECONDS);
 			
 			// send SIP Options message to client in order to find out which services are supported
-			sipService.tell(message, getSelf());
+			if(SEND_OPTIONS) {
+				// when registering, the actual domain and port of UAC are already 'correct'
+				sipService.tell(SipMessageHelper.createOptions(user, SipVersion.SIP_2_0,
+						String.format("%s:%d", user.getDomain(), user.getPort())), getSelf());
+			}
 		}
 
 		// send OK back to client
@@ -411,6 +433,21 @@ public final class User extends UntypedActor {
 		public void addUserAgentClient(SipUser user, long expirationDate) {
 			removeUserAgentClient(user);
 			userAgentClients.put(key(user), expirationDate);
+		}
+		
+		public void clearUserAgentClients() {
+			long now = System.currentTimeMillis();
+			Iterator<Map.Entry<String, Long>> it = userAgentClients.entrySet().iterator();
+			while(it.hasNext()) {
+				Map.Entry<String, Long> entry = (Map.Entry<String, Long>) it.next();
+				if(entry.getValue() < now) {
+					if(log.isDebugEnabled()) {
+						log.debug(String.format("Removing %s %s", entry.getKey(), 
+								new Date(entry.getValue())));
+					}
+					it.remove();
+				}
+			}
 		}
 		
 		public Long getUserAgentClient(SipUser user) {

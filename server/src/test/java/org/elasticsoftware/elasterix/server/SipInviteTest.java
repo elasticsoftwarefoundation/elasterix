@@ -16,12 +16,16 @@
 
 package org.elasticsoftware.elasterix.server;
 
+import java.util.UUID;
+
 import org.apache.log4j.Logger;
-import org.elasticsoftware.sip.codec.*;
+import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMethod;
+import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipRequestImpl;
+import org.elasticsoftware.sip.codec.SipVersion;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.UUID;
 
 /**
  * Test that creates a test actor system and loads the ElasterixServer<br>
@@ -36,18 +40,27 @@ import java.util.UUID;
 public class SipInviteTest extends AbstractSipTest {
     private static final Logger log = Logger.getLogger(SipInviteTest.class);
     private int count = 0;
+    private String domain = "sip.localhost.com:5060";
+    
+    protected SipRequest createSipRequest(String callerId, String calleeId) {
+        // INVITE URL contains the 'host' / domain as defined in the UAC 
+        // CONTACT contains the 'actual' IP address of the UAC
+        // FROM contains the 'host' / domain as defined in the UAC
+        // TO contains the 'host' / domain as defined in the UAC
+    	SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:" + calleeId + "@" + domain);
+        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
+        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989>");
+        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<" + callerId + "@" + domain + ">");
+        req.addHeader(SipHeader.TO, "<sip:" + calleeId + "@" + domain + ">");
+        return req;
+    }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testInviteNonExistingCaller() throws Exception {
         String callerId = "lwolters" + count;
         String calleeId = "jwijgerd" + count++;
-
-        SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
-        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<" + callerId + "@sip.localhost.com:5060>;tag=6d473a67");
-        req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:" + calleeId + "@sip.localhost.com:5060>");
-
+        SipRequest req = createSipRequest(callerId, calleeId);
+        
         // register actors
 
         // send message and wait
@@ -55,8 +68,6 @@ public class SipInviteTest extends AbstractSipTest {
         Thread.sleep(SLEEP);
         String message = sipServer.getMessage();
         Assert.assertNotNull(message);
-        // hmmm, 410 gone ?
-        Assert.fail(message);
         Assert.assertTrue(message.startsWith("SIP/2.0 404 Not Found"));
     }
 
@@ -64,13 +75,8 @@ public class SipInviteTest extends AbstractSipTest {
     public void testInviteCallerNotAuthenticated() throws Exception {
         String callerId = "lwolters" + count;
         String calleeId = "jwijgerd" + count++;
-
-        SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
-        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<" + callerId + "@sip.localhost.com:5060>;tag=6d473a67");
-        req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:" + calleeId + "@sip.localhost.com:5060>");
-
+        SipRequest req = createSipRequest(callerId, calleeId);
+        
         // register actors
         addUser(callerId);
 
@@ -86,15 +92,10 @@ public class SipInviteTest extends AbstractSipTest {
     public void testInviteNonExistingCallee() throws Exception {
         String callerId = "lwolters" + count;
         String calleeId = "jwijgerd" + count++;
-
-        SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
-        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<" + callerId + "@sip.localhost.com:5060>;tag=6d473a67");
-        req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:" + calleeId + "@sip.localhost.com:5060>");
+        SipRequest req = createSipRequest(callerId, calleeId);
 
         // register actors
-        addUser(callerId, req.getSipUser(SipHeader.CONTACT));
+        addUser(callerId, createSipUser(callerId, "127.0.0.1", 8989));
 
         // send message and wait
         sipServer.sendMessage(req);
@@ -108,15 +109,10 @@ public class SipInviteTest extends AbstractSipTest {
     public void testInviteCalleeWithoutRegisteredUAC() throws Exception {
         String callerId = "lwolters" + count;
         String calleeId = "jwijgerd" + count++;
-
-        SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
-        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<" + callerId + "@sip.localhost.com:5060>;tag=6d473a67");
-        req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:" + calleeId + "@sip.localhost.com:5060>");
+        SipRequest req = createSipRequest(callerId, calleeId);
 
         // register actors
-        addUser(callerId, req.getSipUser(SipHeader.CONTACT));
+        addUser(callerId, createSipUser(callerId, "127.0.0.1", 8989));
         addUser(calleeId);
 
         // send message and wait
@@ -129,17 +125,12 @@ public class SipInviteTest extends AbstractSipTest {
 
     @Test(enabled = true)
     public void testInviteCalleeWithRegisteredUACNotAvailable() throws Exception {
-        String callerId = "lwolters3";
-        String calleeId = "jwijgerd3";
+        String callerId = "lwolters" + count;
+        String calleeId = "jwijgerd" + count++;
+        SipRequest req = createSipRequest(callerId, calleeId);
 
-        // construct message
-        SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
-        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:" + callerId + "@sip.localhost.com:5060>;tag=6d473a67");
-        req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:" + calleeId + "@sip.localhost.com:5060>");
         // register caller / callee
-        addUser(callerId, req.getSipUser(SipHeader.CONTACT));
+        addUser(callerId, createSipUser(callerId, "127.0.0.1", 8989));
         addUser(calleeId, createSipUser(calleeId, "127.0.0.1", 9090));
 
         // send message and wait
@@ -162,17 +153,12 @@ public class SipInviteTest extends AbstractSipTest {
 
     @Test(enabled = true)
     public void testInviteCalleeWithRegisteredUACAvailable() throws Exception {
-        String callerId = "lwolters4";
-        String calleeId = "jwijgerd4";
+        String callerId = "lwolters" + count;
+        String calleeId = "jwijgerd" + count++;
+        SipRequest req = createSipRequest(callerId, calleeId);
 
-        // construct message
-        SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.INVITE, "sip:sip.localhost.com:5060");
-        req.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989;transport=UDP;rinstance=6f8dc969b62d1466>");
-        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<sip:" + callerId + "@sip.localhost.com:5060>;tag=6d473a67");
-        req.addHeader(SipHeader.TO, "\"Joost vd Wijgerd\"<sip:" + calleeId + "@sip.localhost.com:5060>");
         // register caller / callee
-        addUser(callerId, req.getSipUser(SipHeader.CONTACT));
+        addUser(callerId, createSipUser(callerId, "127.0.0.1", 8989));
         addUser(calleeId, createSipUser(calleeId, "127.0.0.1", 9090));
         addUserAgentClient(createSipUser(calleeId, "127.0.0.1", 9090));
 
@@ -185,9 +171,8 @@ public class SipInviteTest extends AbstractSipTest {
 
         message = localSipServer.getMessage();
         Assert.assertNotNull(message);
-        Assert.assertTrue(message.startsWith("INVITE sip:lwolters4@127.0.0.1:8989"));
+        Assert.assertTrue(message.startsWith("INVITE sip:" + calleeId + "@127.0.0.1:9090"));
     }
-
 
     @Test(enabled = true)
     public void testInviteWithRegisterMessage() throws Exception {

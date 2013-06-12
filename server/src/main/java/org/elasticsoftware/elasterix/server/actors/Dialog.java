@@ -1,13 +1,16 @@
 package org.elasticsoftware.elasterix.server.actors;
 
+import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.elasticsoftware.elasterix.server.messages.SipRequestMessage;
 import org.elasticsoftware.elasterix.server.messages.SipResponseMessage;
+import org.elasticsoftware.elasterix.server.messages.TimeoutMessage;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.sip.codec.SipHeader;
@@ -25,54 +28,102 @@ import org.springframework.util.StringUtils;
 public class Dialog extends UntypedActor {
 	private static final Logger log = Logger.getLogger(Dialog.class);	
 
+//	@Override
+//	public void postCreate(ActorRef creator) throws Exception {
+//		State state = getState(null).getAsObject(State.class);
+//		scheduleForDestruction(state, 120);
+//    }
+
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
-		if(log.isDebugEnabled()) log.debug(String.format("onReceive. Message[%s]", message));
-
-		// check message type
+	
+		// check if we need to 'destruct' this dialog
 		State state = getState(null).getAsObject(State.class);
+		if(checkForDestruction(state, message)) {
+			// dialog is removed / destructed
+			return;
+		}
+		
 		if(message instanceof SipRequestMessage) {
 			SipRequestMessage sipMessage = (SipRequestMessage) message;
 			
 			ActorRef sipService = getSystem().serviceActorFor("sipService");
 			switch(sipMessage.getSipMethod()) {
 			case REGISTER:
-				if(checkAuthentication(sipMessage, state)) {
-					return;
-				}
-				if(checkCSeq(sipService, sipMessage, state)) {
-					return;
-				}
-				ActorRef user = getSystem().actorFor("user/" + state.getUsername());
-				user.tell(message, getSelf());		
-				return;
+				if(checkAuthentication(sipMessage, state)) return;
+				if(checkCSeq(sipService, sipMessage, state)) return;
+				getSystem().actorFor("user/" + state.getUsername()).tell(message, getSelf());
+				break;
 			case INVITE:
-				if(checkAuthentication(sipMessage, state)) {
-					return;
-				}
-				if(checkCSeq(sipService, sipMessage, state)) {
-					return;
-				}
+				if(checkAuthentication(sipMessage, state)) return;
+				if(checkCSeq(sipService, sipMessage, state)) return;
 				SipUser toUser = sipMessage.getSipUser(SipHeader.TO);
-				user = getSystem().actorFor("user/" + toUser.getUsername());
-				user.tell(message, getSelf());	
-				return;
+				getSystem().actorFor("user/" + toUser.getUsername()).tell(message, getSelf());
+				break;
 			case SUBSCRIBE:
 				sipService.tell(sipMessage.toSipResponseMessage(SipResponseStatus.NOT_FOUND
-						.setOptionalMessage("(no mailbox)")), getSelf());
-				return;
+						.setOptionalMessage("no mailbox")), getSelf());
+				break;
 			default:
 				sipService.tell(sipMessage.toSipResponseMessage(SipResponseStatus.NOT_IMPLEMENTED), 
 						getSelf());
+				// remove actor immediately
+				getSystem().stop(getSelf());
 			}
 		} else if (message instanceof SipResponseMessage) {
 			// unsupported
 		} else {
-			log.warn(String.format("onReceive. Unsupported message[%s]", 
-					message.getClass().getSimpleName()));
 			unhandled(message);
 		}
 	}
+	
+	private boolean checkForDestruction(Dialog.State state, Object message) 
+	throws Exception {
+		
+		if(message instanceof TimeoutMessage) {
+			TimeoutMessage m = (TimeoutMessage) message;
+			if(log.isDebugEnabled()) {
+	    		log.debug(String.format("checkForDestruction. Last Update[%s]", 
+	    				new Date(state.lastUpdate)));
+	    	}
+			if(m.isExpired(state.lastUpdate)) {
+				if(log.isDebugEnabled()) {
+					log.debug(String.format("Destructing [%s, %s]", state.method, 
+							state.getCallId()));
+				}
+				getSystem().stop(getSelf());
+				return true;
+			}
+		}
+		state.lastUpdate = System.currentTimeMillis();
+		
+		// schedule for destruction
+		if(message instanceof SipRequestMessage) {
+			SipRequestMessage sipMessage = (SipRequestMessage) message;
+			
+			switch(sipMessage.getSipMethod()) {
+			case REGISTER:
+				scheduleForDestruction(state, 120);
+				break;
+			default:
+				// most dialogs do not need to be persistent. Kill them
+				// immediately
+				scheduleForDestruction(state, 3);
+			}
+		}
+		
+		return false;
+	}
+    private void scheduleForDestruction(Dialog.State state, long seconds) {
+    	if(log.isDebugEnabled()) {
+    		log.debug(String.format("scheduleForDestruction. [%s, %s] in %d seconds", 
+    				state.method, state.callId, seconds));
+    	}
+		TimeoutMessage message = new TimeoutMessage();
+		message.setTimeoutInMilliSeconds(TimeUnit.SECONDS.toMillis(seconds));
+		getSystem().getScheduler().scheduleOnce(getSelf(), message, getSelf(), 
+				seconds, TimeUnit.SECONDS);
+    }
 
 	@Override
 	public void onUndeliverable(ActorRef sender, Object message) throws Exception {
@@ -94,6 +145,8 @@ public class Dialog extends UntypedActor {
 						String.format("User[%s] (TO) not found", state.getUsername()))), getSelf());
 				break;
 			}
+		} else if(message instanceof TimeoutMessage) {
+			// Dialog already removed. Fall through...
 		} else {
 			unhandled(message);
 		}
@@ -176,7 +229,7 @@ public class Dialog extends UntypedActor {
 
             // check method
             if (!state.getMethod().equalsIgnoreCase(cSeqMethod)) {
-                log.warn(String.format("checkCSeq. CSEQ method[%s] doens't equals message type[%s]",
+                log.warn(String.format("checkCSeq. CSEQ message method[%s] doens't equal state method[%s]",
                         cSeqMethod, state.getMethod()));
                 sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(
                         String.format("CSEQ method[%s] doens't equals message type[%s]", cSeqMethod,
@@ -186,7 +239,7 @@ public class Dialog extends UntypedActor {
 
             // check count
             if (state.getCount() != cSeqCount) {
-                log.warn(String.format("checkCSeq. CSEQ count[%d] doens't equals message count[%d]",
+                log.warn(String.format("checkCSeq. CSEQ message count[%d] doens't equal state count[%d]",
                         cSeqCount, state.getCount()));
                 sipService.tell(sipRequest.toSipResponseMessage(SipResponseStatus.UNAUTHORIZED.setOptionalMessage(
                         String.format("CSEQ count[%d] doens't equals message count[%d]",
@@ -205,6 +258,7 @@ public class Dialog extends UntypedActor {
         private final String username;
         private final String callId;
         private final String method;
+        private long lastUpdate;
 
         @JsonCreator
         public State(@JsonProperty("username") String username,
@@ -213,6 +267,7 @@ public class Dialog extends UntypedActor {
             this.username = username;
             this.callId = callId;
             this.method = method;
+            this.lastUpdate = System.currentTimeMillis();
         }
 
         @JsonProperty("username")
@@ -233,6 +288,11 @@ public class Dialog extends UntypedActor {
         @JsonProperty("count")
         public long getCount() {
             return count;
+        }
+        
+        @JsonProperty("lastUpdate")
+        public long getLastUpdate() {
+            return lastUpdate;
         }
 
         protected void incrementCount() {

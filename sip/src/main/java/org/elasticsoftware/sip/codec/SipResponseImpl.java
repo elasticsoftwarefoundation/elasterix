@@ -3,6 +3,7 @@ package org.elasticsoftware.sip.codec;
 import java.nio.charset.Charset;
 
 import org.jboss.netty.util.internal.StringUtil;
+import org.springframework.util.StringUtils;
 
 /**
  * The default {@link SipResponse} implementation.
@@ -31,6 +32,9 @@ public class SipResponseImpl extends SipMessageImpl implements SipResponse {
         buf.append(getVersion().name()).append(' ');
         buf.append(getResponseStatus().getCode()).append(' ');
         buf.append(getResponseStatus().getReasonPhrase());
+        if(StringUtils.hasLength(getResponseStatus().getOptionalMessage())) {
+        	buf.append(String.format(" (%s)", getResponseStatus().getOptionalMessage()));
+        }
         buf.append(StringUtil.NEWLINE);
         appendHeaders(buf);
         

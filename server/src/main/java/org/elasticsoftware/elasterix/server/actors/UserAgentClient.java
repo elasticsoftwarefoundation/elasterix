@@ -20,16 +20,12 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.elasticsoftware.elasterix.server.ServerConfig;
 import org.elasticsoftware.elasterix.server.messages.SipRequestMessage;
+import org.elasticsoftware.elasterix.server.sip.SipMessageHelper;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.sip.codec.SipHeader;
-import org.elasticsoftware.sip.codec.SipMethod;
-import org.elasticsoftware.sip.codec.SipUser;
 import org.elasticsoftware.sip.codec.SipVersion;
-
-import java.util.UUID;
 
 /**
  * User Agent Client (UAC)<br>
@@ -63,31 +59,13 @@ public final class UserAgentClient extends UntypedActor {
     }
 
     protected void invite(ActorRef sipService, SipRequestMessage message, State state) {
+    	// update state
         state.setDeviceState(DeviceState.RINGING);
 
-        // ok, construct a new request message (invite) and sent it to
-        // the sip client of user...
-        SipVersion version = SipVersion.SIP_2_0;
-
-        // uri is complete CONTACT header without trailing '<' and ending '>'
-        SipUser user = message.getSipUser(SipHeader.CONTACT);
-
-        // create sip invite request message
-        SipRequestMessage sipInvite = new SipRequestMessage(SipMethod.INVITE.name(), user.getUri(),
-                version.toString(), null, null, false);
-        sipInvite.addHeader(SipHeader.CALL_ID, UUID.randomUUID().toString());
-        sipInvite.addHeader(SipHeader.CONTACT, String.format("<sip:%s@%s:%d;transport=%s;rinstance=6f8dc969b62d1466>",
-                user.getUsername(), ServerConfig.getIPAddress(), ServerConfig.getSipPort(),
-                ServerConfig.getProtocol()));
-        sipInvite.addHeader(SipHeader.CSEQ, "1 INVITE");
-        sipInvite.addHeader(SipHeader.FROM, message.getHeader(SipHeader.FROM));
-        //sipInvite.addHeader(SipHeader.TO, message.getHeader(SipHeader.TO));
-        user = message.getSipUser(SipHeader.TO);
-        sipInvite.addHeader(SipHeader.TO, String.format("<sip:%s@%s:%d;transport=%s;rinstance=6f8dc969b62d1466>",
-                user.getUsername(), state.getIPAddress(), state.getPort(), ServerConfig.getProtocol()));
-
-        // send SIP Request to UAC
-        sipService.tell(sipInvite, getSelf());
+        // send SIP Invite to UAC
+        sipService.tell(SipMessageHelper.createInvite(message.getSipUser(SipHeader.FROM), 
+        		message.getSipUser(SipHeader.TO), SipVersion.SIP_2_0, 
+        		String.format("%s:%d", state.getIPAddress(), state.getPort())), getSelf());
     }
 
     /**

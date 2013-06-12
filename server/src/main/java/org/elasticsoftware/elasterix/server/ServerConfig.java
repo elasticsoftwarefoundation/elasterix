@@ -72,4 +72,8 @@ public class ServerConfig {
         //return "SHA-256";
         return "MD5";
     }
+    
+    public static String getUserAgent() {
+    	return "Elasterix 0.1";
+    }
 }

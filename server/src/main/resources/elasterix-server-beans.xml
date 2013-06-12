@@ -38,6 +38,7 @@
     </bean>
 
     <bean id="userController" class="org.elasticsoftware.elasterix.server.web.UserController"/>
+    <bean id="dialogController" class="org.elasticsoftware.elasterix.server.web.DialogController"/>
 
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 					SIP Server

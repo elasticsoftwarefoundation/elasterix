@@ -35,7 +35,8 @@ public class SipServerHandler extends SimpleChannelUpstreamHandler {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
             throws Exception {
         SipMessage message = (SipMessage) e.getMessage();
-        logMessage("RECEIVED", message);
+        logMessage(String.format("RECEIVED %s", message instanceof SipRequest ? 
+        		"REQUEST" : "RESPONSE"), message);
 
         // update LRU cache (if set)
         if (sipChannelFactory != null) {
