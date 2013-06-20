@@ -40,7 +40,6 @@ import org.testng.annotations.Test;
 public class SipInviteTest extends AbstractSipTest {
     private static final Logger log = Logger.getLogger(SipInviteTest.class);
     private int count = 0;
-    private String domain = "sip.localhost.com:5060";
     
     protected SipRequest createSipRequest(String callerId, String calleeId) {
         // INVITE URL contains the 'host' / domain as defined in the UAC 

@@ -19,8 +19,10 @@ package org.elasticsoftware.elasterix.server;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.elasticsoftware.elasterix.server.actors.DummyActor;
 import org.elasticsoftware.elasterix.server.actors.User;
 import org.elasticsoftware.elasterix.server.actors.UserAgentClient;
+import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.ActorSystem;
 import org.elasticsoftware.elasticactors.test.TestActorSystem;
 import org.elasticsoftware.sip.codec.SipHeader;
@@ -28,6 +30,7 @@ import org.elasticsoftware.sip.codec.SipRequest;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
 import org.springframework.util.StringUtils;
+import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 
@@ -46,6 +49,7 @@ public abstract class AbstractSipTest {
     protected SipClient sipServer;
     protected SipClient localSipServer;
     protected Md5PasswordEncoder encoder = new Md5PasswordEncoder();
+    protected String domain = "sip.localhost.com:5060";
 
     @BeforeTest
     public void init() throws Exception {
@@ -167,5 +171,15 @@ public abstract class AbstractSipTest {
                 user.getDomain(), user.getPort());
         actorSystem.actorOf(String.format("uac/%s_%s_%d", user.getUsername(), user.getDomain(),
                 user.getPort()), UserAgentClient.class, state);
+    }
+    
+    protected void checkIfDeleted(String actorId) throws Exception {
+    	// check if actor is deleted
+        ActorRef dummy = actorSystem.actorOf("test123", DummyActor.class, null);
+        ActorRef ref = actorSystem.actorFor(actorId);
+        ref.tell("test", dummy);
+        Thread.sleep(300);
+        Assert.assertNotNull(DummyActor.onUndeliverable);
+        Assert.assertEquals(DummyActor.onUndeliverable.toString(), "test");
     }
 }

@@ -16,12 +16,17 @@
 
 package org.elasticsoftware.elasterix.server;
 
+import java.util.UUID;
+
 import org.apache.log4j.Logger;
-import org.elasticsoftware.sip.codec.*;
+import org.elasticsoftware.elasterix.server.actors.Dialog;
+import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMethod;
+import org.elasticsoftware.sip.codec.SipRequest;
+import org.elasticsoftware.sip.codec.SipRequestImpl;
+import org.elasticsoftware.sip.codec.SipVersion;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.UUID;
 
 /**
  * Test that creates a test actor system and loads the ElasterixServer<br>
@@ -35,6 +40,27 @@ import java.util.UUID;
 public class SipRegisterTest extends AbstractSipTest {
     private static final Logger log = Logger.getLogger(SipRegisterTest.class);
 
+    @Test(enabled = true)
+    public void testScheduleDestruction() throws Exception {
+    	Dialog.TIMEOUT_DESTRUCTION_REGISTER = 1;
+    	
+    	String callerId = "1234";
+    	String callId = UUID.randomUUID().toString();
+    	
+    	SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:" + callerId + "@" + domain);
+    	req.addHeader(SipHeader.CALL_ID, callId);
+        req.addHeader(SipHeader.CONTACT, "<sip:" + callerId + "@127.0.0.1:8989>");
+        req.addHeader(SipHeader.FROM, "\"Leonard Wolters\"<" + callerId + "@" + domain + ">");
+        req.addHeader(SipHeader.VIA, "yyy");
+        sipServer.sendMessage(req);
+        // sleep sometime in order for message to be sent back.
+        Thread.sleep(1300);
+        checkIfDeleted("dialog/" + callId);
+        
+        // reset timeout
+        Dialog.TIMEOUT_DESTRUCTION_REGISTER = 120;
+    }
+    
     @Test(enabled = true)
     public void testRegisterUserNoFrom() throws Exception {
         SipRequest req = new SipRequestImpl(SipVersion.SIP_2_0, SipMethod.REGISTER, "sip:sip.localhost.com:5060");

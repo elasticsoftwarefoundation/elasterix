@@ -1,7 +1,14 @@
 package org.elasticsoftware.elasterix.server.web;
 
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.elasticsoftware.elasterix.server.ApiConfig;
+import org.elasticsoftware.elasterix.server.actors.Dialog;
 import org.elasticsoftware.elasterix.server.actors.User;
 import org.elasticsoftware.elasterix.server.messages.ApiHttpMessage;
 import org.elasticsoftware.elasticactors.ActorRef;
@@ -14,12 +21,6 @@ import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.springframework.util.StringUtils;
-
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Dialog Controller<br>
@@ -68,12 +69,12 @@ public class DialogController extends TypedActor<HttpRequest> {
             log.debug(String.format("%s %s", apiMessage.getActorId(), apiMessage.getMethod()));
         }
 
-        // create / update user ?
+        // create / update dialog ?
         ActorRef dialog = null;
         if (HttpMethod.POST == apiMessage.getMethod()) {
         	dialog = createActor(httpService, apiMessage);
             if (dialog == null) {
-                // user not created, whilst it should. Response have been sent
+                // dialog not created, whilst it should. Response have been sent
                 return;
             }
         } else {
@@ -89,7 +90,7 @@ public class DialogController extends TypedActor<HttpRequest> {
                 sendHttpResponse(httpService, HttpResponseStatus.OK, null);
             }
         } else {
-            // ok, dispatch message to user, but use httpService as sender, since the onUndelivered
+            // ok, dispatch message to dialog, but use httpService as sender, since the onUndelivered
             // doesn't have a handle to the temporarily httpResponseActor
             dialog.tell(apiMessage, httpService);
         }
@@ -111,27 +112,26 @@ public class DialogController extends TypedActor<HttpRequest> {
                     "No JSon content type");
             return null;
         }
-        User.State state = message.getContent(User.State.class);
+        Dialog.State state = message.getContent(Dialog.State.class);
         if (state == null) {
             sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE,
-                    "JSon content not of type User.State");
+                    "JSon content not of type Dialog.State");
             return null;
         }
 
-        // uid
-        String uid = state.getUsername();
-        if (!StringUtils.hasLength(uid)) {
+        // call-id
+        String callId = state.getCallId();
+        if (!StringUtils.hasLength(callId)) {
             sendHttpResponse(httpService, HttpResponseStatus.NOT_ACCEPTABLE,
-                    "No username found in User.State");
+                    "No Call-ID found in Dialog.State");
             return null;
         }
-        if (StringUtils.hasLength(message.getActorId()) && !uid.equals(message.getActorId())) {
-            log.warn(String.format("Username of state[%s] does not equal the UID found in url[%s]. "
-                    + "Using [%s]", uid, message.getActorId(), uid));
+        if (StringUtils.hasLength(message.getActorId()) && !callId.equals(message.getActorId())) {
+            log.warn(String.format("Call-ID of state[%s] does not equal the Call-ID found in url[%s]. "
+                    + "Using [%s]", callId, message.getActorId(), callId));
         }
         try {
-            return getSystem().actorOf(String.format("user/%s", uid),
-                    User.class, state);
+            return getSystem().actorOf(String.format("dialog/%s", callId), Dialog.class, state);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             sendHttpResponse(httpService, HttpResponseStatus.INTERNAL_SERVER_ERROR,

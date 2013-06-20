@@ -212,12 +212,13 @@ public final class User extends UntypedActor {
 		if(expires == 0) {
 			// remove current binding with UAC set in message (if exist)
 			state.removeUserAgentClient(user);
+			
+			// TODO remove UAC actor as well?
 		} else {
 			if(log.isDebugEnabled()) {
 				log.debug(String.format("register. Registering UAC[%s:%d] for User[%s]",
 						user.getDomain(), user.getPort(), user.getUsername()));
 			}
-			//message.appendHeader(SipHeader.CONTACT, "expires", Long.toString(expires));
 	
 			if(STRICT_UAC) {
 				try {
@@ -232,7 +233,7 @@ public final class User extends UntypedActor {
 			// update binding (with new expiration)
 			state.addUserAgentClient(user, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(expires));
 			
-			// schedule timeout for destruction...
+			// schedule timeout for destruction (i.e. removal of binding UAC / user)
 			TimeoutMessage timeoutMessage = new TimeoutMessage();
 			timeoutMessage.setTimeoutInMilliSeconds(TimeUnit.SECONDS.toMillis(expires));
 			timeoutMessage.setUserAgentClient(state.key(user));
@@ -241,7 +242,6 @@ public final class User extends UntypedActor {
 			
 			// send SIP Options message to client in order to find out which services are supported
 			if(SEND_OPTIONS) {
-				// when registering, the actual domain and port of UAC are already 'correct'
 				sipService.tell(SipMessageHelper.createOptions(user, SipVersion.SIP_2_0,
 						String.format("%s:%d", user.getDomain(), user.getPort())), getSelf());
 			}

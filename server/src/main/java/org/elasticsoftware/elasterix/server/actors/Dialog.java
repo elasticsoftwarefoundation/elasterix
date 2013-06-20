@@ -1,6 +1,5 @@
 package org.elasticsoftware.elasterix.server.actors;
 
-import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +13,7 @@ import org.elasticsoftware.elasterix.server.messages.TimeoutMessage;
 import org.elasticsoftware.elasticactors.ActorRef;
 import org.elasticsoftware.elasticactors.UntypedActor;
 import org.elasticsoftware.sip.codec.SipHeader;
+import org.elasticsoftware.sip.codec.SipMethod;
 import org.elasticsoftware.sip.codec.SipResponseStatus;
 import org.elasticsoftware.sip.codec.SipUser;
 import org.springframework.util.StringUtils;
@@ -27,13 +27,14 @@ import org.springframework.util.StringUtils;
  */
 public class Dialog extends UntypedActor {
 	private static final Logger log = Logger.getLogger(Dialog.class);	
-
-//	@Override
-//	public void postCreate(ActorRef creator) throws Exception {
-//		State state = getState(null).getAsObject(State.class);
-//		scheduleForDestruction(state, 120);
-//    }
-
+	
+	public static int TIMEOUT_DESTRUCTION_REGISTER = 120;
+	public static int TIMEOUT_DESTRUCTION_OTHER = 3;
+	
+	@Override
+    public void postActivate(String previousVersion) throws Exception {
+    }
+	
 	@Override
 	public void onReceive(ActorRef sender, Object message) throws Exception {
 	
@@ -80,12 +81,9 @@ public class Dialog extends UntypedActor {
 	private boolean checkForDestruction(Dialog.State state, Object message) 
 	throws Exception {
 		
+		SipMethod method = null;
 		if(message instanceof TimeoutMessage) {
 			TimeoutMessage m = (TimeoutMessage) message;
-			if(log.isDebugEnabled()) {
-	    		log.debug(String.format("checkForDestruction. Last Update[%s]", 
-	    				new Date(state.lastUpdate)));
-	    	}
 			if(m.isExpired(state.lastUpdate)) {
 				if(log.isDebugEnabled()) {
 					log.debug(String.format("Destructing [%s, %s]", state.method, 
@@ -93,22 +91,31 @@ public class Dialog extends UntypedActor {
 				}
 				getSystem().stop(getSelf());
 				return true;
+			} else {
+				// reschedule message
+				method = SipMethod.lookup(m.getMethod());
+			}
+		} else if(message instanceof SipRequestMessage) {
+			if(state.lastUpdate == -1) {
+				if(log.isDebugEnabled()) {
+					log.debug(String.format("Start scheduling destructing [%s, %s]", 
+							state.method, state.getCallId()));
+				}
+				method = ((SipRequestMessage) message).getSipMethod();
 			}
 		}
+
+		// update lastUpdate and (re)schedule destruction
 		state.lastUpdate = System.currentTimeMillis();
-		
-		// schedule for destruction
-		if(message instanceof SipRequestMessage) {
-			SipRequestMessage sipMessage = (SipRequestMessage) message;
-			
-			switch(sipMessage.getSipMethod()) {
+		if(method != null) {
+			switch(method) {
 			case REGISTER:
-				scheduleForDestruction(state, 120);
+				scheduleForDestruction(state, TIMEOUT_DESTRUCTION_REGISTER);
 				break;
 			default:
 				// most dialogs do not need to be persistent. Kill them
 				// immediately
-				scheduleForDestruction(state, 3);
+				scheduleForDestruction(state, TIMEOUT_DESTRUCTION_OTHER);
 			}
 		}
 		
@@ -120,6 +127,7 @@ public class Dialog extends UntypedActor {
     				state.method, state.callId, seconds));
     	}
 		TimeoutMessage message = new TimeoutMessage();
+		message.setMethod(state.getMethod());
 		message.setTimeoutInMilliSeconds(TimeUnit.SECONDS.toMillis(seconds));
 		getSystem().getScheduler().scheduleOnce(getSelf(), message, getSelf(), 
 				seconds, TimeUnit.SECONDS);
@@ -258,7 +266,7 @@ public class Dialog extends UntypedActor {
         private final String username;
         private final String callId;
         private final String method;
-        private long lastUpdate;
+        private long lastUpdate = -1L;
 
         @JsonCreator
         public State(@JsonProperty("username") String username,
@@ -267,7 +275,6 @@ public class Dialog extends UntypedActor {
             this.username = username;
             this.callId = callId;
             this.method = method;
-            this.lastUpdate = System.currentTimeMillis();
         }
 
         @JsonProperty("username")
